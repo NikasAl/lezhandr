@@ -138,16 +138,49 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
             FilledButton(
               onPressed: () async {
                 if (controller.text.isNotEmpty) {
-                  await ref.read(epiphanyNotifierProvider.notifier).create(
+                  final epiphany = await ref.read(epiphanyNotifierProvider.notifier).create(
                     solutionId: widget.solutionId,
                     description: controller.text,
                     magnitude: magnitude,
                   );
+                  
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  
+                  // Offer to add image
+                  if (epiphany?.id != null) {
+                    final addImage = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Row(
+                          children: [
+                            Icon(Icons.lightbulb, color: Colors.amber),
+                            SizedBox(width: 8),
+                            Text('Озарение сохранено!'),
+                          ],
+                        ),
+                        content: const Text('Добавить схему/рисунок?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Нет'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => Navigator.pop(context, true),
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('Добавить фото'),
+                          ),
+                        ],
+                      ),
+                    );
+                    
+                    if (addImage == true && mounted) {
+                      context.push('/camera?category=epiphany&entityId=${epiphany!.id}');
+                    }
+                  }
+                } else {
+                  Navigator.pop(context);
                 }
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Озарение сохранено!')),
-                );
               },
               child: const Text('Сохранить'),
             ),
