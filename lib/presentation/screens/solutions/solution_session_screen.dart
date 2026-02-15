@@ -348,126 +348,175 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Завершение сессии',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Общее время: ${_formatDuration(_elapsed)}',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                const SizedBox(height: 24),
+                Text(
+                  'Завершение сессии',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Время сессии: ${_formatDuration(_elapsed)}',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                if (widget.existingMinutes > 0)
+                  Text(
+                    'Ранее: ${widget.existingMinutes.toStringAsFixed(0)} мин',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                const SizedBox(height: 24),
+
+                // Two options
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          // Just save session time, keep active
+                          await ref.read(solutionNotifierProvider.notifier).createSession(
+                                SessionCreate(
+                                  solutionId: widget.solutionId,
+                                  startTime: _startTime,
+                                  endTime: DateTime.now(),
+                                  duration: _elapsed.inMinutes.toDouble(),
+                                ),
+                              );
+                          if (mounted) {
+                            Navigator.pop(context);
+                            context.go('/main/home');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Сессия сохранена. Задача осталась активной.')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.pause),
+                        label: const Text('Продолжить позже'),
+                      ),
                     ),
-              ),
-              const SizedBox(height: 24),
-
-              // Difficulty
-              Text(
-                'Сложность',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(5, (i) {
-                  final value = i + 1;
-                  return ChoiceChip(
-                    label: Text('$value'),
-                    selected: _difficulty == value,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _difficulty = value);
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 16),
-
-              // Quality
-              Text(
-                'Качество решения',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Slider(
-                value: _quality,
-                min: 0.1,
-                max: 1.0,
-                divisions: 9,
-                label: _quality.toStringAsFixed(1),
-                onChanged: (value) => setState(() => _quality = value),
-              ),
-              const SizedBox(height: 16),
-
-              // Notes
-              TextField(
-                controller: _notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Заметки',
-                  hintText: 'Ваши мысли о задаче...',
+                  ],
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
-              // Finish button
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    final totalMinutes = widget.existingMinutes +
-                        _elapsed.inMinutes +
-                        _elapsed.inSeconds / 60;
+                // Finalize option
+                ExpansionTile(
+                  title: const Text('Завершить задачу'),
+                  subtitle: const Text('Указать сложность и качество'),
+                  childrenPadding: const EdgeInsets.only(top: 8, bottom: 16),
+                  children: [
+                    // Difficulty
+                    Row(
+                      children: [
+                        const Text('Сложность: '),
+                        ...List.generate(5, (i) {
+                          final value = i + 1;
+                          return IconButton(
+                            icon: Icon(
+                              Icons.star,
+                              color: _difficulty >= value ? Colors.amber : Colors.grey,
+                            ),
+                            onPressed: () => setModalState(() => _difficulty = value),
+                          );
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                    // Create session record
-                    await ref.read(solutionNotifierProvider.notifier).createSession(
-                          SessionCreate(
-                            solutionId: widget.solutionId,
-                            startTime: _startTime,
-                            endTime: DateTime.now(),
-                            duration: _elapsed.inMinutes.toDouble(),
+                    // Quality
+                    Row(
+                      children: [
+                        const Text('Качество:'),
+                        Expanded(
+                          child: Slider(
+                            value: _quality,
+                            min: 0.1,
+                            max: 1.0,
+                            divisions: 9,
+                            label: _quality.toStringAsFixed(1),
+                            onChanged: (value) => setModalState(() => _quality = value),
                           ),
-                        );
+                        ),
+                        Text(_quality.toStringAsFixed(1)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                    // Finish solution
-                    await ref.read(solutionNotifierProvider.notifier).finishSolution(
-                          widget.solutionId,
-                          status: 'completed',
-                          difficulty: _difficulty,
-                          quality: _quality,
-                          notes: _notesController.text,
-                        );
+                    // Notes
+                    TextField(
+                      controller: _notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Заметки',
+                        hintText: 'Ваши мысли о задаче...',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      context.go('/main/home');
-                    }
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Завершить'),
+                    // Finalize button
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          // Create session record
+                          await ref.read(solutionNotifierProvider.notifier).createSession(
+                                SessionCreate(
+                                  solutionId: widget.solutionId,
+                                  startTime: _startTime,
+                                  endTime: DateTime.now(),
+                                  duration: _elapsed.inMinutes.toDouble(),
+                                ),
+                              );
+
+                          // Finish solution
+                          final result = await ref.read(solutionNotifierProvider.notifier).finishSolution(
+                                widget.solutionId,
+                                status: 'completed',
+                                difficulty: _difficulty,
+                                quality: _quality,
+                                notes: _notesController.text,
+                              );
+
+                          if (mounted) {
+                            Navigator.pop(context);
+                            context.go('/main/home');
+                            if (result != null && result.xpEarned != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.flag),
+                        label: const Text('Завершить задачу'),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
