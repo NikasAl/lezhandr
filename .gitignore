@@ -1,0 +1,50 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock
+!pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.atom/
+.ob-jekyll/
+
+# Coverage
+coverage/
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Secrets and tokens
+.env
+.env.*
+*.token
+secrets/
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Uploads (if any local testing files)
+upload/
+download/

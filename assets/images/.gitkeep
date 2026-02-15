@@ -1,0 +1,8 @@
+# Assets
+
+This directory contains images and other assets for the Lezhandr app.
+
+## Structure
+
+- `images/` - Application images
+- `fonts/` - Custom fonts (JetBrainsMono for code)

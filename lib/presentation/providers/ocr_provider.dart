@@ -1,0 +1,205 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/models/artifacts.dart';
+import '../../data/repositories/uploads_repository.dart';
+import '../../data/repositories/concepts_repository.dart';
+import 'providers.dart';
+
+// ============ UPLOADS ============
+
+/// Upload notifier for image uploads
+final uploadNotifierProvider =
+    StateNotifierProvider<UploadNotifier, AsyncValue<UploadResult?>>((ref) {
+  return UploadNotifier(ref.watch(uploadsRepositoryProvider));
+});
+
+class UploadNotifier extends StateNotifier<AsyncValue<UploadResult?>> {
+  final UploadsRepository _repo;
+
+  UploadNotifier(this._repo) : super(const AsyncValue.data(null));
+
+  Future<UploadResult> uploadImage({
+    required String category,
+    required int entityId,
+    required String filePath,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.uploadImage(
+        category: category,
+        entityId: entityId,
+        filePath: filePath,
+      );
+      state = AsyncValue.data(result);
+      return result;
+    } catch (e, st) {
+      final result = UploadResult.error(e.toString());
+      state = AsyncValue.data(result);
+      return result;
+    }
+  }
+}
+
+// ============ OCR ============
+
+/// OCR state
+class OcrState {
+  final bool isLoading;
+  final String? text;
+  final String? error;
+  final PersonaId? lastPersona;
+
+  OcrState({
+    this.isLoading = false,
+    this.text,
+    this.error,
+    this.lastPersona,
+  });
+
+  OcrState copyWith({
+    bool? isLoading,
+    String? text,
+    String? error,
+    PersonaId? lastPersona,
+  }) {
+    return OcrState(
+      isLoading: isLoading ?? this.isLoading,
+      text: text ?? this.text,
+      error: error ?? this.error,
+      lastPersona: lastPersona ?? this.lastPersona,
+    );
+  }
+}
+
+/// OCR notifier
+final ocrNotifierProvider =
+    StateNotifierProvider<OcrNotifier, OcrState>((ref) {
+  return OcrNotifier(ref.watch(ocrRepositoryProvider));
+});
+
+class OcrNotifier extends StateNotifier<OcrState> {
+  final OcrRepository _repo;
+
+  OcrNotifier(this._repo) : super(OcrState());
+
+  Future<OcrResult> processProblem({
+    required int problemId,
+    PersonaId persona = PersonaId.petrovich,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final result = await _repo.processProblemImage(
+        problemId: problemId,
+        persona: persona,
+      );
+      state = state.copyWith(
+        isLoading: false,
+        text: result.text,
+        error: result.error,
+        lastPersona: persona,
+      );
+      return result;
+    } catch (e) {
+      final result = OcrResult.error(e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error,
+      );
+      return result;
+    }
+  }
+
+  Future<OcrResult> processSolution({
+    required int solutionId,
+    PersonaId persona = PersonaId.petrovich,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final result = await _repo.processSolutionImage(
+        solutionId: solutionId,
+        persona: persona,
+      );
+      state = state.copyWith(
+        isLoading: false,
+        text: result.text,
+        error: result.error,
+        lastPersona: persona,
+      );
+      return result;
+    } catch (e) {
+      final result = OcrResult.error(e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error,
+      );
+      return result;
+    }
+  }
+
+  void clear() {
+    state = OcrState();
+  }
+}
+
+// ============ CONCEPTS ============
+
+/// Problem concepts (Knowledge Map)
+final problemConceptsProvider =
+    FutureProvider.family<List<ProblemConceptModel>, int>((ref, problemId) {
+  final repo = ref.watch(conceptsRepositoryProvider);
+  return repo.analyzeProblem(problemId: problemId);
+});
+
+/// Solution concepts (Skill Trace)
+final solutionConceptsProvider =
+    FutureProvider.family<List<SolutionConceptModel>, int>((ref, solutionId) {
+  final repo = ref.watch(conceptsRepositoryProvider);
+  return repo.analyzeSolution(solutionId: solutionId);
+});
+
+/// Concepts analysis notifier
+final conceptsNotifierProvider =
+    StateNotifierProvider<ConceptsNotifier, AsyncValue<void>>((ref) {
+  return ConceptsNotifier(ref.watch(conceptsRepositoryProvider));
+});
+
+class ConceptsNotifier extends StateNotifier<AsyncValue<void>> {
+  final ConceptsRepository _repo;
+
+  ConceptsNotifier(this._repo) : super(const AsyncValue.data(null));
+
+  Future<List<ProblemConceptModel>> analyzeProblem({
+    required int problemId,
+    PersonaId persona = PersonaId.legendre,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.analyzeProblem(
+        problemId: problemId,
+        persona: persona,
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return [];
+    }
+  }
+
+  Future<List<SolutionConceptModel>> analyzeSolution({
+    required int solutionId,
+    PersonaId persona = PersonaId.legendre,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.analyzeSolution(
+        solutionId: solutionId,
+        persona: persona,
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return [];
+    }
+  }
+}
