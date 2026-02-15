@@ -13,6 +13,7 @@ import '../../providers/ocr_provider.dart';
 import '../../providers/gamification_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/markdown_with_math.dart';
 
 /// Solution session screen - interactive solving session
 class SolutionSessionScreen extends ConsumerStatefulWidget {
@@ -144,13 +145,13 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                     description: controller.text,
                     magnitude: magnitude,
                   );
-                  
+
                   if (!mounted) return;
                   Navigator.pop(context);
-                  
+
                   // Refresh list
                   ref.invalidate(epiphaniesProvider(widget.solutionId));
-                  
+
                   // Offer to add image
                   if (epiphany?.id != null) {
                     final addImage = await showDialog<bool>(
@@ -177,7 +178,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                         ],
                       ),
                     );
-                    
+
                     if (addImage == true && mounted) {
                       context.push('/camera?category=epiphany&entityId=${epiphany!.id}');
                     }
@@ -228,10 +229,10 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                 );
                 if (!mounted) return;
                 Navigator.pop(context);
-                
+
                 // Refresh list
                 ref.invalidate(questionsProvider(widget.solutionId));
-                
+
                 // Offer to add image
                 if (question?.id != null && mounted) {
                   final addImage = await showDialog<bool>(
@@ -252,7 +253,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                       ],
                     ),
                   );
-                  
+
                   if (addImage == true && mounted) {
                     context.push('/camera?category=question&entityId=${question!.id}');
                   }
@@ -268,9 +269,178 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     );
   }
 
+  /// Show question detail dialog with answer and AI option
+  void _showQuestionDetailDialog(QuestionModel question) {
+    final answerController = TextEditingController(text: question.answer ?? '');
+    bool isGenerating = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                question.hasAnswer ? Icons.check_circle : Icons.help,
+                color: question.hasAnswer ? Colors.green : Colors.blue,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Вопрос', overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Question text
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: MarkdownWithMath(
+                      text: question.body ?? '',
+                      textStyle: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Answer section
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.answer,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ответ',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (question.hasAnswer)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: MarkdownWithMath(
+                        text: question.answer!,
+                        textStyle: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Ответ пока нет',
+                            style: TextStyle(color: Colors.orange[700]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+
+                  // Manual answer input
+                  TextField(
+                    controller: answerController,
+                    decoration: const InputDecoration(
+                      labelText: 'Ваш ответ',
+                      hintText: 'Введите ответ вручную...',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Закрыть'),
+            ),
+            if (!question.hasAnswer || answerController.text.isNotEmpty)
+              TextButton.icon(
+                onPressed: isGenerating
+                    ? null
+                    : () async {
+                        setDialogState(() => isGenerating = true);
+                        final persona = await showPersonaSheet(
+                          context,
+                          defaultPersona: PersonaId.basis,
+                        );
+                        if (persona != null && question.id != null) {
+                          final result = await ref
+                              .read(questionNotifierProvider.notifier)
+                              .generateAnswer(
+                                questionId: question.id!,
+                                persona: persona,
+                              );
+                          if (result != null && mounted) {
+                            Navigator.pop(context);
+                            ref.invalidate(questionsProvider(widget.solutionId));
+                            // Show the generated answer
+                            _showQuestionDetailDialog(result);
+                          }
+                        }
+                        setDialogState(() => isGenerating = false);
+                      },
+                icon: isGenerating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome),
+                label: Text(isGenerating ? 'Генерация...' : 'Спросить AI'),
+              ),
+            FilledButton(
+              onPressed: answerController.text.isEmpty
+                  ? null
+                  : () async {
+                      final success = await ref
+                          .read(questionNotifierProvider.notifier)
+                          .answer(question.id!, answerController.text);
+                      if (success && mounted) {
+                        Navigator.pop(context);
+                        ref.invalidate(questionsProvider(widget.solutionId));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Ответ сохранён')),
+                        );
+                      }
+                    },
+              child: const Text('Сохранить ответ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showHintDialog() async {
     final notesController = TextEditingController();
-    
+
     // First dialog: get user notes
     final confirmed = await showDialog<bool>(
       context: context,
@@ -302,18 +472,18 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
         ],
       ),
     );
-    
+
     if (confirmed != true) return;
-    
+
     // Create hint draft
     final hint = await ref.read(hintNotifierProvider.notifier).createDraft(
-      solutionId: widget.solutionId,
-      userNotes: notesController.text,
-    );
-    
+          solutionId: widget.solutionId,
+          userNotes: notesController.text,
+        );
+
     // Refresh list
     ref.invalidate(hintsProvider(widget.solutionId));
-    
+
     if (hint == null || hint.id == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -322,7 +492,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
       }
       return;
     }
-    
+
     // Offer to add image
     if (mounted) {
       final addImage = await showDialog<bool>(
@@ -343,65 +513,213 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           ],
         ),
       );
-      
+
       if (addImage == true && mounted) {
         context.push('/camera?category=hint&entityId=${hint.id}');
       }
     }
-    
+
     // Second dialog: select persona
     if (mounted) {
       final persona = await showPersonaSheet(
         context,
         defaultPersona: PersonaId.basis,
       );
-      
+
       if (persona != null) {
         // Generate hint with selected persona
         final result = await ref.read(hintNotifierProvider.notifier).generate(
-          hintId: hint.id!,
-          persona: persona,
-        );
-        
+              hintId: hint.id!,
+              persona: persona,
+            );
+
         // Refresh list after generation
         ref.invalidate(hintsProvider(widget.solutionId));
-        
+
         if (mounted) {
           if (result != null && result.hintText != null) {
-            _showHintResultDialog(result.hintText!);
+            _showHintDetailDialog(result);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Не удалось получить подсказку. Проверьте баланс.')),
+              const SnackBar(
+                  content: Text('Не удалось получить подсказку. Проверьте баланс.')),
             );
           }
         }
       }
     }
   }
-  
-  void _showHintResultDialog(String hintText) {
+
+  /// Show hint detail dialog with full text and edit option
+  void _showHintDetailDialog(HintModel hint) {
+    final editController = TextEditingController(text: hint.hintText ?? '');
+    bool isEditing = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.auto_awesome, color: Colors.purple),
-            SizedBox(width: 8),
-            Text('Подсказка'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                hint.isCompleted ? Icons.check_circle : Icons.hourglass_empty,
+                color: hint.isCompleted ? Colors.green : Colors.orange,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Подсказка', overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User notes
+                  if (hint.userNotes != null && hint.userNotes!.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.note_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Ваши заметки',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(hint.userNotes!),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // AI model info
+                  if (hint.aiModel != null) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.smart_toy_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'AI: ${hint.aiModel}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Hint text
+                  if (hint.hasHint) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 18,
+                          color: Colors.purple,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Ответ AI',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    isEditing
+                        ? TextField(
+                            controller: editController,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Текст подсказки...',
+                            ),
+                            maxLines: 6,
+                          )
+                        : Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                            ),
+                            child: MarkdownWithMath(
+                              text: hint.hintText!,
+                              textStyle: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.hourglass_empty, color: Colors.orange[700], size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Подсказка ещё не сгенерирована',
+                            style: TextStyle(color: Colors.orange[700]),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Закрыть'),
+            ),
+            if (hint.hasHint)
+              TextButton.icon(
+                onPressed: () {
+                  setDialogState(() => isEditing = !isEditing);
+                },
+                icon: Icon(isEditing ? Icons.visibility : Icons.edit_outlined),
+                label: Text(isEditing ? 'Просмотр' : 'Редактировать'),
+              ),
+            if (isEditing)
+              FilledButton(
+                onPressed: () async {
+                  final success = await ref
+                      .read(hintNotifierProvider.notifier)
+                      .updateText(hint.id!, editController.text);
+                  if (success && mounted) {
+                    Navigator.pop(context);
+                    ref.invalidate(hintsProvider(widget.solutionId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Подсказка обновлена')),
+                    );
+                  }
+                },
+                child: const Text('Сохранить'),
+              ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            hintText,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-        ],
       ),
     );
   }
@@ -468,7 +786,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () async {
                           // Just save session time, keep active
-                          await ref.read(solutionNotifierProvider.notifier).createSession(
+                          await ref
+                              .read(solutionNotifierProvider.notifier)
+                              .createSession(
                                 SessionCreate(
                                   solutionId: widget.solutionId,
                                   startTime: _startTime,
@@ -481,7 +801,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                             Navigator.pop(context);
                             context.go('/main/home');
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Сессия сохранена. Задача осталась активной.')),
+                              const SnackBar(
+                                  content:
+                                      Text('Сессия сохранена. Задача осталась активной.')),
                             );
                           }
                         },
@@ -553,7 +875,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                       child: FilledButton.icon(
                         onPressed: () async {
                           // Create session record
-                          await ref.read(solutionNotifierProvider.notifier).createSession(
+                          await ref
+                              .read(solutionNotifierProvider.notifier)
+                              .createSession(
                                 SessionCreate(
                                   solutionId: widget.solutionId,
                                   startTime: _startTime,
@@ -563,7 +887,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                               );
 
                           // Finish solution
-                          final result = await ref.read(solutionNotifierProvider.notifier).finishSolution(
+                          final result = await ref
+                              .read(solutionNotifierProvider.notifier)
+                              .finishSolution(
                                 widget.solutionId,
                                 status: 'completed',
                                 difficulty: _difficulty,
@@ -577,7 +903,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                             context.go('/main/home');
                             if (result != null && result.xpEarned != null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}')),
+                                SnackBar(
+                                    content:
+                                        Text('🏆 Задача выполнена! XP: ${result.xpEarned}')),
                               );
                             }
                           }
@@ -665,37 +993,42 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               // Problem info
               if (data?.problem != null) ...[
                 Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.description_outlined),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                data!.problem!.displayTitle,
-                                style:
-                                    Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text(
-                                'Нажмите для просмотра условия',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
+                  child: InkWell(
+                    onTap: () {
+                      context.push('/problems/${data!.problem!.id}');
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.description_outlined),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  data!.problem!.displayTitle,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                                Text(
+                                  'Нажмите для просмотра условия',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const Icon(Icons.chevron_right),
-                      ],
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -720,11 +1053,13 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               _QuestionsSection(
                 solutionId: widget.solutionId,
                 onAdd: _showQuestionDialog,
+                onQuestionTap: _showQuestionDetailDialog,
               ),
               const SizedBox(height: 8),
               _HintsSection(
                 solutionId: widget.solutionId,
                 onAdd: _showHintDialog,
+                onHintTap: _showHintDetailDialog,
               ),
               const SizedBox(height: 16),
 
@@ -736,7 +1071,8 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                   subtitle: const Text('Зафиксировать результат'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    context.push('/camera?category=solution&entityId=${widget.solutionId}');
+                    context.push(
+                        '/camera?category=solution&entityId=${widget.solutionId}');
                   },
                 ),
               ),
@@ -788,43 +1124,6 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ============ EPIPHANIES SECTION ============
 
 class _EpiphaniesSection extends ConsumerWidget {
@@ -865,15 +1164,20 @@ class _EpiphaniesSection extends ConsumerWidget {
                 );
               }
               return Column(
-                children: list.map((e) => _EpiphanyTile(
-                  epiphany: e,
-                  solutionId: solutionId,
-                )).toList(),
+                children: list
+                    .map((e) => _EpiphanyTile(
+                          epiphany: e,
+                          solutionId: solutionId,
+                        ))
+                    .toList(),
               );
             },
             loading: () => const Padding(
               padding: EdgeInsets.all(8),
-              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
             ),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -899,9 +1203,9 @@ class _EpiphanyTile extends StatelessWidget {
       leading: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ...List.generate(epiphany.magnitude ?? 1, (i) =>
-            const Icon(Icons.star, size: 14, color: Colors.amber),
-          ),
+          ...List.generate(
+              epiphany.magnitude ?? 1,
+              (i) => const Icon(Icons.star, size: 14, color: Colors.amber)),
         ],
       ),
       title: Text(
@@ -925,10 +1229,12 @@ class _EpiphanyTile extends StatelessWidget {
 class _QuestionsSection extends ConsumerWidget {
   final int solutionId;
   final VoidCallback onAdd;
+  final void Function(QuestionModel) onQuestionTap;
 
   const _QuestionsSection({
     required this.solutionId,
     required this.onAdd,
+    required this.onQuestionTap,
   });
 
   @override
@@ -960,15 +1266,21 @@ class _QuestionsSection extends ConsumerWidget {
                 );
               }
               return Column(
-                children: list.map((q) => _QuestionTile(
-                  question: q,
-                  solutionId: solutionId,
-                )).toList(),
+                children: list
+                    .map((q) => _QuestionTile(
+                          question: q,
+                          solutionId: solutionId,
+                          onTap: () => onQuestionTap(q),
+                        ))
+                    .toList(),
               );
             },
             loading: () => const Padding(
               padding: EdgeInsets.all(8),
-              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
             ),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -981,10 +1293,12 @@ class _QuestionsSection extends ConsumerWidget {
 class _QuestionTile extends StatelessWidget {
   final QuestionModel question;
   final int solutionId;
+  final VoidCallback onTap;
 
   const _QuestionTile({
     required this.question,
     required this.solutionId,
+    required this.onTap,
   });
 
   @override
@@ -1001,13 +1315,31 @@ class _QuestionTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.camera_alt_outlined, size: 20),
-        tooltip: 'Добавить фото',
-        onPressed: () {
-          context.push('/camera?category=question&entityId=${question.id}');
-        },
+      subtitle: question.hasAnswer
+          ? Text(
+              '${question.answer!.length > 40 ? question.answer!.substring(0, 40) + '...' : question.answer!}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.green[700],
+                fontSize: 12,
+              ),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.camera_alt_outlined, size: 20),
+            tooltip: 'Добавить фото',
+            onPressed: () {
+              context.push('/camera?category=question&entityId=${question.id}');
+            },
+          ),
+          const Icon(Icons.chevron_right, size: 20),
+        ],
       ),
+      onTap: onTap,
     );
   }
 }
@@ -1017,10 +1349,12 @@ class _QuestionTile extends StatelessWidget {
 class _HintsSection extends ConsumerWidget {
   final int solutionId;
   final VoidCallback onAdd;
+  final void Function(HintModel) onHintTap;
 
   const _HintsSection({
     required this.solutionId,
     required this.onAdd,
+    required this.onHintTap,
   });
 
   @override
@@ -1031,7 +1365,8 @@ class _HintsSection extends ConsumerWidget {
       child: Column(
         children: [
           ListTile(
-            leading: const Icon(Icons.tips_and_updates_outlined, color: Colors.purple),
+            leading:
+                const Icon(Icons.tips_and_updates_outlined, color: Colors.purple),
             title: const Text('Подсказки'),
             trailing: IconButton(
               icon: const Icon(Icons.add),
@@ -1052,15 +1387,21 @@ class _HintsSection extends ConsumerWidget {
                 );
               }
               return Column(
-                children: list.map((h) => _HintTile(
-                  hint: h,
-                  solutionId: solutionId,
-                )).toList(),
+                children: list
+                    .map((h) => _HintTile(
+                          hint: h,
+                          solutionId: solutionId,
+                          onTap: () => onHintTap(h),
+                        ))
+                    .toList(),
               );
             },
             loading: () => const Padding(
               padding: EdgeInsets.all(8),
-              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
             ),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -1073,10 +1414,12 @@ class _HintsSection extends ConsumerWidget {
 class _HintTile extends StatelessWidget {
   final HintModel hint;
   final int solutionId;
+  final VoidCallback onTap;
 
   const _HintTile({
     required this.hint,
     required this.solutionId,
+    required this.onTap,
   });
 
   @override
@@ -1093,13 +1436,31 @@ class _HintTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.camera_alt_outlined, size: 20),
-        tooltip: 'Добавить фото',
-        onPressed: () {
-          context.push('/camera?category=hint&entityId=${hint.id}');
-        },
+      subtitle: hint.hasHint
+          ? Text(
+              '${hint.hintText!.length > 40 ? hint.hintText!.substring(0, 40) + '...' : hint.hintText!}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.purple[700],
+                fontSize: 12,
+              ),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.camera_alt_outlined, size: 20),
+            tooltip: 'Добавить фото',
+            onPressed: () {
+              context.push('/camera?category=hint&entityId=${hint.id}');
+            },
+          ),
+          const Icon(Icons.chevron_right, size: 20),
+        ],
       ),
+      onTap: onTap,
     );
   }
 }

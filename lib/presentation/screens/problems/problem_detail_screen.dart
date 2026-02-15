@@ -6,6 +6,7 @@ import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/markdown_with_math.dart';
 
 /// Problem detail screen
 class ProblemDetailScreen extends ConsumerStatefulWidget {
@@ -154,14 +155,14 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                       ),
                       const SizedBox(height: 12),
                       if (data.hasText)
-                        SelectableText(
-                          data.conditionText!,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        MarkdownWithMath(
+                          text: data.conditionText!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
                         )
                       else if (_ocrText != null)
-                        SelectableText(
-                          _ocrText!,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        MarkdownWithMath(
+                          text: _ocrText!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
                         )
                       else if (data.hasImage)
                         GestureDetector(
