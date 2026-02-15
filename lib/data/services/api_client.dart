@@ -73,6 +73,11 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // Don't auto-refresh for auth endpoints - let auth errors propagate
+    if (_isAuthEndpoint(err.requestOptions.path)) {
+      return handler.next(err);
+    }
+
     if (err.response?.statusCode == 401) {
       // Try to refresh token via device login
       final success = await _refreshToken();
