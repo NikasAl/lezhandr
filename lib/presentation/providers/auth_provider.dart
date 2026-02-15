@@ -7,12 +7,14 @@ import 'providers.dart';
 class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
+  final bool showLoginScreen; // New: indicate if login screen should be shown
   final UserModel? user;
   final String? error;
 
   const AuthState({
     this.isLoading = false,
     this.isAuthenticated = false,
+    this.showLoginScreen = false,
     this.user,
     this.error,
   });
@@ -20,14 +22,18 @@ class AuthState {
   AuthState copyWith({
     bool? isLoading,
     bool? isAuthenticated,
+    bool? showLoginScreen,
     UserModel? user,
     String? error,
+    bool clearUser = false,
+    bool clearError = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      user: user ?? this.user,
-      error: error,
+      showLoginScreen: showLoginScreen ?? this.showLoginScreen,
+      user: clearUser ? null : (user ?? this.user),
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -42,33 +48,41 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Check if user is authenticated
   Future<void> checkAuth() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final isAuth = await _authRepository.isAuthenticated();
 
       if (isAuth) {
-        final user = await _authRepository.getMe();
-        state = AuthState(
-          isAuthenticated: true,
-          user: user,
-        );
+        // Try to get user profile with existing token
+        try {
+          final user = await _authRepository.getMe();
+          state = AuthState(
+            isAuthenticated: true,
+            user: user,
+          );
+        } catch (e) {
+          // Token expired or invalid - show login screen
+          state = const AuthState(showLoginScreen: true);
+        }
       } else {
-        // Try device login
-        await deviceLogin();
+        // No token - show login screen
+        state = const AuthState(showLoginScreen: true);
       }
     } catch (e) {
-      // Try device login on error
-      await deviceLogin();
+      state = AuthState(
+        showLoginScreen: true,
+        error: e.toString(),
+      );
     }
   }
 
-  /// Device login
+  /// Device login (create new anonymous account)
   Future<bool> deviceLogin() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final response = await _authRepository.deviceLogin();
+      await _authRepository.deviceLogin();
 
       // Get user profile
       UserModel? user;
@@ -84,19 +98,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       state = AuthState(
+        showLoginScreen: true,
         error: e.toString(),
       );
       return false;
     }
   }
 
-  /// Login with email and password
-  Future<bool> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+  /// Login with email/username and password
+  Future<bool> login(String emailOrUsername, String password) async {
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final response = await _authRepository.login(
-        email: email,
+      await _authRepository.login(
+        email: emailOrUsername,
         password: password,
       );
 
@@ -114,6 +129,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       state = state.copyWith(
+        showLoginScreen: true,
         error: e.toString(),
       );
       return false;
@@ -126,7 +142,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     required String username,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final user = await _authRepository.convertAccount(
@@ -135,15 +151,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         username: username,
       );
 
-      state = state.copyWith(
-        user: user,
-      );
+      state = state.copyWith(user: user);
 
       return true;
     } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
+      state = state.copyWith(error: e.toString());
       return false;
     }
   }
@@ -151,7 +163,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Logout
   Future<void> logout() async {
     await _authRepository.logout();
-    state = const AuthState();
+    state = const AuthState(showLoginScreen: true);
   }
 
   /// Refresh user data
@@ -160,6 +172,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _authRepository.getMe();
       state = state.copyWith(user: user);
     } catch (_) {}
+  }
+  
+  /// Clear error
+  void clearError() {
+    state = state.copyWith(clearError: true);
   }
 }
 

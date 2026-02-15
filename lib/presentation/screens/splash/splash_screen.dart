@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 
 /// Splash screen - checks authentication and redirects
@@ -57,10 +56,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
 
-    // Redirect when authenticated
+    // Redirect to login or home based on auth state
     ref.listen<AuthState>(authStateProvider, (previous, next) {
       if (next.isAuthenticated) {
         context.go('/main/home');
+      } else if (next.showLoginScreen) {
+        context.go('/login');
       }
     });
 
@@ -118,7 +119,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     ),
                     const SizedBox(height: 48),
                     // Loading indicator
-                    if (authState.isLoading || !authState.isAuthenticated)
+                    if (authState.isLoading)
                       Column(
                         children: [
                           const SizedBox(
@@ -139,12 +140,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ],
                       ),
                     // Error display
-                    if (authState.error != null) ...[
+                    if (authState.error != null && !authState.showLoginScreen) ...[
                       const SizedBox(height: 24),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
-                          'Ошибка подключения',
+                          'Ошибка подключения к серверу',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Colors.white.withOpacity(0.9),
                               ),
@@ -154,7 +155,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       const SizedBox(height: 16),
                       FilledButton.tonal(
                         onPressed: () {
-                          ref.read(authStateProvider.notifier).deviceLogin();
+                          ref.read(authStateProvider.notifier).checkAuth();
                         },
                         child: const Text('Повторить'),
                       ),

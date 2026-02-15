@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../presentation/screens/splash/splash_screen.dart';
+import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/main_menu/main_shell.dart';
 import '../../presentation/screens/main_menu/home_screen.dart';
 import '../../presentation/screens/library/library_screen.dart';
@@ -21,18 +22,30 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     initialLocation: '/',
 
-    // Redirect to splash if not authenticated
+    // Redirect based on auth state
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
+      final showLoginScreen = authState.showLoginScreen;
+      final isLoading = authState.isLoading;
+      
       final isSplash = state.matchedLocation == '/';
-      final isAuthRoute = state.matchedLocation.startsWith('/auth');
+      final isLogin = state.matchedLocation == '/login';
 
-      if (!isAuthenticated && !isSplash && !isAuthRoute) {
-        return '/';
+      // Still loading - stay on splash
+      if (isLoading && !isAuthenticated && !showLoginScreen) {
+        return isSplash ? null : '/';
       }
 
-      if (isAuthenticated && isSplash) {
-        return '/main/home';
+      // Not authenticated and should show login
+      if (!isAuthenticated && showLoginScreen) {
+        return isLogin ? null : '/login';
+      }
+
+      // Authenticated - redirect away from splash/login
+      if (isAuthenticated) {
+        if (isSplash || isLogin) {
+          return '/main/home';
+        }
       }
 
       return null;
@@ -44,6 +57,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Login Screen
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
       ),
 
       // Main Shell with Bottom Navigation
