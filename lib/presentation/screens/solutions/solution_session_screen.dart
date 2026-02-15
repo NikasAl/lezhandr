@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/motivation/motivation_engine.dart';
+import '../../../core/motivation/motivation_models.dart';
 import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/solutions_provider.dart';
