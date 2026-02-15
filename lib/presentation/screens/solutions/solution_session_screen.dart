@@ -10,6 +10,7 @@ import '../../../data/models/artifacts.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/gamification_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/persona_selector.dart';
 
@@ -341,6 +342,12 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     );
   }
 
+  void _refreshHomeData() {
+    // Invalidate providers to refresh home screen data
+    ref.invalidate(activeSolutionsProvider);
+    ref.invalidate(gamificationMeProvider);
+  }
+
   void _finishSession() {
     setState(() => _isFinished = true);
     _timer?.cancel();
@@ -406,6 +413,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                                 ),
                               );
                           if (mounted) {
+                            _refreshHomeData();
                             Navigator.pop(context);
                             context.go('/main/home');
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -500,6 +508,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                               );
 
                           if (mounted) {
+                            _refreshHomeData();
                             Navigator.pop(context);
                             context.go('/main/home');
                             if (result != null && result.xpEarned != null) {
