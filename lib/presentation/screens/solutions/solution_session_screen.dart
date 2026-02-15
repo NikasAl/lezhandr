@@ -38,6 +38,11 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
   double _quality = 1.0;
   final _notesController = TextEditingController();
 
+  // Motivation caching
+  final MotivationEngine _motivationEngine = MotivationEngine();
+  MotivationText? _cachedMotivation;
+  int _lastMotivationMinute = -1;
+
   @override
   void initState() {
     super.initState();
@@ -64,12 +69,21 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
 
   String _formatDuration(Duration d) {
     final hours = d.inHours;
-    final minutes = d.inMinutes.remainder(60);
-    final seconds = d.inSeconds.remainder(60);
+    final minutes = d.inMinutes;
     if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      final mins = minutes.remainder(60);
+      return '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}';
     }
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes мин';
+  }
+
+  MotivationText? _getMotivation() {
+    final currentMinute = _elapsed.inMinutes;
+    if (_cachedMotivation == null || currentMinute != _lastMotivationMinute) {
+      _cachedMotivation = _motivationEngine.getSessionStartText();
+      _lastMotivationMinute = currentMinute;
+    }
+    return _cachedMotivation;
   }
 
   void _showEpiphanyDialog() {
@@ -429,10 +443,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final solution = ref.watch(solutionProvider(widget.solutionId));
-    final motivationEngine = MotivationEngine();
 
-    // Get motivation for session
-    final motivation = motivationEngine.getSessionStartText();
+    // Get motivation for session (cached, changes once per minute)
+    final motivation = _getMotivation();
 
     return Scaffold(
       appBar: AppBar(
