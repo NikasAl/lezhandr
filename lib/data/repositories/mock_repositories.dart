@@ -138,8 +138,5 @@ class MockData {
         streakCurrent: 7,
         streakMax: 14,
         solvedTasksToday: 3,
-        solvedTasksTotal: 45,
-        level: 5,
-        xpToNextLevel: 750.0,
       );
 }

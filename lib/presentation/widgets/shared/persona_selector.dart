@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/models/artifacts.dart';
+import '../../../data/models/artifacts.dart';
 
 /// Persona selection widget
 class PersonaSelector extends StatelessWidget {
