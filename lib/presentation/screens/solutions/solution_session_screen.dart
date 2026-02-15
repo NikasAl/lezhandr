@@ -315,7 +315,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                   Row(
                     children: [
                       Icon(
-                        Icons.answer,
+                        Icons.reply,
                         size: 20,
                         color: Theme.of(context).colorScheme.primary,
                       ),
