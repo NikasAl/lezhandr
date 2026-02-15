@@ -148,6 +148,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                   if (!mounted) return;
                   Navigator.pop(context);
                   
+                  // Refresh list
+                  ref.invalidate(epiphaniesProvider(widget.solutionId));
+                  
                   // Offer to add image
                   if (epiphany?.id != null) {
                     final addImage = await showDialog<bool>(
@@ -219,15 +222,44 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           FilledButton(
             onPressed: () async {
               if (controller.text.isNotEmpty) {
-                await ref.read(questionNotifierProvider.notifier).create(
+                final question = await ref.read(questionNotifierProvider.notifier).create(
                   solutionId: widget.solutionId,
                   body: controller.text,
                 );
+                if (!mounted) return;
+                Navigator.pop(context);
+                
+                // Refresh list
+                ref.invalidate(questionsProvider(widget.solutionId));
+                
+                // Offer to add image
+                if (question?.id != null && mounted) {
+                  final addImage = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Вопрос сохранён!'),
+                      content: const Text('Добавить фото контекста?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Нет'),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => Navigator.pop(context, true),
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Добавить фото'),
+                        ),
+                      ],
+                    ),
+                  );
+                  
+                  if (addImage == true && mounted) {
+                    context.push('/camera?category=question&entityId=${question!.id}');
+                  }
+                }
+              } else {
+                Navigator.pop(context);
               }
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Вопрос сохранён!')),
-              );
             },
             child: const Text('Сохранить'),
           ),
@@ -279,6 +311,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
       userNotes: notesController.text,
     );
     
+    // Refresh list
+    ref.invalidate(hintsProvider(widget.solutionId));
+    
     if (hint == null || hint.id == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -286,6 +321,32 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
         );
       }
       return;
+    }
+    
+    // Offer to add image
+    if (mounted) {
+      final addImage = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Запрос создан'),
+          content: const Text('Добавить фото контекста?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Нет'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Добавить фото'),
+            ),
+          ],
+        ),
+      );
+      
+      if (addImage == true && mounted) {
+        context.push('/camera?category=hint&entityId=${hint.id}');
+      }
     }
     
     // Second dialog: select persona
@@ -301,6 +362,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           hintId: hint.id!,
           persona: persona,
         );
+        
+        // Refresh list after generation
+        ref.invalidate(hintsProvider(widget.solutionId));
         
         if (mounted) {
           if (result != null && result.hintText != null) {
@@ -647,52 +711,34 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // Quick actions
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.lightbulb_outline,
-                      label: 'Озарение',
-                      color: Colors.amber,
-                      onTap: _showEpiphanyDialog,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.help_outline,
-                      label: 'Вопрос',
-                      color: Colors.blue,
-                      onTap: _showQuestionDialog,
-                    ),
-                  ),
-                ],
+              // Existing artifacts sections
+              _EpiphaniesSection(
+                solutionId: widget.solutionId,
+                onAdd: _showEpiphanyDialog,
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.tips_and_updates_outlined,
-                      label: 'Подсказка',
-                      color: Colors.purple,
-                      onTap: _showHintDialog,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.camera_alt_outlined,
-                      label: 'Фото решения',
-                      color: Colors.teal,
-                      onTap: () {
-                        context.push(
-                            '/camera?category=solution&entityId=${widget.solutionId}');
-                      },
-                    ),
-                  ),
-                ],
+              _QuestionsSection(
+                solutionId: widget.solutionId,
+                onAdd: _showQuestionDialog,
+              ),
+              const SizedBox(height: 8),
+              _HintsSection(
+                solutionId: widget.solutionId,
+                onAdd: _showHintDialog,
+              ),
+              const SizedBox(height: 16),
+
+              // Photo for solution
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
+                  title: const Text('Фото решения'),
+                  subtitle: const Text('Зафиксировать результат'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.push('/camera?category=solution&entityId=${widget.solutionId}');
+                  },
+                ),
               ),
             ],
           ),
@@ -774,6 +820,285 @@ class _ActionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ============ EPIPHANIES SECTION ============
+
+class _EpiphaniesSection extends ConsumerWidget {
+  final int solutionId;
+  final VoidCallback onAdd;
+
+  const _EpiphaniesSection({
+    required this.solutionId,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final epiphanies = ref.watch(epiphaniesProvider(solutionId));
+
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
+            title: const Text('Озарения'),
+            trailing: IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: onAdd,
+            ),
+          ),
+          epiphanies.when(
+            data: (list) {
+              if (list.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Пока нет озарений',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              }
+              return Column(
+                children: list.map((e) => _EpiphanyTile(
+                  epiphany: e,
+                  solutionId: solutionId,
+                )).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EpiphanyTile extends StatelessWidget {
+  final EpiphanyModel epiphany;
+  final int solutionId;
+
+  const _EpiphanyTile({
+    required this.epiphany,
+    required this.solutionId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(epiphany.magnitude ?? 1, (i) =>
+            const Icon(Icons.star, size: 14, color: Colors.amber),
+          ),
+        ],
+      ),
+      title: Text(
+        epiphany.description ?? '',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+        tooltip: 'Добавить фото',
+        onPressed: () {
+          context.push('/camera?category=epiphany&entityId=${epiphany.id}');
+        },
+      ),
+    );
+  }
+}
+
+// ============ QUESTIONS SECTION ============
+
+class _QuestionsSection extends ConsumerWidget {
+  final int solutionId;
+  final VoidCallback onAdd;
+
+  const _QuestionsSection({
+    required this.solutionId,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final questions = ref.watch(questionsProvider(solutionId));
+
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.help_outline, color: Colors.blue),
+            title: const Text('Вопросы'),
+            trailing: IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: onAdd,
+            ),
+          ),
+          questions.when(
+            data: (list) {
+              if (list.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Пока нет вопросов',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              }
+              return Column(
+                children: list.map((q) => _QuestionTile(
+                  question: q,
+                  solutionId: solutionId,
+                )).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestionTile extends StatelessWidget {
+  final QuestionModel question;
+  final int solutionId;
+
+  const _QuestionTile({
+    required this.question,
+    required this.solutionId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        question.hasAnswer ? Icons.check_circle : Icons.help,
+        size: 20,
+        color: question.hasAnswer ? Colors.green : Colors.grey,
+      ),
+      title: Text(
+        question.body ?? '',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+        tooltip: 'Добавить фото',
+        onPressed: () {
+          context.push('/camera?category=question&entityId=${question.id}');
+        },
+      ),
+    );
+  }
+}
+
+// ============ HINTS SECTION ============
+
+class _HintsSection extends ConsumerWidget {
+  final int solutionId;
+  final VoidCallback onAdd;
+
+  const _HintsSection({
+    required this.solutionId,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hints = ref.watch(hintsProvider(solutionId));
+
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.tips_and_updates_outlined, color: Colors.purple),
+            title: const Text('Подсказки'),
+            trailing: IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: onAdd,
+            ),
+          ),
+          hints.when(
+            data: (list) {
+              if (list.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Пока нет подсказок',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              }
+              return Column(
+                children: list.map((h) => _HintTile(
+                  hint: h,
+                  solutionId: solutionId,
+                )).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HintTile extends StatelessWidget {
+  final HintModel hint;
+  final int solutionId;
+
+  const _HintTile({
+    required this.hint,
+    required this.solutionId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        hint.isCompleted ? Icons.check_circle : Icons.hourglass_empty,
+        size: 20,
+        color: hint.isCompleted ? Colors.green : Colors.grey,
+      ),
+      title: Text(
+        hint.userNotes ?? 'Подсказка',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+        tooltip: 'Добавить фото',
+        onPressed: () {
+          context.push('/camera?category=hint&entityId=${hint.id}');
+        },
       ),
     );
   }
