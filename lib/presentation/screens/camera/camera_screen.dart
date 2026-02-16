@@ -2,7 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
+import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/problems_provider.dart';
+import '../../widgets/shared/persona_selector.dart';
 
 /// Camera screen for capturing images
 class CameraScreen extends ConsumerStatefulWidget {
@@ -64,7 +68,34 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
       if (mounted) {
         if (result.success) {
-          Navigator.pop(context, _capturedImagePath);
+          // Показать успешную загрузку
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Фото успешно загружено'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Предложить OCR для условия или решения
+          if (widget.category == 'condition' || widget.category == 'solution') {
+            await _offerOcrAfterUpload();
+          }
+
+          // Обновить данные задачи если это условие
+          if (widget.category == 'condition') {
+            ref.invalidate(problemProvider(widget.entityId));
+          }
+
+          if (mounted) {
+            Navigator.pop(context, _capturedImagePath);
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Ошибка загрузки: ${result.error}')),
@@ -79,6 +110,102 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  /// Предложить OCR после загрузки фото (как в CLI mv_screens.py:469)
+  Future<void> _offerOcrAfterUpload() async {
+    if (!mounted) return;
+
+    final ocrTitle = widget.category == 'condition'
+        ? 'Распознать условие задачи?'
+        : 'Распознать текст решения?';
+
+    final doOcr = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.purple),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('AI Распознавание')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(ocrTitle),
+            const SizedBox(height: 8),
+            const Text(
+              'Выберите AI-персону для распознавания текста с фотографии:',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Позже'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.document_scanner),
+            label: const Text('Распознать'),
+          ),
+        ],
+      ),
+    );
+
+    if (doOcr != true || !mounted) return;
+
+    // Показать выбор персоны
+    final persona = await showPersonaSheet(
+      context,
+      defaultPersona: PersonaId.petrovich,
+    );
+
+    if (persona == null || !mounted) return;
+
+    // Запустить OCR
+    bool ocrSuccess = false;
+    if (widget.category == 'condition') {
+      final result = await ref.read(ocrNotifierProvider.notifier).processProblem(
+        problemId: widget.entityId,
+        persona: persona,
+      );
+      ocrSuccess = result.success;
+    } else {
+      final result = await ref.read(ocrNotifierProvider.notifier).processSolution(
+        solutionId: widget.entityId,
+        persona: persona,
+      );
+      ocrSuccess = result.success;
+    }
+
+    if (mounted) {
+      if (ocrSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Текст успешно распознан!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final ocrState = ref.read(ocrNotifierProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка OCR: ${ocrState.error ?? "Неизвестная ошибка"}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
