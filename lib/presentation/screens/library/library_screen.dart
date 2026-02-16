@@ -563,7 +563,7 @@ class _SafeMathPreview extends StatelessWidget {
       return MarkdownWithMath(
         text: text,
         textStyle: style,
-        maxLines: 3,
+        maxLines: 12,
         overflow: TextOverflow.ellipsis,
       );
     } catch (e) {
@@ -571,7 +571,7 @@ class _SafeMathPreview extends StatelessWidget {
       return Text(
         text.replaceAll(RegExp(r'\$+'), ''),  // Remove $ symbols
         style: style,
-        maxLines: 3,
+        maxLines: 12,
         overflow: TextOverflow.ellipsis,
       );
     }
@@ -598,10 +598,10 @@ class _ProblemCard extends StatelessWidget {
     final text = problem.conditionText!;
     
     // If text is short enough, return as-is
-    if (text.length <= 150) return text;
+    if (text.length <= 300) return text;
     
     // Find a safe cut point that doesn't break LaTeX
-    final cutPoint = _findSafeCutPoint(text, 150);
+    final cutPoint = _findSafeCutPoint(text, 300);
     if (cutPoint < text.length) {
       return '${text.substring(0, cutPoint)}...';
     }
