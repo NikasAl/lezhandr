@@ -1,9 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../models/artifacts.dart';
 import '../services/api_client.dart';
 
-/// Repository for image uploads
+/// Repository for image uploads and fetching
 class UploadsRepository {
   final ApiClient _apiClient;
 
@@ -44,6 +45,34 @@ class UploadsRepository {
       return UploadResult.error(e.message ?? 'Network error');
     } catch (e) {
       return UploadResult.error(e.toString());
+    }
+  }
+
+  /// Fetch image bytes with authorization
+  /// Returns (bytes, contentType) or (null, null) on error
+  Future<(Uint8List?, String?)> fetchImageBytes({
+    required String category,
+    required int entityId,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/images/$category/$entityId',
+        options: Options(
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final contentType = response.headers.value('content-type') ?? 'image/webp';
+        return (response.data as Uint8List, contentType);
+      }
+      return (null, null);
+    } on DioException catch (e) {
+      print('❌ Error fetching image: ${e.message}');
+      return (null, null);
+    } catch (e) {
+      print('❌ Error fetching image: $e');
+      return (null, null);
     }
   }
 }

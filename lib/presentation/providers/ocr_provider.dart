@@ -1,8 +1,32 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/artifacts.dart';
 import '../../data/repositories/uploads_repository.dart';
 import '../../data/repositories/concepts_repository.dart';
 import 'providers.dart';
+
+// ============ IMAGE FETCHING ============
+
+/// Image bytes provider with caching
+/// Returns Uint8List? (image bytes) for a given category and entityId
+final imageProvider = FutureProvider.family<Uint8List?, ({String category, int entityId})>((ref, params) async {
+  final repo = ref.watch(uploadsRepositoryProvider);
+  final (bytes, _) = await repo.fetchImageBytes(
+    category: params.category,
+    entityId: params.entityId,
+  );
+  return bytes;
+});
+
+/// Convenience provider for condition images
+final conditionImageProvider = FutureProvider.family<Uint8List?, int>((ref, problemId) async {
+  return await ref.watch(imageProvider((category: 'condition', entityId: problemId)).future);
+});
+
+/// Convenience provider for solution images
+final solutionImageProvider = FutureProvider.family<Uint8List?, int>((ref, solutionId) async {
+  return await ref.watch(imageProvider((category: 'solution', entityId: solutionId)).future);
+});
 
 // ============ UPLOADS ============
 

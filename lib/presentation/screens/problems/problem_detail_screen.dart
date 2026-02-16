@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
@@ -167,8 +166,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         )
                       else if (data.hasImage)
-                        ImageThumbnail(
-                          imageUrl: ImageViewerScreen.buildImageUrl('condition', widget.problemId),
+                        ConditionImageThumbnail(
+                          problemId: widget.problemId,
                           title: 'Условие: ${data.reference}',
                           height: 200,
                         )

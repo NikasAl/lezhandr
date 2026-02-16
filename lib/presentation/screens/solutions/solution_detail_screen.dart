@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/config/app_config.dart';
 import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/solutions_provider.dart';
@@ -9,6 +8,7 @@ import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
+import '../../widgets/shared/image_viewer.dart';
 
 /// Solution detail screen for viewing completed or active solution
 class SolutionDetailScreen extends ConsumerStatefulWidget {
@@ -29,10 +29,6 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
   void dispose() {
     _textController.dispose();
     super.dispose();
-  }
-
-  String _getImageUrl(String category, int entityId) {
-    return '${AppConfig.apiUrl}/images/$category/$entityId';
   }
 
   Future<void> _runOcr() async {
@@ -83,18 +79,6 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
         const SnackBar(content: Text('Текст решения сохранён')),
       );
     }
-  }
-
-  void _openFullScreenImage(String url, String title) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => _FullScreenImageView(
-          imageUrl: url,
-          title: title,
-        ),
-      ),
-    );
   }
 
   @override
@@ -169,14 +153,32 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Solution photo section
+                // Solution photo section - using authorized image loading
                 if (sol.hasImage) ...[
-                  _SolutionPhotoSection(
-                    solution: sol,
-                    imageUrl: _getImageUrl('solution', widget.solutionId),
-                    onTap: () => _openFullScreenImage(
-                      _getImageUrl('solution', widget.solutionId),
-                      'Фото решения',
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.photo_outlined, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Фото решения',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SolutionImageThumbnail(
+                            solutionId: widget.solutionId,
+                            title: 'Фото решения',
+                            height: 250,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -449,101 +451,6 @@ class _SolutionTextSection extends StatelessWidget {
   }
 }
 
-/// Solution photo section
-class _SolutionPhotoSection extends StatelessWidget {
-  final SolutionModel solution;
-  final String imageUrl;
-  final VoidCallback onTap;
-
-  const _SolutionPhotoSection({
-    required this.solution,
-    required this.imageUrl,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.photo_outlined, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Фото решения',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: onTap,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 300),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  ),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.broken_image,
-                              size: 48,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Ошибка загрузки',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton.icon(
-                onPressed: onTap,
-                icon: const Icon(Icons.fullscreen),
-                label: const Text('Открыть на весь экран'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Epiphanies section widget
 class _EpiphaniesSection extends ConsumerWidget {
   final int solutionId;
@@ -677,68 +584,6 @@ class _HintsSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-/// Full screen image viewer
-class _FullScreenImageView extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-
-  const _FullScreenImageView({
-    required this.imageUrl,
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
-      body: InteractiveViewer(
-        minScale: 0.5,
-        maxScale: 4.0,
-        child: Center(
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.broken_image,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Ошибка загрузки изображения',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
     );
   }
 }
