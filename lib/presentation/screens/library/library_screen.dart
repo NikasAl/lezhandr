@@ -5,6 +5,7 @@ import '../../../data/models/problem.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
+import '../../widgets/shared/markdown_with_math.dart';
 
 /// Library screen - browse sources and problems
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -658,7 +659,7 @@ class _ProblemCard extends StatelessWidget {
                 ],
               ),
               
-              // Preview section (text or image indicator)
+              // Preview section (text with LaTeX or image indicator)
               if (hasPreview) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -669,9 +670,9 @@ class _ProblemCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: previewText != null
-                      ? Text(
-                          previewText,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      ? MarkdownWithMath(
+                          text: previewText,
+                          textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                             height: 1.4,
                           ),
