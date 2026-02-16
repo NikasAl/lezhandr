@@ -44,10 +44,106 @@ class MarkdownWithMath extends StatelessWidget {
       return _buildTruncatedContent(context, segments);
     }
 
+    // Group segments: text + inlineMath together, displayMath separate
+    final blocks = _groupIntoBlocks(segments);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: segments.map((segment) => _buildSegment(context, segment)).toList(),
+      children: blocks.map((block) => _buildBlock(context, block)).toList(),
+    );
+  }
+
+  /// Group consecutive text and inlineMath segments into blocks
+  /// Display math becomes its own block
+  List<_SegmentBlock> _groupIntoBlocks(List<_TextSegment> segments) {
+    final blocks = <_SegmentBlock>[];
+    var currentInlineSegments = <_TextSegment>[];
+    
+    for (final segment in segments) {
+      if (segment.type == _SegmentType.displayMath) {
+        // Flush current inline block if any
+        if (currentInlineSegments.isNotEmpty) {
+          blocks.add(_SegmentBlock.inline(currentInlineSegments));
+          currentInlineSegments = [];
+        }
+        // Display math is its own block
+        blocks.add(_SegmentBlock.display(segment));
+      } else {
+        // Text or inline math - accumulate
+        currentInlineSegments.add(segment);
+      }
+    }
+    
+    // Flush remaining inline segments
+    if (currentInlineSegments.isNotEmpty) {
+      blocks.add(_SegmentBlock.inline(currentInlineSegments));
+    }
+    
+    return blocks;
+  }
+  
+  Widget _buildBlock(BuildContext context, _SegmentBlock block) {
+    if (block.isDisplay) {
+      // Display math - separate centered block
+      final segment = block.segments.first;
+      final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+      final mathStyle = baseStyle.copyWith(
+        fontFamily: null,
+        fontSize: (baseStyle.fontSize ?? 14) * 1.25,
+      );
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Math.tex(
+            segment.content,
+            textStyle: mathStyle,
+            mathStyle: MathStyle.display,
+          ),
+        ),
+      );
+    } else {
+      // Inline block - text with inline math using Text.rich
+      return _buildInlineBlock(context, block.segments);
+    }
+  }
+  
+  Widget _buildInlineBlock(BuildContext context, List<_TextSegment> segments) {
+    final spans = <InlineSpan>[];
+    final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+    
+    for (final segment in segments) {
+      if (segment.type == _SegmentType.text) {
+        if (segment.content.trim().isEmpty) continue;
+        // Use MarkdownBody for text segments to preserve markdown formatting
+        // But for inline flow, we need simpler approach
+        spans.add(TextSpan(
+          text: segment.content,
+          style: baseStyle,
+        ));
+      } else if (segment.type == _SegmentType.inlineMath) {
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.1,
+        );
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Math.tex(
+            segment.content,
+            textStyle: mathStyle,
+            mathStyle: MathStyle.text,
+          ),
+        ));
+      }
+    }
+    
+    if (spans.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Text.rich(
+      TextSpan(children: spans),
+      style: baseStyle,
     );
   }
 
@@ -121,56 +217,6 @@ class MarkdownWithMath extends StatelessWidget {
       maxLines: maxLines,
       overflow: overflow ?? TextOverflow.ellipsis,
     );
-  }
-
-  Widget _buildSegment(BuildContext context, _TextSegment segment) {
-    switch (segment.type) {
-      case _SegmentType.text:
-        if (segment.content.trim().isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return MarkdownBody(
-          data: segment.content,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          onTapLink: onLinkTap != null
-              ? (text, href, title) => onLinkTap!(text, href ?? '', title)
-              : null,
-          extensionSet: md.ExtensionSet.gitHubWeb,
-        );
-
-      case _SegmentType.inlineMath:
-        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
-        final mathStyle = baseStyle.copyWith(
-          fontFamily: null,
-          fontSize: (baseStyle.fontSize ?? 14) * 1.1,  // 10% larger for readability
-        );
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Math.tex(
-            segment.content,
-            textStyle: mathStyle,
-            mathStyle: MathStyle.text,
-          ),
-        );
-
-      case _SegmentType.displayMath:
-        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
-        final mathStyle = baseStyle.copyWith(
-          fontFamily: null,
-          fontSize: (baseStyle.fontSize ?? 14) * 1.25,  // 25% larger for display math
-        );
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Math.tex(
-              segment.content,
-              textStyle: mathStyle,
-              mathStyle: MathStyle.display,
-            ),
-          ),
-        );
-    }
   }
 
   /// Parses text into segments of different types
@@ -261,6 +307,22 @@ class _TextSegment {
   final _SegmentType type;
 
   _TextSegment(this.content, this.type);
+}
+
+/// A block of segments (either inline content or display math)
+class _SegmentBlock {
+  final List<_TextSegment> segments;
+  final bool isDisplay;
+
+  _SegmentBlock._(this.segments, this.isDisplay);
+  
+  factory _SegmentBlock.inline(List<_TextSegment> segments) {
+    return _SegmentBlock._(segments, false);
+  }
+  
+  factory _SegmentBlock.display(_TextSegment segment) {
+    return _SegmentBlock._([segment], true);
+  }
 }
 
 /// A simpler widget for just math formulas (without markdown)
