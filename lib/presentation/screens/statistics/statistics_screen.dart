@@ -343,25 +343,36 @@ class _ActivityChart extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            item.xp.toStringAsFixed(0),
-                            style:
-                                Theme.of(context).textTheme.labelSmall,
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            height: height + 20,
-                            decoration: BoxDecoration(
-                              color: isToday
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .primaryContainer,
-                              borderRadius: BorderRadius.circular(4),
+                          // XP value on top
+                          FittedBox(
+                            child: Text(
+                              item.xp.toStringAsFixed(0),
+                              style: Theme.of(context).textTheme.labelSmall,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 2),
+                          // Bar
+                          Flexible(
+                            child: Container(
+                              width: double.infinity,
+                              constraints: BoxConstraints(
+                                minHeight: 4,
+                                maxHeight: height.clamp(4.0, 100.0),
+                              ),
+                              decoration: BoxDecoration(
+                                color: isToday
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Day name
                           Text(
                             _getDayName(date.weekday),
                             style: Theme.of(context)
