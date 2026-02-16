@@ -183,7 +183,7 @@ class ImageThumbnail extends ConsumerWidget {
                   }
                   return Image.memory(
                     bytes,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Center(
                         child: Column(
