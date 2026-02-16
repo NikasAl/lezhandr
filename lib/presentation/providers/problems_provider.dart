@@ -36,6 +36,30 @@ final tagsProvider =
   return await repo.getTags(search: search);
 });
 
+/// Problems notifier for CRUD operations
+final problemNotifierProvider =
+    StateNotifierProvider<ProblemNotifier, AsyncValue<void>>((ref) {
+  return ProblemNotifier(ref.watch(problemsRepositoryProvider));
+});
+
+class ProblemNotifier extends StateNotifier<AsyncValue<void>> {
+  final ProblemsRepository _repo;
+
+  ProblemNotifier(this._repo) : super(const AsyncValue.data(null));
+
+  Future<ProblemModel?> createProblem(ProblemCreate problem) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.createProblem(problem);
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
 /// Problems filter
 class ProblemsFilter {
   final String? source;
