@@ -521,11 +521,11 @@ class _EpiphanyItemState extends State<_EpiphanyItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    description,
+                  MarkdownWithMath(
+                    text: description,
                     maxLines: _isExpanded ? null : 2,
                     overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    textStyle: Theme.of(context).textTheme.bodyMedium,
                   ),
                   if (isLongText) ...[
                     const SizedBox(height: 4),
@@ -620,11 +620,11 @@ class _QuestionItemState extends State<_QuestionItem> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Question body
-                  Text(
-                    body,
+                  MarkdownWithMath(
+                    text: body,
                     maxLines: _isExpanded ? null : 2,
                     overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -648,11 +648,11 @@ class _QuestionItemState extends State<_QuestionItem> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            answer,
+                          MarkdownWithMath(
+                            text: answer,
                             maxLines: _isExpanded ? null : 2,
                             overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            textStyle: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
@@ -801,11 +801,11 @@ class _HintItemState extends State<_HintItem> {
                             ),
                             const SizedBox(height: 4),
                           ],
-                          Text(
-                            hintText,
+                          MarkdownWithMath(
+                            text: hintText,
                             maxLines: _isExpanded ? null : 3,
                             overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            textStyle: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
