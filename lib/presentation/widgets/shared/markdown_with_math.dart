@@ -88,13 +88,24 @@ class MarkdownWithMath extends StatelessWidget {
           ),
         ));
       } else {
-        // Display math - counts as multiple lines
-        lineCount += 2;
+        // Display math - render inline in truncated view for compactness
+        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.15,  // 15% larger for display math inline
+        );
+        lineCount += 1;
         if (lineCount > maxLines!) {
           exceeded = true;
           break;
         }
-        // Skip display math in truncated view for simplicity
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Math.tex(
+            segment.content,
+            textStyle: mathStyle,
+          ),
+        ));
       }
     }
 
