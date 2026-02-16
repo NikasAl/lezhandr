@@ -470,24 +470,82 @@ class _EpiphaniesSection extends ConsumerWidget {
             leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
             title: Text('Озарения (${list.length})'),
             children: list.map((e) {
-              return ListTile(
-                leading: Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 16 + (e.magnitude ?? 1) * 4,
-                ),
-                title: Text(
-                  e.description ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              );
+              return _EpiphanyItem(epiphany: e);
             }).toList(),
           ),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Expandable epiphany item
+class _EpiphanyItem extends StatefulWidget {
+  final EpiphanyModel epiphany;
+
+  const _EpiphanyItem({required this.epiphany});
+
+  @override
+  State<_EpiphanyItem> createState() => _EpiphanyItemState();
+}
+
+class _EpiphanyItemState extends State<_EpiphanyItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = widget.epiphany.description ?? '';
+    final isLongText = description.length > 100;
+    
+    return InkWell(
+      onTap: isLongText ? () => setState(() => _isExpanded = !_isExpanded) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Star icon with magnitude
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(
+                Icons.star,
+                color: Colors.amber,
+                size: 16 + (widget.epiphany.magnitude ?? 1) * 4,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Description text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    description,
+                    maxLines: _isExpanded ? null : 2,
+                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  if (isLongText) ...[
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                      child: Text(
+                        _isExpanded ? 'Свернуть' : 'Развернуть',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -514,31 +572,121 @@ class _QuestionsSection extends ConsumerWidget {
             ),
             title: Text('Вопросы (${list.length})'),
             children: list.map((q) {
-              return ListTile(
-                leading: Icon(
-                  q.hasAnswer ? Icons.check_circle : Icons.help,
-                  color: q.hasAnswer ? Colors.green : Colors.orange,
-                  size: 20,
-                ),
-                title: Text(
-                  q.body ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: q.hasAnswer
-                    ? Text(
-                        q.answer!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : const Text('Нет ответа'),
-              );
+              return _QuestionItem(question: q);
             }).toList(),
           ),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Expandable question item
+class _QuestionItem extends StatefulWidget {
+  final QuestionModel question;
+
+  const _QuestionItem({required this.question});
+
+  @override
+  State<_QuestionItem> createState() => _QuestionItemState();
+}
+
+class _QuestionItemState extends State<_QuestionItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = widget.question.body ?? '';
+    final answer = widget.question.answer;
+    final isLongText = body.length > 100 || (answer != null && answer.length > 100);
+    
+    return InkWell(
+      onTap: isLongText ? () => setState(() => _isExpanded = !_isExpanded) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              widget.question.hasAnswer ? Icons.check_circle : Icons.help,
+              color: widget.question.hasAnswer ? Colors.green : Colors.orange,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Question body
+                  Text(
+                    body,
+                    maxLines: _isExpanded ? null : 2,
+                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  // Answer if exists
+                  if (answer != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ответ:',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            answer,
+                            maxLines: _isExpanded ? null : 2,
+                            overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Нет ответа',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                  // Expand/collapse button
+                  if (isLongText) ...[
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                      child: Text(
+                        _isExpanded ? 'Свернуть' : 'Развернуть',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -565,25 +713,124 @@ class _HintsSection extends ConsumerWidget {
             ),
             title: Text('Подсказки (${list.length})'),
             children: list.map((h) {
-              return ListTile(
-                leading: Icon(
-                  h.hasHint ? Icons.check_circle : Icons.hourglass_empty,
-                  color: h.hasHint ? Colors.green : Colors.orange,
-                  size: 20,
-                ),
-                title: Text(
-                  h.userNotes ?? 'Подсказка',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: h.aiModel != null ? Text('AI: ${h.aiModel}') : null,
-              );
+              return _HintItem(hint: h);
             }).toList(),
           ),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Expandable hint item
+class _HintItem extends StatefulWidget {
+  final HintModel hint;
+
+  const _HintItem({required this.hint});
+
+  @override
+  State<_HintItem> createState() => _HintItemState();
+}
+
+class _HintItemState extends State<_HintItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final userNotes = widget.hint.userNotes ?? '';
+    final hintText = widget.hint.hintText;
+    final isLongText = userNotes.length > 100 || (hintText != null && hintText.length > 100);
+    
+    return InkWell(
+      onTap: isLongText ? () => setState(() => _isExpanded = !_isExpanded) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              widget.hint.hasHint ? Icons.check_circle : Icons.hourglass_empty,
+              color: widget.hint.hasHint ? Colors.green : Colors.orange,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User notes
+                  if (userNotes.isNotEmpty) ...[
+                    Text(
+                      userNotes,
+                      maxLines: _isExpanded ? null : 2,
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Подсказка',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                  // AI-generated hint text
+                  if (hintText != null && hintText.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.hint.aiModel != null) ...[
+                            Text(
+                              'AI: ${widget.hint.aiModel}',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.secondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                          Text(
+                            hintText,
+                            maxLines: _isExpanded ? null : 3,
+                            overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  // Expand/collapse button
+                  if (isLongText) ...[
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                      child: Text(
+                        _isExpanded ? 'Свернуть' : 'Развернуть',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
