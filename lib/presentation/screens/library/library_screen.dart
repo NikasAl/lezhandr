@@ -555,8 +555,21 @@ class _ProblemCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Get preview text from condition (first ~120 chars)
+  String? get _previewText {
+    if (problem.conditionText == null || problem.conditionText!.isEmpty) {
+      return null;
+    }
+    final text = problem.conditionText!;
+    if (text.length <= 120) return text;
+    return '${text.substring(0, 120)}...';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final previewText = _previewText;
+    final hasPreview = previewText != null || problem.hasImage;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -564,106 +577,158 @@ class _ProblemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Status icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? Colors.green.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(
-                    problem.hasText ? Icons.description : Icons.image,
-                    color: isActive
-                        ? Colors.green
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+              // Header row with icon, title and status
+              Row(
+                children: [
+                  // Status icon
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? Colors.green.withOpacity(0.1)
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        problem.hasText ? Icons.description : Icons.image,
+                        size: 20,
+                        color: isActive
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  const SizedBox(width: 12),
+                  // Title and source
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            problem.reference,
-                            style: Theme.of(context).textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isActive) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Активно',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                problem.reference,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                        ],
+                            if (isActive) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Активно',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          problem.sourceName,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      problem.sourceName,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  ),
+                  const Icon(Icons.chevron_right, size: 20),
+                ],
+              ),
+              
+              // Preview section (text or image indicator)
+              if (hasPreview) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: previewText != null
+                      ? Text(
+                          previewText,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
                           ),
-                    ),
-                    if (problem.tags.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: problem.tags.take(3).map((tag) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Row(
+                          children: [
+                            Icon(
+                              Icons.photo_camera_outlined,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              tag.name,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
+                            const SizedBox(width: 8),
+                            Text(
+                              'Есть фото условия',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ],
+                          ],
+                        ),
                 ),
-              ),
-              const Icon(Icons.chevron_right),
+              ],
+              
+              // Tags row
+              if (problem.tags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: problem.tags.take(3).map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tag.name,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
