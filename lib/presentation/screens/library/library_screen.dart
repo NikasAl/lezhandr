@@ -185,6 +185,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: selectedSource,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       hintText: 'Выберите или введите новый',
@@ -192,17 +193,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     items: [
                       ...existingSources.map((s) => DropdownMenuItem(
                         value: s.name,
-                        child: Text(s.name),
+                        child: Text(
+                          s.name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       )),
                     ],
                     onChanged: (value) {
                       setDialogState(() => selectedSource = value);
-                    },
-                    onSaved: (value) {
-                      // Allow custom input
-                      if (value != null && value.isNotEmpty) {
-                        selectedSource = value;
-                      }
                     },
                   ),
                   // Custom source input hint
