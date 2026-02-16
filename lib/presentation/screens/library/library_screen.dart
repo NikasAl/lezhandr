@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -545,6 +546,38 @@ class _TagsSelectorState extends ConsumerState<_TagsSelector> {
   }
 }
 
+/// Safe math preview widget with error handling for LaTeX rendering
+class _SafeMathPreview extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+
+  const _SafeMathPreview({
+    required this.text,
+    this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Try to render with LaTeX, fall back to plain text on error
+    try {
+      return MarkdownWithMath(
+        text: text,
+        textStyle: style,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      );
+    } catch (e) {
+      // Fallback: show plain text with ellipsis
+      return Text(
+        text.replaceAll(RegExp(r'\$+'), ''),  // Remove $ symbols
+        style: style,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+  }
+}
+
 class _ProblemCard extends StatelessWidget {
   final ProblemModel problem;
   final bool isActive;
@@ -556,14 +589,92 @@ class _ProblemCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Get preview text from condition (first ~120 chars)
+  /// Get preview text from condition, respecting LaTeX formulas
+  /// Will not cut inside $...$ or $$...$$ blocks
   String? get _previewText {
     if (problem.conditionText == null || problem.conditionText!.isEmpty) {
       return null;
     }
     final text = problem.conditionText!;
-    if (text.length <= 120) return text;
-    return '${text.substring(0, 120)}...';
+    
+    // If text is short enough, return as-is
+    if (text.length <= 150) return text;
+    
+    // Find a safe cut point that doesn't break LaTeX
+    final cutPoint = _findSafeCutPoint(text, 150);
+    if (cutPoint < text.length) {
+      return '${text.substring(0, cutPoint)}...';
+    }
+    return text;
+  }
+  
+  /// Find a safe point to cut text without breaking LaTeX formulas
+  int _findSafeCutPoint(String text, int targetLength) {
+    // Patterns for LaTeX
+    final displayMathPattern = RegExp(r'\$\$');
+    final inlineMathPattern = RegExp(r'\$');
+    
+    // Track if we're inside math mode
+    bool inDisplayMath = false;
+    bool inInlineMath = false;
+    int lastSafePoint = targetLength;
+    
+    // Don't go beyond text length
+    if (targetLength >= text.length) return text.length;
+    
+    // Scan through text up to a bit beyond target
+    final scanLimit = min(targetLength + 50, text.length);
+    
+    for (int i = 0; i < scanLimit; i++) {
+      final char = text[i];
+      
+      // Check for $$ (display math)
+      if (i < text.length - 1 && text[i] == '\$' && text[i + 1] == '\$') {
+        if (inDisplayMath) {
+          // End of display math - this is a safe point after $$
+          if (i + 2 <= targetLength) {
+            lastSafePoint = i + 2;
+          }
+        }
+        inDisplayMath = !inDisplayMath;
+        i++; // Skip next $
+        continue;
+      }
+      
+      // Check for $ (inline math) - only if not in display math
+      if (!inDisplayMath && char == '\$') {
+        if (inInlineMath) {
+          // End of inline math - this is a safe point after $
+          if (i + 1 <= targetLength) {
+            lastSafePoint = i + 1;
+          }
+        }
+        inInlineMath = !inInlineMath;
+        continue;
+      }
+      
+      // If we're not in any math mode and we hit target, this is a good cut point
+      if (!inDisplayMath && !inInlineMath && i >= targetLength - 10) {
+        // Look for a space or punctuation for cleaner cut
+        if (char == ' ' || char == '\n' || char == ',' || char == '.') {
+          return i;
+        }
+      }
+    }
+    
+    // If we're still in math mode at target length, use last safe point
+    if (inDisplayMath || inInlineMath) {
+      return lastSafePoint;
+    }
+    
+    // Find word boundary near target
+    for (int i = targetLength; i >= max(0, targetLength - 30); i--) {
+      if (i < text.length && (text[i] == ' ' || text[i] == '\n')) {
+        return i;
+      }
+    }
+    
+    return targetLength;
   }
 
   @override
@@ -670,14 +781,12 @@ class _ProblemCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: previewText != null
-                      ? MarkdownWithMath(
+                      ? _SafeMathPreview(
                           text: previewText,
-                          textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.4,
+                            height: 1.5,
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
                         )
                       : Row(
                           children: [

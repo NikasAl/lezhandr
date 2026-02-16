@@ -74,13 +74,17 @@ class MarkdownWithMath extends StatelessWidget {
           style: textStyle ?? DefaultTextStyle.of(context).style,
         ));
       } else if (segment.type == _SegmentType.inlineMath) {
-        // Inline math as widget span
+        // Inline math as widget span with slightly larger font
+        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.1,  // 10% larger for readability
+        );
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Math.tex(
             segment.content,
-            textStyle: textStyle?.copyWith(fontFamily: null) ??
-                DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
+            textStyle: mathStyle,
           ),
         ));
       } else {
@@ -125,27 +129,32 @@ class MarkdownWithMath extends StatelessWidget {
         );
 
       case _SegmentType.inlineMath:
+        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.1,  // 10% larger for readability
+        );
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Math.tex(
             segment.content,
-            textStyle: textStyle?.copyWith(fontFamily: null) ??
-                DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
+            textStyle: mathStyle,
             mathStyle: MathStyle.text,
           ),
         );
 
       case _SegmentType.displayMath:
+        final baseStyle = textStyle ?? DefaultTextStyle.of(context).style;
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.25,  // 25% larger for display math
+        );
         return Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Math.tex(
               segment.content,
-              textStyle: textStyle?.copyWith(fontFamily: null) ??
-                  DefaultTextStyle.of(context).style.copyWith(
-                        fontFamily: null,
-                        fontSize: (textStyle?.fontSize ?? 14) * 1.2,
-                      ),
+              textStyle: mathStyle,
               mathStyle: MathStyle.display,
             ),
           ),
