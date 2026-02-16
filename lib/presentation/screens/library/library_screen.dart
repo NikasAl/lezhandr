@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/problem.dart';
 import '../../providers/problems_provider.dart';
+import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 
 /// Library screen - browse sources and problems
