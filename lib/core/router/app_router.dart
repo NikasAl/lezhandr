@@ -11,6 +11,7 @@ import '../../presentation/screens/statistics/statistics_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/problems/problem_detail_screen.dart';
 import '../../presentation/screens/solutions/solution_session_screen.dart';
+import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
@@ -123,6 +124,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ? double.tryParse(existingMinutes) ?? 0.0
                 : 0.0,
           );
+        },
+      ),
+
+      // Solution Detail
+      GoRoute(
+        path: '/solutions/:id',
+        name: 'solution-detail',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return SolutionDetailScreen(solutionId: id);
         },
       ),
 

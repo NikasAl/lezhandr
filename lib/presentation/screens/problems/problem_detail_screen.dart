@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/config/app_config.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
+import '../../widgets/shared/image_viewer.dart';
 
 /// Problem detail screen
 class ProblemDetailScreen extends ConsumerStatefulWidget {
@@ -165,23 +167,10 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         )
                       else if (data.hasImage)
-                        GestureDetector(
-                          onTap: () {
-                            // TODO: Open fullscreen image
-                          },
-                          child: Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.image, size: 48),
-                            ),
-                          ),
+                        ImageThumbnail(
+                          imageUrl: ImageViewerScreen.buildImageUrl('condition', widget.problemId),
+                          title: 'Условие: ${data.reference}',
+                          height: 200,
                         )
                       else
                         Center(
@@ -258,22 +247,50 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           leading: Icon(
                             solution.isActive
                                 ? Icons.timer
-                                : Icons.check_circle,
+                                : solution.isCompleted
+                                    ? Icons.check_circle
+                                    : Icons.pause_circle,
                             color: solution.isActive
                                 ? Colors.green
-                                : Colors.blue,
+                                : solution.isCompleted
+                                    ? Colors.blue
+                                    : Colors.orange,
                           ),
                           title: Text(
                             solution.statusText,
                           ),
-                          subtitle: Text(
-                            '${solution.totalMinutes.toStringAsFixed(0)} мин • ${solution.xpEarned?.toStringAsFixed(0) ?? 0} XP',
+                          subtitle: Row(
+                            children: [
+                              Text(
+                                '${solution.totalMinutes.toStringAsFixed(0)} мин',
+                              ),
+                              if (solution.xpEarned != null) ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.star, size: 14, color: Colors.amber[700]),
+                                Text(
+                                  ' ${solution.xpEarned!.toStringAsFixed(0)} XP',
+                                  style: TextStyle(color: Colors.amber[700]),
+                                ),
+                              ],
+                              if (solution.hasText) ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.article, size: 14, color: Colors.grey),
+                              ],
+                              if (solution.hasImage) ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.photo, size: 14, color: Colors.grey),
+                              ],
+                            ],
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             if (solution.isActive) {
+                              // Active solution -> go to session
                               context.push(
                                   '/session/${solution.id}?existingMinutes=${solution.totalMinutes}');
+                            } else {
+                              // Completed/abandoned solution -> go to detail view
+                              context.push('/solutions/${solution.id}');
                             }
                           },
                         ),

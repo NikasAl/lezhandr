@@ -724,10 +724,14 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     );
   }
 
-  void _refreshHomeData() {
+  void _refreshHomeData({int? problemId}) {
     // Invalidate providers to refresh home screen data
     ref.invalidate(activeSolutionsProvider);
     ref.invalidate(gamificationMeProvider);
+    // Invalidate solutions for the problem to refresh problem detail screen
+    if (problemId != null) {
+      ref.invalidate(problemSolutionsProvider(problemId));
+    }
   }
 
   void _finishSession() {
@@ -797,7 +801,10 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                                 ),
                               );
                           if (mounted) {
-                            _refreshHomeData();
+                            // Get problemId from solution for cache invalidation
+                            final solutionAsync = ref.read(solutionProvider(widget.solutionId));
+                            final problemId = solutionAsync.valueOrNull?.problemId;
+                            _refreshHomeData(problemId: problemId);
                             Navigator.pop(context);
                             context.go('/main/home');
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -898,7 +905,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                               );
 
                           if (mounted) {
-                            _refreshHomeData();
+                            _refreshHomeData(problemId: result?.problemId);
                             Navigator.pop(context);
                             context.go('/main/home');
                             if (result != null && result.xpEarned != null) {
