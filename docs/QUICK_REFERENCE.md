@@ -175,4 +175,4 @@ flutter run -d linux
 | `BUG_STATUS.md` | Статус багов и функционала |
 | `IMPLEMENTATION_PLAN.md` | План реализации |
 | `CHANGELOG.md` | История изменений |
-| `KODA.md` | API документация (в upload/) |
+| `KODA.md` | API документация сервера (в upload/) |
