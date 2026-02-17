@@ -23,6 +23,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   bool _isLoading = false;
   bool _ocrLoading = false;
   String? _ocrText;
+  bool _showConditionImage = false;
 
   Future<void> _runOcr() async {
     final persona = await showPersonaSheet(
@@ -138,6 +139,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
+                          // OCR button (only if has image but no text)
                           if (data.hasImage && !data.hasText)
                             TextButton.icon(
                               onPressed: _ocrLoading
@@ -152,26 +154,119 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                                   : const Icon(Icons.auto_awesome, size: 18),
                               label: Text(_ocrLoading ? 'OCR...' : 'OCR'),
                             ),
+                          // Show image button (if has both text and image)
+                          if (data.hasText && data.hasImage)
+                            TextButton.icon(
+                              onPressed: () {
+                                setState(() => _showConditionImage = !_showConditionImage);
+                              },
+                              icon: Icon(
+                                _showConditionImage ? Icons.text_fields : Icons.image_outlined,
+                                size: 18,
+                              ),
+                              label: Text(_showConditionImage ? 'Текст' : 'Фото'),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (data.hasText)
+                      
+                      // Content: text, image, or both
+                      if (data.hasText && !_showConditionImage) ...[
+                        // Show text condition
                         MarkdownWithMath(
                           text: data.conditionText!,
                           textStyle: Theme.of(context).textTheme.bodyLarge,
-                        )
-                      else if (_ocrText != null)
+                        ),
+                        // If also has image, show small button to view it
+                        if (data.hasImage) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ImageViewerScreen(
+                                    category: 'condition',
+                                    entityId: widget.problemId,
+                                    title: 'Условие: ${data.reference}',
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.photo_outlined, size: 18),
+                            label: const Text('Посмотреть фото условия'),
+                          ),
+                        ],
+                      ] else if (data.hasImage) ...[
+                        // Show image condition
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ImageViewerScreen(
+                                  category: 'condition',
+                                  entityId: widget.problemId,
+                                  title: 'Условие: ${data.reference}',
+                                ),
+                              ),
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: ConditionImageThumbnail(
+                                  problemId: widget.problemId,
+                                  title: 'Условие: ${data.reference}',
+                                  height: 250,
+                                ),
+                              ),
+                              // Zoom indicator overlay
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.zoom_in, color: Colors.white, size: 18),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Увеличить',
+                                        style: TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Show text toggle if also has text
+                        if (data.hasText && _showConditionImage) ...[
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() => _showConditionImage = false);
+                            },
+                            icon: const Icon(Icons.text_fields, size: 18),
+                            label: const Text('Показать текст'),
+                          ),
+                        ],
+                      ] else if (_ocrText != null) ...[
+                        // Show OCR result
                         MarkdownWithMath(
                           text: _ocrText!,
                           textStyle: Theme.of(context).textTheme.bodyLarge,
-                        )
-                      else if (data.hasImage)
-                        ConditionImageThumbnail(
-                          problemId: widget.problemId,
-                          title: 'Условие: ${data.reference}',
-                          height: 200,
-                        )
-                      else
+                        ),
+                      ] else ...[
+                        // No content
                         Center(
                           child: Column(
                             children: [
@@ -197,6 +292,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             ],
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
