@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/artifacts.dart';
-import '../../providers/artifacts_provider.dart';
-import '../../widgets/shared/persona_selector.dart';
-import '../../widgets/shared/markdown_with_math.dart';
+import '../../../providers/artifacts_provider.dart';
+import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
 
 /// Shows question detail dialog with answer and AI option
 void showQuestionDetailDialog({

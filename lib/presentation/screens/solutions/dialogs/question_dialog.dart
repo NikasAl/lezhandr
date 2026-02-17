@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/artifacts.dart';
-import '../../providers/artifacts_provider.dart';
+import '../../../providers/artifacts_provider.dart';
 
 /// Shows question creation dialog and handles the flow
 /// Returns true if question was created successfully

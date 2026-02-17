@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/artifacts.dart';
-import '../../providers/artifacts_provider.dart';
-import '../../widgets/shared/persona_selector.dart';
+import '../../../providers/artifacts_provider.dart';
+import '../../../widgets/shared/persona_selector.dart';
 import 'hint_detail_dialog.dart';
 
 /// Shows hint creation flow with multiple steps
