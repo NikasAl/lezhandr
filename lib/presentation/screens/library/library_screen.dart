@@ -7,7 +7,6 @@ import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
-import '../../../core/router/app_router.dart';
 
 /// Library screen - browse sources and problems
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -17,32 +16,9 @@ class LibraryScreen extends ConsumerStatefulWidget {
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends ConsumerState<LibraryScreen> with RouteAware {
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedSource;
   String _searchQuery = '';
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Subscribe to route changes
-    final route = ModalRoute.of(context);
-    if (route != null) {
-      routeObserver.subscribe(this, route);
-    }
-  }
-
-  @override
-  void dispose() {
-    routeObserver.unsubscribe(this);
-    super.dispose();
-  }
-
-  @override
-  void didPopNext() {
-    // Called when returning to this screen from another route
-    // Refresh problems list to show updated data (e.g., after OCR)
-    ref.invalidate(problemsProvider);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +120,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with RouteAware {
                     return _ProblemCard(
                       problem: problem,
                       isActive: isActive,
-                      onTap: () => context.push('/problems/${problem.id}'),
+                      onTap: () async {
+                        await context.push('/problems/${problem.id}');
+                        // Refresh after returning from problem detail
+                        ref.invalidate(problemsProvider);
+                      },
                     );
                   },
                 );
@@ -393,10 +373,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with RouteAware {
 
                           // Use outerContext for navigation after dialogs are closed
                           if (addPhoto == true && outerContext.mounted) {
-                            outerContext.push('/camera?category=condition&entityId=${problem.id}');
+                            await outerContext.push('/camera?category=condition&entityId=${problem.id}');
+                            // Refresh after returning from camera
+                            ref.invalidate(problemsProvider);
                           } else if (outerContext.mounted) {
                             // Navigate to problem detail
-                            outerContext.push('/problems/${problem.id}');
+                            await outerContext.push('/problems/${problem.id}');
+                            // Refresh after returning from problem detail
+                            ref.invalidate(problemsProvider);
                           }
                         }
                       } catch (e) {

@@ -15,9 +15,6 @@ import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
-/// Route observer for tracking screen changes
-final routeObserver = RouteObserver<ModalRoute>();
-
 /// Router provider
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
