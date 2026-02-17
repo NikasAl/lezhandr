@@ -167,4 +167,4 @@ lib/presentation/screens/problems/problem_detail_screen.dart
 - CLI клиент: `mv_run_client.py`, `mv_screens.py`, `mv_api.py`
 - API документация сервера: `KODA.md`
 - Flutter проект: `/lib`
-- Статус багов и источник правды как должно работать: `BUG_STATUS.md`
+- Статус багов и источник правды как должно работать: `PROJECT_STATUS.md`
