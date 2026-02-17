@@ -97,7 +97,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
             controller: _conditionController,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Текст условия с поддержкой LaTeX: \\$...\\$ или \\$\\$...\\$\$',
+              hintText: r'Текст условия (поддержка LaTeX: $...$ или $$...$$)',
             ),
             maxLines: 10,
             autofocus: true,
