@@ -7,6 +7,7 @@ import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
+import '../../../core/router/app_router.dart';
 
 /// Library screen - browse sources and problems
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -16,9 +17,32 @@ class LibraryScreen extends ConsumerStatefulWidget {
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+class _LibraryScreenState extends ConsumerState<LibraryScreen> with RouteAware {
   String? _selectedSource;
   String _searchQuery = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when returning to this screen from another route
+    // Refresh problems list to show updated data (e.g., after OCR)
+    ref.invalidate(problemsProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +184,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     String? selectedSource = _selectedSource;
     List<String> selectedTags = [];
     bool isLoading = false;
+    
+    // Save outer context for navigation after dialog closes
+    final outerContext = context;
 
     showDialog(
       context: context,
@@ -338,9 +365,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           // Refresh problems list
                           ref.invalidate(problemsProvider);
 
-                          // Ask if user wants to add photo
+                          // Ask if user wants to add photo - use outerContext for navigation
                           final addPhoto = await showDialog<bool>(
-                            context: context,
+                            context: outerContext,
                             builder: (ctx) => AlertDialog(
                               title: const Row(
                                 children: [
@@ -364,11 +391,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ),
                           );
 
-                          if (addPhoto == true && context.mounted) {
-                            context.push('/camera?category=condition&entityId=${problem.id}');
-                          } else if (context.mounted) {
+                          // Use outerContext for navigation after dialogs are closed
+                          if (addPhoto == true && outerContext.mounted) {
+                            outerContext.push('/camera?category=condition&entityId=${problem.id}');
+                          } else if (outerContext.mounted) {
                             // Navigate to problem detail
-                            context.push('/problems/${problem.id}');
+                            outerContext.push('/problems/${problem.id}');
                           }
                         }
                       } catch (e) {

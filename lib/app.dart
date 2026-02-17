@@ -24,6 +24,9 @@ class LezhandrApp extends ConsumerWidget {
       // Router
       routerConfig: router,
 
+      // Route observer for screen lifecycle
+      navigatorObservers: [routeObserver],
+
       // Localization
       locale: const Locale('ru', 'RU'),
       supportedLocales: const [
