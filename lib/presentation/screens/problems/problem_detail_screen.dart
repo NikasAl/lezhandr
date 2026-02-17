@@ -340,7 +340,22 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          // Action buttons
+                          // OCR button (shows spinner while loading)
+                          if (data.hasImage)
+                            _ocrLoading
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.auto_awesome, size: 20),
+                                    onPressed: _runOcr,
+                                    tooltip: 'Распознать текст (OCR)',
+                                  ),
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, size: 20),
                             onPressed: () => _showEditConditionDialog(data.conditionText ?? ''),
