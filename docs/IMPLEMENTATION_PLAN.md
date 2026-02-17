@@ -8,7 +8,7 @@ _Последнее обновление: 2025-01-16_
 
 | Функция | Описание | Файлы |
 |---------|----------|-------|
-| Авторизация | device_login, get_me | `auth_repository.dart`, `auth_provider.dart` |
+| Авторизация | device_login, get_me, login | `auth_repository.dart`, `auth_provider.dart` |
 | Просмотр источников/задач/тегов | Sources, Problems, Tags | `problems_repository.dart`, `library_screen.dart` |
 | Создание задачи | create_problem | `problems_repository.dart`, `library_screen.dart` |
 | Создание решения | create_solution | `solutions_repository.dart` |
@@ -21,12 +21,14 @@ _Последнее обновление: 2025-01-16_
 | Выбор AI-персоны | Basis/Petrovich/Legendre | `persona_selector.dart` |
 | Просмотр изображений | Image viewer с zoom | `image_viewer.dart` |
 | Markdown с LaTeX | MathJax рендеринг (инлайн + display) | `markdown_with_math.dart` |
-| Детали задачи | Просмотр, OCR, решения | `problem_detail_screen.dart` |
+| Детали задачи | Просмотр, OCR, решения, редактирование | `problem_detail_screen.dart` |
 | Детали решения | Просмотр, OCR, редактирование текста | `solution_detail_screen.dart` |
 | Редактирование текста решения | update_solution_text | `solutions_repository.dart`, `solution_detail_screen.dart` |
-| **Озарения (API)** | create, get, модели | `artifacts_repository.dart`, `artifacts.dart` |
-| **Вопросы (API)** | create, get, update, generate AI answer | `artifacts_repository.dart`, `artifacts.dart` |
-| **Подсказки (API)** | create draft, get, update, generate AI | `artifacts_repository.dart`, `artifacts.dart` |
+| Редактирование условия задачи | update_problem | `problems_repository.dart`, `problem_detail_screen.dart` |
+| Редактирование тегов задачи | update_problem tags | `problems_repository.dart`, `problem_detail_screen.dart` |
+| **Озарения (API + UI)** | create, get, модели | `artifacts_repository.dart`, `artifacts.dart` |
+| **Вопросы (API + UI)** | create, get, update, generate AI answer | `artifacts_repository.dart`, `artifacts.dart` |
+| **Подсказки (API + UI)** | create draft, get, update, generate AI | `artifacts_repository.dart`, `artifacts.dart` |
 | Просмотр озарений | Список, развертывание текста | `solution_detail_screen.dart` |
 | Просмотр вопросов | Список, ответы, развертывание | `solution_detail_screen.dart` |
 | Просмотр подсказок | Список, AI-текст, развертывание | `solution_detail_screen.dart` |
@@ -36,12 +38,13 @@ _Последнее обновление: 2025-01-16_
 | **AI-ответ на вопрос** | Выбор персоны + генерация | `solution_session_screen.dart` |
 | **Черновик подсказки** | Диалог + фото контекста | `solution_session_screen.dart` |
 | **AI-генерация подсказки** | Выбор персоны + результат | `solution_session_screen.dart` |
+| **Условие в сессии** | Текст/изображение прямо в карточке | `solution_session_screen.dart` |
 
 ### ❌ Не реализовано (из CLI)
 
 | Приоритет | Функция | API Endpoint | Описание | API готов | UI готов |
 |-----------|---------|--------------|----------|-----------|----------|
-| 🔴 P0 | update_problem_text | PATCH /problems/{id} | Редактирование условия | ⬜ | ⬜ |
+| 🔴 P1 | Авто-переподключение | POST /auth/device-register | Переподключение при истечении токена | ✅ | ⬜ |
 | 🟢 P2 | analyze_problem | POST /concepts/analyze/problem/{id} | Анализ знаний в задаче | ⬜ | ⬜ |
 | 🟢 P2 | analyze_solution | POST /concepts/analyze/solution/{id} | Трейс навыков решения | ⬜ | ⬜ |
 | 🟢 P2 | get_concepts_by_solution | GET /concepts/by-solution/{id} | Связи решение-концепт | ⬜ | ⬜ |
@@ -58,11 +61,36 @@ _Последнее обновление: 2025-01-16_
 
 ## Приоритетные задачи
 
-### 🔴 P0: Редактирование текста задачи
-**API уже есть в problems_repository (updateProblemText не реализован)**
+### 🔴 P1: Автоматическое переподключение при истечении токена
+**Проблема:** BUG-AUTH-001
 
-1. ⬜ Добавить `updateProblemText` в `ProblemsRepository`
-2. ⬜ Добавить UI редактирования в `ProblemDetailScreen`
+**Текущее поведение:**
+При истечении токена создаётся новый анонимный аккаунт вместо переподключения к существующему.
+
+**Необходимые действия:**
+1. ⬜ Улучшить хранение device_id и secret_key в DeviceStorage
+2. ⬜ Добавить retry логику в `auth_provider.dart` — при ошибке авторизации пытаться выполнить `deviceLogin()`
+3. ⬜ Показывать LoginScreen только если автоматическое переподключение не удалось
+4. ⬜ Добавить UI для входа в существующий аккаунт при первом запуске
+
+**Файлы:**
+- `lib/data/storage/device_storage.dart`
+- `lib/presentation/providers/auth_provider.dart`
+- `lib/presentation/screens/auth/login_screen.dart`
+
+---
+
+### 🟡 P1.5: Улучшение экрана первого входа
+**Проблема:** BUG-UI-001
+
+**Необходимые действия:**
+1. ⬜ Добавить фоновое изображение Лежандра на диване
+2. ⬜ Переработать UI: акцент на регистрации
+3. ⬜ Спрятать форму входа в expandable секцию
+4. ⬜ Улучшить визуальный дизайн
+
+**Файлы:**
+- `lib/presentation/screens/auth/login_screen.dart`
 
 ---
 
@@ -99,13 +127,13 @@ _Последнее обновление: 2025-01-16_
 ### Структура провайдеров
 ```
 lib/presentation/providers/
-├── auth_provider.dart        # ✅ Авторизация
-├── problems_provider.dart    # ✅ Задачи
+├── auth_provider.dart        # ✅ Авторизация (требует улучшения retry-логики)
+├── problems_provider.dart    # ✅ Задачи (включая update)
 ├── solutions_provider.dart   # ✅ Решения
 ├── gamification_provider.dart # ✅ Геймификация
 ├── billing_provider.dart     # ✅ Финансы
 ├── ocr_provider.dart         # ✅ OCR
-├── artifacts_provider.dart   # ✅ Озарения/Вопросы/Подсказки (API + UI готовы)
+├── artifacts_provider.dart   # ✅ Озарения/Вопросы/Подсказки
 ├── comments_provider.dart    # ❌ Комментарии
 └── concepts_provider.dart    # ❌ Концепции (только чтение)
 ```
@@ -117,7 +145,19 @@ lib/presentation/screens/solutions/solution_session_screen.dart
 ├── _showQuestionDialog()     # ✅ Диалог создания вопроса
 ├── _showQuestionDetailDialog() # ✅ Просмотр/ответ на вопрос
 ├── _showHintDialog()         # ✅ Диалог запроса подсказки
-└── _showHintDetailDialog()   # ✅ Просмотр подсказки
+├── _showHintDetailDialog()   # ✅ Просмотр подсказки
+└── _finishSession()          # ✅ Завершение сессии
+```
+
+### Виджеты деталей задачи
+```
+lib/presentation/screens/problems/problem_detail_screen.dart
+├── _runOcr()                 # ✅ OCR условия
+├── _saveConditionText()      # ✅ Сохранение текста условия
+├── _showEditConditionDialog() # ✅ Редактирование текста
+├── _showEditTagsDialog()     # ✅ Редактирование тегов
+├── _showConditionActions()   # ✅ Меню действий
+└── _TagsEditor               # ✅ Виджет редактирования тегов с поиском
 ```
 
 ---
@@ -127,3 +167,4 @@ lib/presentation/screens/solutions/solution_session_screen.dart
 - CLI клиент: `mv_run_client.py`, `mv_screens.py`, `mv_api.py`
 - API документация: `KODA.md`
 - Flutter проект: `/lib`
+- Статус багов: `BUG_STATUS.md`
