@@ -26,6 +26,15 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
   final _textController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Force refresh solution data when entering screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(solutionProvider(widget.solutionId));
+    });
+  }
+
+  @override
   void dispose() {
     _textController.dispose();
     super.dispose();
@@ -153,36 +162,92 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Solution photo section - using authorized image loading
-                if (sol.hasImage) ...[
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.photo_outlined, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Фото решения',
-                                style: Theme.of(context).textTheme.titleMedium,
+                // Solution photo section - always show upload option
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.photo_outlined, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Фото решения',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const Spacer(),
+                            TextButton.icon(
+                              onPressed: () async {
+                                await context.push(
+                                    '/camera?category=solution&entityId=${widget.solutionId}');
+                                // Refresh solution to get updated image
+                                ref.invalidate(solutionProvider(widget.solutionId));
+                                ref.invalidate(imageProvider((category: 'solution', entityId: widget.solutionId)));
+                              },
+                              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                              label: Text(sol.hasImage ? 'Обновить' : 'Добавить'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (sol.hasImage)
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ImageViewerScreen(
+                                    category: 'solution',
+                                    entityId: widget.solutionId,
+                                    title: 'Фото решения',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SolutionImageThumbnail(
+                                solutionId: widget.solutionId,
+                                title: 'Фото решения',
+                                height: 250,
                               ),
-                            ],
+                            ),
+                          )
+                        else
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 48,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Нажмите "Добавить" чтобы загрузить фото',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          SolutionImageThumbnail(
-                            solutionId: widget.solutionId,
-                            title: 'Фото решения',
-                            height: 250,
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+                const SizedBox(height: 16),
 
                 // Artifacts sections
                 _EpiphaniesSection(solutionId: widget.solutionId),
