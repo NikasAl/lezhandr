@@ -58,6 +58,28 @@ class ProblemNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+
+  Future<ProblemModel?> updateProblem(
+    int id, {
+    String? conditionText,
+    String? reference,
+    List<String>? tags,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.updateProblem(
+        id,
+        conditionText: conditionText,
+        reference: reference,
+        tags: tags,
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
 }
 
 /// Problems filter

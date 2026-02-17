@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/artifacts.dart';
+import '../../../data/models/problem.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
@@ -24,6 +25,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   bool _ocrLoading = false;
   String? _ocrText;
   bool _showConditionImage = false;
+  bool _isEditingCondition = false;
+  final _conditionController = TextEditingController();
 
   Future<void> _runOcr() async {
     final persona = await showPersonaSheet(
@@ -54,6 +57,241 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     }
   }
 
+  Future<void> _saveConditionText(String text) async {
+    if (text.isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(problemNotifierProvider.notifier).updateProblem(
+        widget.problemId,
+        conditionText: text,
+      );
+      if (mounted) {
+        setState(() => _isEditingCondition = false);
+        ref.invalidate(problemProvider(widget.problemId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Текст условия сохранён')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showEditConditionDialog(String currentText) {
+    _conditionController.text = currentText;
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.edit),
+            SizedBox(width: 8),
+            Text('Редактировать условие'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: _conditionController,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Текст условия с поддержкой LaTeX: $...$ или $$...$$',
+            ),
+            maxLines: 10,
+            autofocus: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _saveConditionText(_conditionController.text);
+            },
+            icon: const Icon(Icons.save, size: 18),
+            label: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTagsDialog(List<TagModel> currentTags) {
+    List<String> selectedTags = currentTags.map((t) => t.name).toList();
+    final tagController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.sell),
+              SizedBox(width: 8),
+              Text('Редактировать теги'),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Selected tags
+                if (selectedTags.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: selectedTags.map((tag) => Chip(
+                      label: Text(tag, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                      onDeleted: () {
+                        setDialogState(() => selectedTags.remove(tag));
+                      },
+                      visualDensity: VisualDensity.compact,
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Tag input
+                TextField(
+                  controller: tagController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    hintText: 'Новый тег',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        if (tagController.text.isNotEmpty) {
+                          final newTag = tagController.text.trim();
+                          if (!selectedTags.contains(newTag)) {
+                            setDialogState(() => selectedTags.add(newTag));
+                          }
+                          tagController.clear();
+                        }
+                      },
+                    ),
+                  ),
+                  onSubmitted: (value) {
+                    if (value.isNotEmpty) {
+                      final newTag = value.trim();
+                      if (!selectedTags.contains(newTag)) {
+                        setDialogState(() => selectedTags.add(newTag));
+                      }
+                      tagController.clear();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await ref.read(problemNotifierProvider.notifier).updateProblem(
+                  widget.problemId,
+                  tags: selectedTags,
+                );
+                if (mounted) {
+                  ref.invalidate(problemProvider(widget.problemId));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Теги обновлены')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.save, size: 18),
+              label: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showConditionActions(ProblemModel data) {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Редактировать текст'),
+              subtitle: Text(data.hasText ? 'Изменить текущий текст' : 'Добавить текст'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showEditConditionDialog(data.conditionText ?? '');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Загрузить фото'),
+              subtitle: Text(data.hasImage ? 'Заменить текущее фото' : 'Добавить фото'),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                await context.push('/camera?category=condition&entityId=${widget.problemId}');
+                if (mounted) {
+                  ref.invalidate(problemProvider(widget.problemId));
+                  ref.invalidate(imageProvider((category: 'condition', entityId: widget.problemId)));
+                }
+              },
+            ),
+            if (data.hasImage)
+              ListTile(
+                leading: _ocrLoading 
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome),
+                title: const Text('Распознать текст (OCR)'),
+                subtitle: const Text('Извлечь текст с фото'),
+                enabled: !_ocrLoading,
+                onTap: _ocrLoading
+                    ? null
+                    : () async {
+                        Navigator.pop(sheetContext);
+                        await _runOcr();
+                      },
+              ),
+            if (data.hasImage)
+              ListTile(
+                leading: const Icon(Icons.photo_size_select_large),
+                title: const Text('Открыть фото'),
+                subtitle: const Text('Просмотреть в полном размере'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ImageViewerScreen(
+                        category: 'condition',
+                        entityId: widget.problemId,
+                        title: 'Условие: ${data.reference}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final problem = ref.watch(problemProvider(widget.problemId));
@@ -64,9 +302,9 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
         title: const Text('Задача'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.camera_alt_outlined),
+            icon: const Icon(Icons.more_vert),
             onPressed: () {
-              context.push('/camera?category=condition&entityId=${widget.problemId}');
+              problem.whenData((data) => _showConditionActions(data));
             },
           ),
         ],
@@ -108,22 +346,43 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
               const SizedBox(height: 16),
 
-              // Tags
-              if (data.tags.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: data.tags.map((tag) {
-                    return Chip(
-                      label: Text(tag.name),
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-              ],
+              // Tags with edit button
+              Row(
+                children: [
+                  if (data.tags.isNotEmpty)
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: data.tags.map((tag) {
+                          return Chip(
+                            label: Text(tag.name),
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Text(
+                        'Нет тегов',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => _showEditTagsDialog(data.tags),
+                    icon: const Icon(Icons.sell_outlined, size: 18),
+                    label: const Text('Теги'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-              // Condition
+              // Condition card
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -139,23 +398,13 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          // OCR button (only if has image but no text)
-                          if (data.hasImage && !data.hasText)
-                            TextButton.icon(
-                              onPressed: _ocrLoading
-                                  ? null
-                                  : _runOcr,
-                              icon: _ocrLoading
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.auto_awesome, size: 18),
-                              label: Text(_ocrLoading ? 'OCR...' : 'OCR'),
-                            ),
-                          // Show image button (if has both text and image)
-                          if (data.hasText && data.hasImage)
+                          // Action buttons
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            onPressed: () => _showEditConditionDialog(data.conditionText ?? ''),
+                            tooltip: 'Редактировать текст',
+                          ),
+                          if (data.hasImage && data.hasText)
                             TextButton.icon(
                               onPressed: () {
                                 setState(() => _showConditionImage = !_showConditionImage);
@@ -172,12 +421,10 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                       
                       // Content: text, image, or both
                       if (data.hasText && !_showConditionImage) ...[
-                        // Show text condition
                         MarkdownWithMath(
                           text: data.conditionText!,
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        // If also has image, show small button to view it
                         if (data.hasImage) ...[
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
@@ -198,7 +445,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           ),
                         ],
                       ] else if (data.hasImage) ...[
-                        // Show image condition
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -222,7 +468,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                                   height: 250,
                                 ),
                               ),
-                              // Zoom indicator overlay
                               Positioned(
                                 bottom: 8,
                                 right: 8,
@@ -248,7 +493,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             ],
                           ),
                         ),
-                        // Show text toggle if also has text
                         if (data.hasText && _showConditionImage) ...[
                           const SizedBox(height: 8),
                           TextButton.icon(
@@ -260,18 +504,16 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           ),
                         ],
                       ] else if (_ocrText != null) ...[
-                        // Show OCR result
                         MarkdownWithMath(
                           text: _ocrText!,
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ] else ...[
-                        // No content
                         Center(
                           child: Column(
                             children: [
                               Icon(
-                                Icons.image_not_supported_outlined,
+                                Icons.add_photo_alternate_outlined,
                                 size: 48,
                                 color: Theme.of(context)
                                     .colorScheme
@@ -279,7 +521,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Добавьте фото или текст условия',
+                                'Нажмите ⋮ для добавления условия',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -380,11 +622,9 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             if (solution.isActive) {
-                              // Active solution -> go to session
                               context.push(
                                   '/session/${solution.id}?existingMinutes=${solution.totalMinutes}');
                             } else {
-                              // Completed/abandoned solution -> go to detail view
                               context.push('/solutions/${solution.id}');
                             }
                           },
