@@ -544,33 +544,32 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
         ref.invalidate(hintsProvider(widget.solutionId));
 
         if (mounted) {
-          if (result != null && result.hintText != null) {
-            _showHintDetailDialog(result);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Не удалось получить подсказку. Проверьте баланс.')),
-            );
-          }
+          // Always show hint detail dialog, even if generation failed
+          // This allows user to retry with different model
+          _showHintDetailDialog(
+            result ?? hint,
+            isRegenerating: result == null || !result.hasHint,
+          );
         }
       }
     }
   }
 
   /// Show hint detail dialog with full text and edit option
-  void _showHintDetailDialog(HintModel hint) {
+  void _showHintDetailDialog(HintModel hint, {bool isRegenerating = false}) {
     final editController = TextEditingController(text: hint.hintText ?? '');
     bool isEditing = false;
+    bool isGenerating = false;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: [
               Icon(
-                hint.isCompleted ? Icons.check_circle : Icons.hourglass_empty,
-                color: hint.isCompleted ? Colors.green : Colors.orange,
+                hint.hasHint ? Icons.check_circle : Icons.hourglass_empty,
+                color: hint.hasHint ? Colors.green : Colors.orange,
               ),
               const SizedBox(width: 8),
               const Expanded(
@@ -674,33 +673,92 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                               textStyle: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
-                  ] else
+                  ] else ...[
+                    // No hint yet - show warning and retry option
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.hourglass_empty, color: Colors.orange[700], size: 20),
-                          const SizedBox(width: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.warning_amber, color: Colors.orange[700], size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isRegenerating 
+                                      ? 'Недостаточно средств для генерации'
+                                      : 'Подсказка ещё не сгенерирована',
+                                  style: TextStyle(color: Colors.orange[700]),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
                           Text(
-                            'Подсказка ещё не сгенерирована',
-                            style: TextStyle(color: Colors.orange[700]),
+                            'Попробуйте выбрать другую AI-персону или пополните баланс',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Закрыть'),
             ),
+            // Retry button - always show to allow trying different model
+            if (hint.id != null)
+              TextButton.icon(
+                onPressed: isGenerating
+                    ? null
+                    : () async {
+                        setDialogState(() => isGenerating = true);
+                        final persona = await showPersonaSheet(
+                          context,
+                          defaultPersona: PersonaId.basis,
+                        );
+                        if (persona != null && mounted) {
+                          final result = await ref
+                              .read(hintNotifierProvider.notifier)
+                              .generate(
+                                hintId: hint.id!,
+                                persona: persona,
+                              );
+                          if (mounted) {
+                            Navigator.pop(dialogContext);
+                            ref.invalidate(hintsProvider(widget.solutionId));
+                            if (result != null && result.hasHint) {
+                              _showHintDetailDialog(result);
+                            } else {
+                              // Show dialog again with error indication
+                              _showHintDetailDialog(hint, isRegenerating: true);
+                            }
+                          }
+                        } else {
+                          setDialogState(() => isGenerating = false);
+                        }
+                      },
+                icon: isGenerating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(isGenerating ? 'Генерация...' : 'Запросить'),
+              ),
             if (hint.hasHint)
               TextButton.icon(
                 onPressed: () {
@@ -716,7 +774,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                       .read(hintNotifierProvider.notifier)
                       .updateText(hint.id!, editController.text);
                   if (success && mounted) {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                     ref.invalidate(hintsProvider(widget.solutionId));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Подсказка обновлена')),
@@ -1454,9 +1512,9 @@ class _HintTile extends StatelessWidget {
     return ListTile(
       dense: true,
       leading: Icon(
-        hint.isCompleted ? Icons.check_circle : Icons.hourglass_empty,
+        hint.hasHint ? Icons.check_circle : Icons.warning_amber,
         size: 20,
-        color: hint.isCompleted ? Colors.green : Colors.grey,
+        color: hint.hasHint ? Colors.green : Colors.orange,
       ),
       title: Text(
         hint.userNotes ?? 'Подсказка',
@@ -1473,7 +1531,14 @@ class _HintTile extends StatelessWidget {
                 fontSize: 12,
               ),
             )
-          : null,
+          : Text(
+              'Нажмите для генерации',
+              style: TextStyle(
+                color: Colors.orange[700],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
