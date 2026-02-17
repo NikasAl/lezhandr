@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:markdown/markdown.dart' as md;
 
 /// Widget that renders Markdown text with LaTeX math formula support.
 ///
@@ -222,11 +221,6 @@ class MarkdownWithMath extends StatelessWidget {
   /// Parses text into segments of different types
   List<_TextSegment> _parseText(String input) {
     final segments = <_TextSegment>[];
-
-    // Pattern for display math ($$...$$) - must be checked first
-    final displayMathPattern = RegExp(r'\$\$([\s\S]*?)\$\$');
-    // Pattern for inline math ($...$)
-    final inlineMathPattern = RegExp(r'\$([^\$\n]+?)\$');
 
     // Combine patterns with capture groups
     final combinedPattern = RegExp(

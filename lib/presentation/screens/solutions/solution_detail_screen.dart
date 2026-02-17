@@ -125,18 +125,13 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
         ],
       ),
       body: solution.when(
-        data: (sol) {
-          if (sol == null) {
-            return const Center(child: Text('Решение не найдено'));
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Status card
-                _StatusCard(solution: sol),
+        data: (sol) => SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Status card
+              _StatusCard(solution: sol),
                 const SizedBox(height: 16),
 
                 // Problem reference

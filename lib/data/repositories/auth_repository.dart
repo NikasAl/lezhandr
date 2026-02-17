@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../storage/token_storage.dart';

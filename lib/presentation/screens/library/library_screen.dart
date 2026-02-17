@@ -622,10 +622,6 @@ class _ProblemCard extends StatelessWidget {
   
   /// Find a safe point to cut text without breaking LaTeX formulas
   int _findSafeCutPoint(String text, int targetLength) {
-    // Patterns for LaTeX
-    final displayMathPattern = RegExp(r'\$\$');
-    final inlineMathPattern = RegExp(r'\$');
-    
     // Track if we're inside math mode
     bool inDisplayMath = false;
     bool inInlineMath = false;

@@ -2,10 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/motivation/motivation_engine.dart';
 import '../../../core/motivation/motivation_models.dart';
-import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
 import '../../../data/models/problem.dart';
 import '../../providers/solutions_provider.dart';
@@ -133,16 +131,6 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     );
   }
 
-  void _refreshHomeData({int? problemId}) {
-    // Invalidate providers to refresh home screen data
-    ref.invalidate(activeSolutionsProvider);
-    ref.invalidate(gamificationMeProvider);
-    // Invalidate solutions for the problem to refresh problem detail screen
-    if (problemId != null) {
-      ref.invalidate(problemSolutionsProvider(problemId));
-    }
-  }
-
   void _finishSession() {
     setState(() => _isFinished = true);
     _timer?.cancel();
@@ -226,9 +214,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
 
               // Problem info with condition preview
               // Use separate problem provider to get full problem data
-              if (data?.problemId != null) ...[
+              if (data.problemId != null) ...[
                 _ProblemConditionCard(
-                  problemId: data!.problemId!,
+                  problemId: data.problemId!,
                   problemPreview: data.problem,
                 ),
                 const SizedBox(height: 16),
@@ -263,7 +251,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               const SizedBox(height: 16),
 
               // Solution photo section - show existing or add new
-              if (data?.hasImage == true) ...[
+              if (data.hasImage) ...[
                 // Show existing solution photo
                 Card(
                   child: Padding(

@@ -55,7 +55,7 @@ class UploadNotifier extends StateNotifier<AsyncValue<UploadResult?>> {
       );
       state = AsyncValue.data(result);
       return result;
-    } catch (e, st) {
+    } catch (e) {
       final result = UploadResult.error(e.toString());
       state = AsyncValue.data(result);
       return result;
@@ -203,8 +203,8 @@ class ConceptsNotifier extends StateNotifier<AsyncValue<void>> {
       );
       state = const AsyncValue.data(null);
       return result;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
       return [];
     }
   }
@@ -221,8 +221,8 @@ class ConceptsNotifier extends StateNotifier<AsyncValue<void>> {
       );
       state = const AsyncValue.data(null);
       return result;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
       return [];
     }
   }

@@ -25,7 +25,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   bool _ocrLoading = false;
   String? _ocrText;
   bool _showConditionImage = false;
-  bool _isEditingCondition = false;
   final _conditionController = TextEditingController();
 
   Future<void> _runOcr() async {
@@ -67,7 +66,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
         conditionText: text,
       );
       if (mounted) {
-        setState(() => _isEditingCondition = false);
         ref.invalidate(problemProvider(widget.problemId));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Текст условия сохранён')),

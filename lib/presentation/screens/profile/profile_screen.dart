@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
-import '../../../core/theme/app_theme.dart';
 
 /// Profile screen - user settings and account
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -16,7 +15,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    final authState = ref.watch(authStateProvider);
     final billing = ref.watch(billingBalanceProvider);
 
     return Scaffold(
