@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../data/models/solution.dart';
+import '../../../../data/models/solution.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/gamification_provider.dart';
 import '../../providers/problems_provider.dart';
