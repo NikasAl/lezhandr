@@ -7,10 +7,12 @@ import '../../../core/motivation/motivation_engine.dart';
 import '../../../core/motivation/motivation_models.dart';
 import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
+import '../../../data/models/problem.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/gamification_provider.dart';
+import '../../providers/problems_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
@@ -1003,91 +1005,11 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               const SizedBox(height: 16),
 
               // Problem info with condition preview
-              if (data?.problem != null) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header row
-                        Row(
-                          children: [
-                            const Icon(Icons.description_outlined),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                data!.problem!.displayTitle,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            // Expand button
-                            TextButton.icon(
-                              onPressed: () {
-                                context.push('/problems/${data.problem!.id}');
-                              },
-                              icon: const Icon(Icons.open_in_full, size: 16),
-                              label: const Text('Развернуть'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Condition preview - text or image
-                        if (data.problem!.hasText) ...[
-                          // Text condition with LaTeX support
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: MarkdownWithMath(
-                              text: data.problem!.conditionText!,
-                              textStyle: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
-                        ] else if (data.problem!.hasImage) ...[
-                          // Image condition thumbnail
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: ConditionImageThumbnail(
-                              problemId: data.problem!.id,
-                              title: 'Условие: ${data.problem!.reference}',
-                              height: 200,
-                            ),
-                          ),
-                        ] else ...[
-                          // No condition yet
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Добавьте фото или текст условия',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+              // Use separate problem provider to get full problem data
+              if (data?.problemId != null) ...[
+                _ProblemConditionCard(
+                  problemId: data!.problemId!,
+                  problemPreview: data.problem,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -1312,8 +1234,9 @@ class _EpiphanyTile extends StatelessWidget {
               (i) => const Icon(Icons.star, size: 14, color: Colors.amber)),
         ],
       ),
-      title: Text(
-        epiphany.description ?? '',
+      title: MarkdownWithMath(
+        text: epiphany.description ?? '',
+        textStyle: Theme.of(context).textTheme.bodyMedium,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1565,6 +1488,158 @@ class _HintTile extends StatelessWidget {
         ],
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// Widget that displays problem condition with full data from problemProvider
+class _ProblemConditionCard extends ConsumerWidget {
+  final int problemId;
+  final ProblemModel? problemPreview;
+
+  const _ProblemConditionCard({
+    required this.problemId,
+    this.problemPreview,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final problemAsync = ref.watch(problemProvider(problemId));
+
+    return problemAsync.when(
+      data: (problem) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      problem.displayTitle,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  // Expand button
+                  TextButton.icon(
+                    onPressed: () {
+                      context.push('/problems/${problem.id}');
+                    },
+                    icon: const Icon(Icons.open_in_full, size: 16),
+                    label: const Text('Развернуть'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Condition preview - text or image
+              if (problem.hasText) ...[
+                // Text condition with LaTeX support
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: MarkdownWithMath(
+                    text: problem.conditionText!,
+                    textStyle: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ] else if (problem.hasImage) ...[
+                // Image condition thumbnail
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ImageViewerScreen(
+                          category: 'condition',
+                          entityId: problem.id,
+                          title: 'Условие: ${problem.reference}',
+                        ),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ConditionImageThumbnail(
+                      problemId: problem.id,
+                      title: 'Условие: ${problem.reference}',
+                      height: 200,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                // No condition yet
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Добавьте фото или текст условия',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      problemPreview?.displayTitle ?? 'Загрузка...',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Ошибка загрузки условия',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
