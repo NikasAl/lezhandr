@@ -42,9 +42,10 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
 
   Future<void> _loadImage() async {
     final size = await ImageCropService.getImageSize(widget.imagePath);
-    setState(() {
-      _imageSize = size;
-    });
+    if (!mounted) return;
+    
+    _imageSize = size;
+    _tryInitialize();
   }
 
   @override
@@ -54,8 +55,9 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
   }
 
   /// Calculate the actual displayed image size and offset after BoxFit.contain
-  void _calculateFittedSize() {
-    if (_imageSize == Size.zero || _containerSize == Size.zero) return;
+  /// Returns true if calculation was successful
+  bool _calculateFittedSize() {
+    if (_imageSize == Size.zero || _containerSize == Size.zero) return false;
     
     final imageAspect = _imageSize.width / _imageSize.height;
     final containerAspect = _containerSize.width / _containerSize.height;
@@ -81,11 +83,13 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
         0,
       );
     }
+    return true;
   }
 
   /// Initialize crop rect when widget dimensions are known
   void _initCropRect() {
-    if (_cropRect != Rect.zero || _fittedSize == Size.zero) return;
+    if (_cropRect != Rect.zero) return;
+    if (_fittedSize == Size.zero) return;
     
     // Vertical rectangle in center (2:3 aspect ratio)
     final double aspectRatio = 2.0 / 3.0;
@@ -103,12 +107,20 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
     final double centerX = _imageOffset.dx + _fittedSize.width / 2;
     final double centerY = _imageOffset.dy + _fittedSize.height / 2;
     
+    _cropRect = Rect.fromCenter(
+      center: Offset(centerX, centerY),
+      width: clampedWidth,
+      height: clampedHeight,
+    );
+  }
+
+  /// Try to initialize when we have all required data
+  void _tryInitialize() {
+    if (_cropRect != Rect.zero) return;
+    if (!_calculateFittedSize()) return;
+    
     setState(() {
-      _cropRect = Rect.fromCenter(
-        center: Offset(centerX, centerY),
-        width: clampedWidth,
-        height: clampedHeight,
-      );
+      _initCropRect();
     });
   }
 
@@ -307,12 +319,9 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_containerSize == Size.zero && constraints.maxWidth > 0) {
-                  setState(() {
-                    _containerSize = Size(constraints.maxWidth, constraints.maxHeight);
-                  });
-                  _calculateFittedSize();
-                  _initCropRect();
+                if (_containerSize == Size.zero && constraints.maxWidth > 0 && mounted) {
+                  _containerSize = Size(constraints.maxWidth, constraints.maxHeight);
+                  _tryInitialize();
                 }
               });
               
