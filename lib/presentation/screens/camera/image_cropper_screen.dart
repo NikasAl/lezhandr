@@ -23,9 +23,10 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
   final TransformationController _transformController = TransformationController();
   
   Rect _cropRect = Rect.zero;
-  Size _imageSize = Size.zero;
-  Size _displaySize = Size.zero;
-  Offset _imageOffset = Offset.zero;
+  Size _imageSize = Size.zero;        // Original image size in pixels
+  Size _containerSize = Size.zero;    // Container size in pixels
+  Size _fittedSize = Size.zero;       // Actual displayed image size after BoxFit.contain
+  Offset _imageOffset = Offset.zero;  // Offset of the image within container
   
   int? _activeCorner; // 0=tl, 1=tr, 2=br, 3=bl
   Offset? _dragStart;
@@ -52,38 +53,81 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
     super.dispose();
   }
 
+  /// Calculate the actual displayed image size and offset after BoxFit.contain
+  void _calculateFittedSize() {
+    if (_imageSize == Size.zero || _containerSize == Size.zero) return;
+    
+    final imageAspect = _imageSize.width / _imageSize.height;
+    final containerAspect = _containerSize.width / _containerSize.height;
+    
+    if (imageAspect > containerAspect) {
+      // Image is wider than container - fits by width, letterbox on top/bottom
+      _fittedSize = Size(
+        _containerSize.width,
+        _containerSize.width / imageAspect,
+      );
+      _imageOffset = Offset(
+        0,
+        (_containerSize.height - _fittedSize.height) / 2,
+      );
+    } else {
+      // Image is taller than container - fits by height, letterbox on left/right
+      _fittedSize = Size(
+        _containerSize.height * imageAspect,
+        _containerSize.height,
+      );
+      _imageOffset = Offset(
+        (_containerSize.width - _fittedSize.width) / 2,
+        0,
+      );
+    }
+  }
+
   /// Initialize crop rect when widget dimensions are known
   void _initCropRect() {
-    if (_cropRect != Rect.zero || _displaySize == Size.zero) return;
+    if (_cropRect != Rect.zero || _fittedSize == Size.zero) return;
     
     // Vertical rectangle in center (2:3 aspect ratio)
     final double aspectRatio = 2.0 / 3.0;
-    final double rectWidth = _displaySize.width * 0.8;
+    final double rectWidth = _fittedSize.width * 0.8;
     final double rectHeight = rectWidth / aspectRatio;
     
-    // Clamp height to fit in display
+    // Clamp height to fit in displayed image
     final double clampedHeight = rectHeight.clamp(
-      _displaySize.height * 0.3,
-      _displaySize.height * 0.85,
+      _fittedSize.height * 0.3,
+      _fittedSize.height * 0.85,
     );
     final double clampedWidth = clampedHeight * aspectRatio;
     
+    // Center within the fitted image (not container)
+    final double centerX = _imageOffset.dx + _fittedSize.width / 2;
+    final double centerY = _imageOffset.dy + _fittedSize.height / 2;
+    
     setState(() {
       _cropRect = Rect.fromCenter(
-        center: Offset(_displaySize.width / 2, _displaySize.height / 2),
+        center: Offset(centerX, centerY),
         width: clampedWidth,
         height: clampedHeight,
       );
     });
   }
 
-  /// Convert display rect to normalized rect (0.0-1.0)
+  /// Convert display rect to normalized rect (0.0-1.0) relative to original image
   Rect _toNormalizedRect(Rect displayRect) {
+    // Convert from display coordinates to fitted image coordinates
+    final fittedRect = Rect.fromLTRB(
+      displayRect.left - _imageOffset.dx,
+      displayRect.top - _imageOffset.dy,
+      displayRect.right - _imageOffset.dx,
+      displayRect.bottom - _imageOffset.dy,
+    );
+    
+    // Normalize to 0.0-1.0 relative to fitted size
     return Rect.fromLTRB(
-      (displayRect.left - _imageOffset.dx) / _displaySize.width,
-      (displayRect.top - _imageOffset.dy) / _displaySize.height,
-      (displayRect.right - _imageOffset.dx) / _displaySize.width,
-      (displayRect.bottom - _imageOffset.dy) / _displaySize.height,
+      fittedRect.left / _fittedSize.width,
+      fittedRect.top / _fittedSize.height,
+      fittedRect.right / _fittedSize.width,
+      fittedRect.bottom / _fittedSize.height,
     );
   }
 
@@ -134,14 +178,20 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
     final delta = details.localPosition - _dragStart!;
     final minSize = 50.0;
     
+    // Bounds are the fitted image bounds (not container)
+    final double minX = _imageOffset.dx;
+    final double maxX = _imageOffset.dx + _fittedSize.width;
+    final double minY = _imageOffset.dy;
+    final double maxY = _imageOffset.dy + _fittedSize.height;
+    
     setState(() {
       if (_activeCorner == -1) {
         // Move entire rect
         Rect newRect = _dragStartRect!.shift(delta);
         
-        // Clamp to image bounds
-        final double left = newRect.left.clamp(_imageOffset.dx, _imageOffset.dx + _displaySize.width - newRect.width);
-        final double top = newRect.top.clamp(_imageOffset.dy, _imageOffset.dy + _displaySize.height - newRect.height);
+        // Clamp to fitted image bounds
+        final double left = newRect.left.clamp(minX, maxX - newRect.width);
+        final double top = newRect.top.clamp(minY, maxY - newRect.height);
         
         _cropRect = Rect.fromLTWH(left, top, newRect.width, newRect.height);
       } else {
@@ -151,8 +201,8 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
         switch (_activeCorner) {
           case 0: // Top-left
             newRect = Rect.fromLTRB(
-              (_dragStartRect!.left + delta.dx).clamp(_imageOffset.dx, _dragStartRect!.right - minSize),
-              (_dragStartRect!.top + delta.dy).clamp(_imageOffset.dy, _dragStartRect!.bottom - minSize),
+              (_dragStartRect!.left + delta.dx).clamp(minX, _dragStartRect!.right - minSize),
+              (_dragStartRect!.top + delta.dy).clamp(minY, _dragStartRect!.bottom - minSize),
               _dragStartRect!.right,
               _dragStartRect!.bottom,
             );
@@ -160,8 +210,8 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
           case 1: // Top-right
             newRect = Rect.fromLTRB(
               _dragStartRect!.left,
-              (_dragStartRect!.top + delta.dy).clamp(_imageOffset.dy, _dragStartRect!.bottom - minSize),
-              (_dragStartRect!.right + delta.dx).clamp(_dragStartRect!.left + minSize, _imageOffset.dx + _displaySize.width),
+              (_dragStartRect!.top + delta.dy).clamp(minY, _dragStartRect!.bottom - minSize),
+              (_dragStartRect!.right + delta.dx).clamp(_dragStartRect!.left + minSize, maxX),
               _dragStartRect!.bottom,
             );
             break;
@@ -169,16 +219,16 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
             newRect = Rect.fromLTRB(
               _dragStartRect!.left,
               _dragStartRect!.top,
-              (_dragStartRect!.right + delta.dx).clamp(_dragStartRect!.left + minSize, _imageOffset.dx + _displaySize.width),
-              (_dragStartRect!.bottom + delta.dy).clamp(_dragStartRect!.top + minSize, _imageOffset.dy + _displaySize.height),
+              (_dragStartRect!.right + delta.dx).clamp(_dragStartRect!.left + minSize, maxX),
+              (_dragStartRect!.bottom + delta.dy).clamp(_dragStartRect!.top + minSize, maxY),
             );
             break;
           case 3: // Bottom-left
             newRect = Rect.fromLTRB(
-              (_dragStartRect!.left + delta.dx).clamp(_imageOffset.dx, _dragStartRect!.right - minSize),
+              (_dragStartRect!.left + delta.dx).clamp(minX, _dragStartRect!.right - minSize),
               _dragStartRect!.top,
               _dragStartRect!.right,
-              (_dragStartRect!.bottom + delta.dy).clamp(_dragStartRect!.top + minSize, _imageOffset.dy + _displaySize.height),
+              (_dragStartRect!.bottom + delta.dy).clamp(_dragStartRect!.top + minSize, maxY),
             );
             break;
         }
@@ -257,11 +307,11 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_displaySize == Size.zero && constraints.maxWidth > 0) {
+                if (_containerSize == Size.zero && constraints.maxWidth > 0) {
                   setState(() {
-                    _displaySize = Size(constraints.maxWidth, constraints.maxHeight);
-                    _imageOffset = Offset.zero;
+                    _containerSize = Size(constraints.maxWidth, constraints.maxHeight);
                   });
+                  _calculateFittedSize();
                   _initCropRect();
                 }
               });
