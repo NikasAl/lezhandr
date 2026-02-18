@@ -6,6 +6,7 @@ import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
+import 'image_cropper_screen.dart';
 
 /// Camera screen for capturing images
 class CameraScreen extends ConsumerStatefulWidget {
@@ -370,7 +371,26 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              // Crop button row
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _openCropper,
+                      icon: const Icon(Icons.crop, size: 18),
+                      label: const Text('Обрезать'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Main actions row
               Row(
                 children: [
                   Expanded(
@@ -414,5 +434,24 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         ),
       ],
     );
+  }
+
+  /// Open image cropper screen
+  Future<void> _openCropper() async {
+    if (_capturedImagePath == null) return;
+    
+    final croppedPath = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageCropperScreen(
+          imagePath: _capturedImagePath!,
+          title: _categoryTitle,
+        ),
+      ),
+    );
+    
+    if (croppedPath != null && mounted) {
+      setState(() => _capturedImagePath = croppedPath);
+    }
   }
 }
