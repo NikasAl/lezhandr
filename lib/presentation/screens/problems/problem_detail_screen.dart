@@ -392,25 +392,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           text: data.conditionText!,
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        if (data.hasImage) ...[
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ImageViewerScreen(
-                                    category: 'condition',
-                                    entityId: widget.problemId,
-                                    title: 'Условие: ${data.reference}',
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.photo_outlined, size: 18),
-                            label: const Text('Посмотреть фото условия'),
-                          ),
-                        ],
                       ] else if (data.hasImage) ...[
                         GestureDetector(
                           onTap: () {
@@ -460,16 +441,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             ],
                           ),
                         ),
-                        if (data.hasText && _showConditionImage) ...[
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: () {
-                              setState(() => _showConditionImage = false);
-                            },
-                            icon: const Icon(Icons.text_fields, size: 18),
-                            label: const Text('Показать текст'),
-                          ),
-                        ],
                       ] else if (_ocrText != null) ...[
                         MarkdownWithMath(
                           text: _ocrText!,
