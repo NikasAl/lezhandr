@@ -87,7 +87,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
             Icon(Icons.edit),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Редактировать условие', overflow: TextOverflow.ellipsis),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('Редактировать условие'),
+              ),
             ),
           ],
         ),
@@ -130,7 +134,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
             Icon(Icons.sell),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Редактировать теги', overflow: TextOverflow.ellipsis),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('Редактировать теги'),
+              ),
             ),
           ],
         ),

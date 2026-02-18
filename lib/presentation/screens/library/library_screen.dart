@@ -177,7 +177,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               Icon(Icons.add_task),
               SizedBox(width: 8),
               Expanded(
-                child: Text('Новая задача', overflow: TextOverflow.ellipsis),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('Новая задача'),
+                ),
               ),
             ],
           ),
@@ -356,7 +360,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                   Icon(Icons.check_circle, color: Colors.green),
                                   SizedBox(width: 8),
                                   Expanded(
-                                    child: Text('Задача создана!', overflow: TextOverflow.ellipsis),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text('Задача создана!'),
+                                    ),
                                   ),
                                 ],
                               ),

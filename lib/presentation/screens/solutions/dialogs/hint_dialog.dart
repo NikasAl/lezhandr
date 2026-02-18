@@ -28,7 +28,11 @@ Future<bool> showHintDialog({
           Icon(Icons.lightbulb_outline),
           SizedBox(width: 8),
           Expanded(
-            child: Text('Запросить подсказку', overflow: TextOverflow.ellipsis),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text('Запросить подсказку'),
+            ),
           ),
         ],
       ),

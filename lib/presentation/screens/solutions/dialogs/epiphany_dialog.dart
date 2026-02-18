@@ -22,7 +22,11 @@ Future<bool> showEpiphanyDialog({
             Icon(Icons.lightbulb, color: Colors.amber),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Озарение', overflow: TextOverflow.ellipsis),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('Озарение'),
+              ),
             ),
           ],
         ),
@@ -97,7 +101,11 @@ Future<bool> showEpiphanyDialog({
             Icon(Icons.lightbulb, color: Colors.amber),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Озарение сохранено!', overflow: TextOverflow.ellipsis),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('Озарение сохранено!'),
+              ),
             ),
           ],
         ),

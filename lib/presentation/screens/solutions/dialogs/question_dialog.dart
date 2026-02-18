@@ -20,7 +20,11 @@ Future<bool> showQuestionDialog({
           Icon(Icons.help_outline),
           SizedBox(width: 8),
           Expanded(
-            child: Text('Вопрос', overflow: TextOverflow.ellipsis),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text('Вопрос'),
+            ),
           ),
         ],
       ),
