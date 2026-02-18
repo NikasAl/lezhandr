@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../core/services/image_crop_service.dart';
+import '../../../core/services/image_crop_service.dart';
 
 /// Screen for cropping an image
 /// Returns the path to cropped image file, or null if cancelled

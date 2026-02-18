@@ -31,26 +31,49 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   Future<void> _takePicture() async {
     final XFile? image = await _picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 85,
+      imageQuality: 95,
       maxWidth: 1920,
       maxHeight: 1920,
     );
 
     if (image != null) {
-      setState(() => _capturedImagePath = image.path);
+      await _processImage(image.path);
     }
   }
 
   Future<void> _pickFromGallery() async {
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
+      imageQuality: 95,
       maxWidth: 1920,
       maxHeight: 1920,
     );
 
     if (image != null) {
-      setState(() => _capturedImagePath = image.path);
+      await _processImage(image.path);
+    }
+  }
+
+  /// Process captured image - open cropper immediately
+  Future<void> _processImage(String imagePath) async {
+    if (!mounted) return;
+    
+    // Open cropper immediately after capturing
+    final croppedPath = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageCropperScreen(
+          imagePath: imagePath,
+          title: _categoryTitle,
+        ),
+      ),
+    );
+    
+    if (croppedPath != null && mounted) {
+      setState(() => _capturedImagePath = croppedPath);
+    } else if (mounted) {
+      // User cancelled cropping - still show the original image
+      setState(() => _capturedImagePath = imagePath);
     }
   }
 
@@ -371,26 +394,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 16),
-              // Crop button row
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _openCropper,
-                      icon: const Icon(Icons.crop, size: 18),
-                      label: const Text('Обрезать'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Main actions row
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -434,24 +438,5 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         ),
       ],
     );
-  }
-
-  /// Open image cropper screen
-  Future<void> _openCropper() async {
-    if (_capturedImagePath == null) return;
-    
-    final croppedPath = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImageCropperScreen(
-          imagePath: _capturedImagePath!,
-          title: _categoryTitle,
-        ),
-      ),
-    );
-    
-    if (croppedPath != null && mounted) {
-      setState(() => _capturedImagePath = croppedPath);
-    }
   }
 }
