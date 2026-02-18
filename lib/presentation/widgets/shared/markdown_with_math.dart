@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'auto_scaling_math.dart';
 
 /// Widget that renders Markdown text with LaTeX math formula support.
 ///
@@ -91,15 +92,13 @@ class MarkdownWithMath extends StatelessWidget {
         fontFamily: null,
         fontSize: (baseStyle.fontSize ?? 14) * 1.25,
       );
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Math.tex(
-            segment.content,
-            textStyle: mathStyle,
-            mathStyle: MathStyle.display,
-          ),
-        ),
+      // Use FittedMath to prevent overflow on wide formulas
+      return FittedMath(
+        latex: segment.content,
+        textStyle: mathStyle,
+        mathStyle: MathStyle.display,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       );
     } else {
       // Inline block - text with inline math using Text.rich
@@ -125,12 +124,16 @@ class MarkdownWithMath extends StatelessWidget {
           fontFamily: null,
           fontSize: (baseStyle.fontSize ?? 14) * 1.1,
         );
+        // Wrap inline math in FittedBox to handle overflow gracefully
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Math.tex(
-            segment.content,
-            textStyle: mathStyle,
-            mathStyle: MathStyle.text,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Math.tex(
+              segment.content,
+              textStyle: mathStyle,
+              mathStyle: MathStyle.text,
+            ),
           ),
         ));
       }
@@ -175,11 +178,15 @@ class MarkdownWithMath extends StatelessWidget {
           fontFamily: null,
           fontSize: (baseStyle.fontSize ?? 14) * 1.1,  // 10% larger for readability
         );
+        // Wrap inline math in FittedBox to handle overflow
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Math.tex(
-            segment.content,
-            textStyle: mathStyle,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Math.tex(
+              segment.content,
+              textStyle: mathStyle,
+            ),
           ),
         ));
       } else {
@@ -194,11 +201,15 @@ class MarkdownWithMath extends StatelessWidget {
           exceeded = true;
           break;
         }
+        // Wrap inline math in FittedBox to handle overflow
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Math.tex(
-            segment.content,
-            textStyle: mathStyle,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Math.tex(
+              segment.content,
+              textStyle: mathStyle,
+            ),
           ),
         ));
       }
@@ -320,25 +331,32 @@ class _SegmentBlock {
 }
 
 /// A simpler widget for just math formulas (without markdown)
+/// Uses FittedBox to prevent overflow
 class MathFormula extends StatelessWidget {
   final String formula;
   final bool isDisplay;
   final TextStyle? textStyle;
+  final Alignment alignment;
 
   const MathFormula({
     super.key,
     required this.formula,
     this.isDisplay = false,
     this.textStyle,
+    this.alignment = Alignment.centerLeft,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Math.tex(
-      formula,
-      textStyle: textStyle?.copyWith(fontFamily: null) ??
-          DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
-      mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: alignment,
+      child: Math.tex(
+        formula,
+        textStyle: textStyle?.copyWith(fontFamily: null) ??
+            DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
+        mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
+      ),
     );
   }
 }
