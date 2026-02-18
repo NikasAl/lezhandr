@@ -19,7 +19,9 @@ Future<bool> showQuestionDialog({
         children: [
           Icon(Icons.help_outline),
           SizedBox(width: 8),
-          Text('Вопрос'),
+          Expanded(
+            child: Text('Вопрос', overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
       content: TextField(

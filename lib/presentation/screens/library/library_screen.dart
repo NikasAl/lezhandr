@@ -176,7 +176,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             children: [
               Icon(Icons.add_task),
               SizedBox(width: 8),
-              Text('Новая задача'),
+              Expanded(
+                child: Text('Новая задача', overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           content: SizedBox(
@@ -353,7 +355,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                 children: [
                                   Icon(Icons.check_circle, color: Colors.green),
                                   SizedBox(width: 8),
-                                  Text('Задача создана!'),
+                                  Expanded(
+                                    child: Text('Задача создана!', overflow: TextOverflow.ellipsis),
+                                  ),
                                 ],
                               ),
                               content: Text('ID: ${problem.id}\n\nДобавить фото условия?'),

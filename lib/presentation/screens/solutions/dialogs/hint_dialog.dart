@@ -27,7 +27,9 @@ Future<bool> showHintDialog({
         children: [
           Icon(Icons.lightbulb_outline),
           SizedBox(width: 8),
-          Text('Запросить подсказку'),
+          Expanded(
+            child: Text('Запросить подсказку', overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
       content: TextField(

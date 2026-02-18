@@ -21,7 +21,9 @@ Future<bool> showEpiphanyDialog({
           children: [
             Icon(Icons.lightbulb, color: Colors.amber),
             SizedBox(width: 8),
-            Text('Озарение'),
+            Expanded(
+              child: Text('Озарение', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         content: Column(
@@ -94,7 +96,9 @@ Future<bool> showEpiphanyDialog({
           children: [
             Icon(Icons.lightbulb, color: Colors.amber),
             SizedBox(width: 8),
-            Text('Озарение сохранено!'),
+            Expanded(
+              child: Text('Озарение сохранено!', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         content: const Text('Добавить схему/рисунок?'),

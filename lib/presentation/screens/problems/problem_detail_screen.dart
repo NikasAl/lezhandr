@@ -86,7 +86,9 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
           children: [
             Icon(Icons.edit),
             SizedBox(width: 8),
-            Text('Редактировать условие'),
+            Expanded(
+              child: Text('Редактировать условие', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         content: SizedBox(
@@ -127,7 +129,9 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
           children: [
             Icon(Icons.sell),
             SizedBox(width: 8),
-            Text('Редактировать теги'),
+            Expanded(
+              child: Text('Редактировать теги', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         content: SizedBox(
