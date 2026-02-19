@@ -62,12 +62,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
             user: user,
           );
         } catch (e) {
-          // Token expired or invalid - show login screen
-          state = const AuthState(showLoginScreen: true);
+          // Token expired or invalid - try to refresh via device login
+          try {
+            await _authRepository.deviceLogin();
+            final user = await _authRepository.getMe();
+            state = AuthState(
+              isAuthenticated: true,
+              user: user,
+            );
+          } catch (refreshError) {
+            // Refresh failed - show login screen
+            state = const AuthState(showLoginScreen: true);
+          }
         }
       } else {
-        // No token - show login screen
-        state = const AuthState(showLoginScreen: true);
+        // No token - try device login first
+        try {
+          await _authRepository.deviceLogin();
+          final user = await _authRepository.getMe();
+          state = AuthState(
+            isAuthenticated: true,
+            user: user,
+          );
+        } catch (e) {
+          // Device login failed - show login screen
+          state = const AuthState(showLoginScreen: true);
+        }
       }
     } catch (e) {
       state = AuthState(

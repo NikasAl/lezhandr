@@ -6,6 +6,7 @@ import '../../core/config/app_config.dart';
 /// Main API client with authentication interceptors
 class ApiClient {
   late final Dio _dio;
+  late final Dio _refreshDio; // Separate Dio for refresh requests (no interceptors)
   final TokenStorage _tokenStorage;
   final DeviceStorage _deviceStorage;
 
@@ -26,10 +27,23 @@ class ApiClient {
       ),
     );
 
+    // Separate Dio for refresh - no interceptors to avoid recursion
+    _refreshDio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.apiUrl,
+        connectTimeout: Duration(seconds: AppConfig.apiTimeoutSeconds),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
     _dio.interceptors.addAll([
       _AuthInterceptor(
         tokenStorage: _tokenStorage,
         deviceStorage: _deviceStorage,
+        refreshDio: _refreshDio,
         dio: _dio,
       ),
       _LoggingInterceptor(),
@@ -43,14 +57,17 @@ class ApiClient {
 class _AuthInterceptor extends Interceptor {
   final TokenStorage _tokenStorage;
   final DeviceStorage _deviceStorage;
+  final Dio _refreshDio; // Separate Dio for refresh (no interceptors)
   final Dio _dio;
 
   _AuthInterceptor({
     required TokenStorage tokenStorage,
     required DeviceStorage deviceStorage,
+    required Dio refreshDio,
     required Dio dio,
   })  : _tokenStorage = tokenStorage,
         _deviceStorage = deviceStorage,
+        _refreshDio = refreshDio,
         _dio = dio;
 
   @override
@@ -108,7 +125,8 @@ class _AuthInterceptor extends Interceptor {
   Future<bool> _refreshToken() async {
     try {
       final creds = await _deviceStorage.getOrCreateCredentials();
-      final response = await _dio.post(
+      // Use _refreshDio (no interceptors) to avoid recursion
+      final response = await _refreshDio.post(
         '/auth/device-register',
         data: {
           'device_id': creds.deviceId,
@@ -119,9 +137,12 @@ class _AuthInterceptor extends Interceptor {
       if (response.statusCode == 200) {
         final token = response.data['access_token'] as String;
         await _tokenStorage.saveToken(token);
+        print('🔄 Token refreshed successfully');
         return true;
       }
-    } catch (_) {}
+    } catch (e) {
+      print('❌ Token refresh failed: $e');
+    }
 
     return false;
   }
