@@ -136,7 +136,7 @@ class MockData {
         currentHearts: 4,
         maxHearts: 5,
         streakCurrent: 7,
-        streakMax: 14,
+        streakBest: 14,
         solvedTasksToday: 3,
       );
 }

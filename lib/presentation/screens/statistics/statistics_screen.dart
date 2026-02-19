@@ -66,7 +66,7 @@ class StatisticsScreen extends ConsumerWidget {
                       value: '${gamification.value?.streakCurrent ?? 0} дн.',
                       subtitle: gamification.value?.streakCurrent == 0
                           ? null
-                          : 'Макс: ${gamification.value?.streakMax ?? 0}',
+                          : 'Макс: ${gamification.value?.streakBest ?? 0}',
                     ),
                   ),
                 ],
@@ -126,7 +126,7 @@ class StatisticsScreen extends ConsumerWidget {
                       icon: Icons.emoji_events,
                       label: 'Максимальный стрик',
                       value:
-                          '${gamification.value?.streakMax ?? 0} дней',
+                          '${gamification.value?.streakBest ?? 0} дней',
                     ),
                   ],
                 ),

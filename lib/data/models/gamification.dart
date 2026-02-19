@@ -5,7 +5,7 @@ class GamificationModel {
   final int currentHearts;
   final int maxHearts;
   final int streakCurrent;
-  final int streakMax;
+  final int streakBest;  // Changed from streakMax to match API field
   final int solvedTasksToday;
   final DateTime? lastActivityDate;
 
@@ -16,7 +16,7 @@ class GamificationModel {
     this.currentHearts = 5,
     this.maxHearts = 5,
     this.streakCurrent = 0,
-    this.streakMax = 0,
+    this.streakBest = 0,
     this.solvedTasksToday = 0,
     this.lastActivityDate,
   });
@@ -36,7 +36,7 @@ class GamificationModel {
       currentHearts: json['current_hearts'] as int? ?? 5,
       maxHearts: json['max_hearts'] as int? ?? 5,
       streakCurrent: json['streak_current'] as int? ?? 0,
-      streakMax: json['streak_max'] as int? ?? 0,
+      streakBest: json['streak_best'] as int? ?? 0,  // Fixed: was streak_max
       solvedTasksToday: json['solved_tasks_today'] as int? ?? 0,
       lastActivityDate: lastActivityDate,
     );
@@ -49,7 +49,7 @@ class GamificationModel {
         'current_hearts': currentHearts,
         'max_hearts': maxHearts,
         'streak_current': streakCurrent,
-        'streak_max': streakMax,
+        'streak_best': streakBest,
         'solved_tasks_today': solvedTasksToday,
         'last_activity_date': lastActivityDate?.toIso8601String(),
       };
