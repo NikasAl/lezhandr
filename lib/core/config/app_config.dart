@@ -8,12 +8,14 @@ class AppConfig {
     defaultValue: true, // Enable demo mode by default
   );
 
-  /// API base URL
-  /// TODO: Replace with your actual API URL
-  static const String apiUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://localhost:8000/api/v1',
-  );
+  /// Environment name (dev, stage)
+  static const String _env = String.fromEnvironment('env', defaultValue: 'stage');
+
+  /// API base URL - selected by environment
+  /// Usage: flutter run --dart-define=env=dev
+  static const String apiUrl = _env == 'dev'
+      ? 'http://192.168.1.7:8001/mv/api/v1'
+      : 'https://kreagenium.ru/mv/api/v1';
 
   /// API timeout in seconds
   static const int apiTimeoutSeconds = 30;
