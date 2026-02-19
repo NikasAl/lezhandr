@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/solutions_provider.dart';
+import '../../providers/gamification_provider.dart';
 
 /// Login screen - allows login with email/username or create new device account
 class LoginScreen extends ConsumerStatefulWidget {
@@ -35,9 +37,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _passwordController.text,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
+    if (success) {
+      // Invalidate providers to refresh data after login
+      ref.invalidate(gamificationMeProvider);
+      ref.invalidate(activeSolutionsProvider);
       context.go('/main/home');
     }
   }
@@ -47,9 +53,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final success = await ref.read(authStateProvider.notifier).deviceLogin();
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
+    if (success) {
+      // Invalidate providers to refresh data after login
+      ref.invalidate(gamificationMeProvider);
+      ref.invalidate(activeSolutionsProvider);
       context.go('/main/home');
     }
   }
