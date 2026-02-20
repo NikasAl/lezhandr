@@ -741,14 +741,6 @@ class _ProblemConditionCard extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  // Expand button
-                  TextButton.icon(
-                    onPressed: () {
-                      context.push('/problems/${problem.id}');
-                    },
-                    icon: const Icon(Icons.open_in_full, size: 16),
-                    label: const Text('Развернуть'),
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
