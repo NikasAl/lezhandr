@@ -7,28 +7,35 @@ class SolutionsRepository {
 
   SolutionsRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  /// Get solutions with optional filters
-  Future<List<SolutionModel>> getSolutions({
+  /// Get solutions with pagination and optional filters
+  /// Returns SolutionListResponse with items, total, limit, offset
+  Future<SolutionListResponse> getSolutions({
     int? problemId,
     SolutionStatus? status,
+    int? userId,
+    int limit = 20,
+    int offset = 0,
   }) async {
-    final queryParams = <String, dynamic>{};
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+    };
     if (problemId != null) queryParams['problem_id'] = problemId;
     if (status != null) queryParams['status'] = status.name;
+    if (userId != null) queryParams['user_id'] = userId;
 
     final response = await _apiClient.dio.get(
       '/solutions',
       queryParameters: queryParams,
     );
 
-    return (response.data as List)
-        .map((json) => SolutionModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+    return SolutionListResponse.fromJson(response.data);
   }
 
-  /// Get active solutions
+  /// Get active solutions (convenience method)
   Future<List<SolutionModel>> getActiveSolutions() async {
-    return await getSolutions(status: SolutionStatus.active);
+    final response = await getSolutions(status: SolutionStatus.active, limit: 100);
+    return response.items;
   }
 
   /// Get single solution by ID

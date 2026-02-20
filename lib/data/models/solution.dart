@@ -1,4 +1,5 @@
 import 'problem.dart';
+import 'user.dart';
 
 enum SolutionStatus { active, completed, abandoned }
 
@@ -16,6 +17,7 @@ class SolutionModel {
   final double totalMinutes;
   final DateTime? createdAt;
   final ProblemModel? problem;
+  final UserPublicProfile? addedBy;
 
   SolutionModel({
     required this.id,
@@ -31,6 +33,7 @@ class SolutionModel {
     this.totalMinutes = 0,
     this.createdAt,
     this.problem,
+    this.addedBy,
   });
 
   factory SolutionModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +57,11 @@ class SolutionModel {
       problem = ProblemModel.fromJson(json['problem'] as Map<String, dynamic>);
     }
 
+    UserPublicProfile? addedBy;
+    if (json['added_by'] != null && json['added_by'] is Map<String, dynamic>) {
+      addedBy = UserPublicProfile.fromJson(json['added_by'] as Map<String, dynamic>);
+    }
+
     DateTime? createdAt;
     if (json['created_at'] != null) {
       try {
@@ -75,6 +83,7 @@ class SolutionModel {
       totalMinutes: (json['total_minutes'] as num?)?.toDouble() ?? 0,
       createdAt: createdAt,
       problem: problem,
+      addedBy: addedBy,
     );
   }
 
@@ -91,6 +100,7 @@ class SolutionModel {
         'solution_text': solutionText,
         'total_minutes': totalMinutes,
         'created_at': createdAt?.toIso8601String(),
+        'added_by': addedBy?.toJson(),
       };
 
   bool get hasText => solutionText != null && solutionText!.isNotEmpty;
@@ -111,6 +121,41 @@ class SolutionModel {
         return 'Отложено';
     }
   }
+}
+
+/// Response wrapper for paginated solutions list
+class SolutionListResponse {
+  final List<SolutionModel> items;
+  final int total;
+  final int limit;
+  final int offset;
+
+  SolutionListResponse({
+    required this.items,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+
+  factory SolutionListResponse.fromJson(Map<String, dynamic> json) {
+    return SolutionListResponse(
+      items: (json['items'] as List?)
+          ?.map((s) => SolutionModel.fromJson(s as Map<String, dynamic>))
+          .toList() ?? [],
+      total: json['total'] as int? ?? 0,
+      limit: json['limit'] as int? ?? 20,
+      offset: json['offset'] as int? ?? 0,
+    );
+  }
+
+  /// Check if there are more items to load
+  bool get hasMore => offset + items.length < total;
+  
+  /// Current page number (1-based)
+  int get currentPage => (offset / limit).floor() + 1;
+  
+  /// Total pages count
+  int get totalPages => (total / limit).ceil();
 }
 
 class SolutionCreate {

@@ -1,5 +1,44 @@
 enum UserRole { admin, moderator, user }
 
+/// Public profile of a user (used in added_by fields)
+class UserPublicProfile {
+  final int id;
+  final String? username;
+  final DateTime? createdAt;
+
+  UserPublicProfile({
+    required this.id,
+    this.username,
+    this.createdAt,
+  });
+
+  factory UserPublicProfile.fromJson(Map<String, dynamic> json) {
+    DateTime? createdAt;
+    if (json['created_at'] != null) {
+      try {
+        createdAt = DateTime.parse(json['created_at'] as String);
+      } catch (_) {}
+    }
+
+    return UserPublicProfile(
+      id: json['id'] as int? ?? 0,
+      username: json['username'] as String?,
+      createdAt: createdAt,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'username': username,
+        'created_at': createdAt?.toIso8601String(),
+      };
+
+  /// Display name for UI (username or #id)
+  String get displayName => username != null && username!.isNotEmpty
+      ? '@$username'
+      : '#$id';
+}
+
 class UserModel {
   final int? id;
   final String? email;

@@ -15,27 +15,33 @@ class ProblemsRepository {
         .toList();
   }
 
-  /// Get problems with optional filters
-  Future<List<ProblemModel>> getProblems({
+  /// Get problems with pagination and optional filters
+  /// Returns ProblemListResponse with items, total, limit, offset
+  Future<ProblemListResponse> getProblems({
     String? source,
     String? search,
     String? tag,
     String? reference,
+    int? userId,
+    int limit = 20,
+    int offset = 0,
   }) async {
-    final queryParams = <String, dynamic>{};
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+    };
     if (source != null) queryParams['source'] = source;
     if (search != null) queryParams['search'] = search;
     if (tag != null) queryParams['tag'] = tag;
     if (reference != null) queryParams['reference'] = reference;
+    if (userId != null) queryParams['user_id'] = userId;
 
     final response = await _apiClient.dio.get(
       '/problems',
       queryParameters: queryParams,
     );
 
-    return (response.data as List)
-        .map((json) => ProblemModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+    return ProblemListResponse.fromJson(response.data);
   }
 
   /// Get single problem by ID

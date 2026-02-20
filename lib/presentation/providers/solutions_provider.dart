@@ -9,11 +9,26 @@ final activeSolutionsProvider = FutureProvider<List<SolutionModel>>((ref) async 
   return await repo.getActiveSolutions();
 });
 
-/// Solutions for a problem
+/// Solutions for a problem with pagination
+/// Returns full SolutionListResponse with items, total, limit, offset
+final solutionsListProvider =
+    FutureProvider.family<SolutionListResponse, SolutionsFilter>((ref, filter) async {
+  final repo = ref.watch(solutionsRepositoryProvider);
+  return await repo.getSolutions(
+    problemId: filter.problemId,
+    status: filter.status,
+    userId: filter.userId,
+    limit: filter.limit,
+    offset: filter.offset,
+  );
+});
+
+/// Solutions for a problem (legacy - returns just items list)
 final problemSolutionsProvider =
     FutureProvider.family<List<SolutionModel>, int>((ref, problemId) async {
   final repo = ref.watch(solutionsRepositoryProvider);
-  return await repo.getSolutions(problemId: problemId);
+  final response = await repo.getSolutions(problemId: problemId, limit: 100);
+  return response.items;
 });
 
 /// Single solution provider
@@ -96,3 +111,63 @@ final solutionNotifierProvider =
     StateNotifierProvider<SolutionNotifier, AsyncValue<SolutionModel?>>((ref) {
   return SolutionNotifier(ref.watch(solutionsRepositoryProvider));
 });
+
+/// Solutions filter with pagination support
+class SolutionsFilter {
+  final int? problemId;
+  final SolutionStatus? status;
+  final int? userId;
+  final int limit;
+  final int offset;
+
+  const SolutionsFilter({
+    this.problemId,
+    this.status,
+    this.userId,
+    this.limit = 20,
+    this.offset = 0,
+  });
+
+  SolutionsFilter copyWith({
+    int? problemId,
+    SolutionStatus? status,
+    int? userId,
+    int? limit,
+    int? offset,
+  }) {
+    return SolutionsFilter(
+      problemId: problemId ?? this.problemId,
+      status: status ?? this.status,
+      userId: userId ?? this.userId,
+      limit: limit ?? this.limit,
+      offset: offset ?? this.offset,
+    );
+  }
+
+  /// Create filter for next page
+  SolutionsFilter nextPage() {
+    return copyWith(offset: offset + limit);
+  }
+
+  /// Check if this is the first page
+  bool get isFirstPage => offset == 0;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SolutionsFilter &&
+          runtimeType == other.runtimeType &&
+          problemId == other.problemId &&
+          status == other.status &&
+          userId == other.userId &&
+          limit == other.limit &&
+          offset == other.offset;
+
+  @override
+  int get hashCode =>
+      problemId.hashCode ^
+      status.hashCode ^
+      userId.hashCode ^
+      limit.hashCode ^
+      offset.hashCode;
+}

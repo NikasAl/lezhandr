@@ -9,17 +9,37 @@ final sourcesProvider = FutureProvider<List<SourceModel>>((ref) async {
   return await repo.getSources();
 });
 
-/// Problems provider with filters
+/// Problems list response provider with pagination and filters
+/// Returns full ProblemListResponse with items, total, limit, offset
+final problemsListProvider =
+    FutureProvider.family<ProblemListResponse, ProblemsFilter>((ref, filter) async {
+  final repo = ref.watch(problemsRepositoryProvider);
+  return await repo.getProblems(
+    source: filter.source,
+    search: filter.search,
+    tag: filter.tag,
+    reference: filter.reference,
+    userId: filter.userId,
+    limit: filter.limit,
+    offset: filter.offset,
+  );
+});
+
+/// Legacy provider for backward compatibility - returns just the items list
 final problemsProvider =
     FutureProvider.family<List<ProblemModel>, ProblemsFilter?>(
         (ref, filter) async {
   final repo = ref.watch(problemsRepositoryProvider);
-  return await repo.getProblems(
+  final response = await repo.getProblems(
     source: filter?.source,
     search: filter?.search,
     tag: filter?.tag,
     reference: filter?.reference,
+    userId: filter?.userId,
+    limit: filter?.limit ?? 20,
+    offset: filter?.offset ?? 0,
   );
+  return response.items;
 });
 
 /// Single problem provider
@@ -82,18 +102,24 @@ class ProblemNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-/// Problems filter
+/// Problems filter with pagination support
 class ProblemsFilter {
   final String? source;
   final String? search;
   final String? tag;
   final String? reference;
+  final int? userId;
+  final int limit;
+  final int offset;
 
   const ProblemsFilter({
     this.source,
     this.search,
     this.tag,
     this.reference,
+    this.userId,
+    this.limit = 20,
+    this.offset = 0,
   });
 
   ProblemsFilter copyWith({
@@ -101,14 +127,33 @@ class ProblemsFilter {
     String? search,
     String? tag,
     String? reference,
+    int? userId,
+    int? limit,
+    int? offset,
   }) {
     return ProblemsFilter(
       source: source ?? this.source,
       search: search ?? this.search,
       tag: tag ?? this.tag,
       reference: reference ?? this.reference,
+      userId: userId ?? this.userId,
+      limit: limit ?? this.limit,
+      offset: offset ?? this.offset,
     );
   }
+
+  /// Create filter for next page
+  ProblemsFilter nextPage() {
+    return copyWith(offset: offset + limit);
+  }
+
+  /// Create filter for previous page
+  ProblemsFilter previousPage() {
+    return copyWith(offset: offset - limit < 0 ? 0 : offset - limit);
+  }
+
+  /// Check if this is the first page
+  bool get isFirstPage => offset == 0;
 
   @override
   bool operator ==(Object other) =>
@@ -118,9 +163,18 @@ class ProblemsFilter {
           source == other.source &&
           search == other.search &&
           tag == other.tag &&
-          reference == other.reference;
+          reference == other.reference &&
+          userId == other.userId &&
+          limit == other.limit &&
+          offset == other.offset;
 
   @override
   int get hashCode =>
-      source.hashCode ^ search.hashCode ^ tag.hashCode ^ reference.hashCode;
+      source.hashCode ^ 
+      search.hashCode ^ 
+      tag.hashCode ^ 
+      reference.hashCode ^
+      userId.hashCode ^
+      limit.hashCode ^
+      offset.hashCode;
 }

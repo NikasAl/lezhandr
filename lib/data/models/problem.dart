@@ -1,3 +1,5 @@
+import 'user.dart';
+
 class SourceModel {
   final int id;
   final String name;
@@ -64,6 +66,7 @@ class ProblemModel {
   final SourceModel? source;
   final List<TagModel> tags;
   final List<ProblemConceptModel>? concepts;
+  final UserPublicProfile? addedBy;
 
   ProblemModel({
     required this.id,
@@ -75,6 +78,7 @@ class ProblemModel {
     this.source,
     this.tags = const [],
     this.concepts,
+    this.addedBy,
   });
 
   factory ProblemModel.fromJson(Map<String, dynamic> json) {
@@ -97,6 +101,11 @@ class ProblemModel {
           .toList();
     }
 
+    UserPublicProfile? addedBy;
+    if (json['added_by'] != null && json['added_by'] is Map<String, dynamic>) {
+      addedBy = UserPublicProfile.fromJson(json['added_by'] as Map<String, dynamic>);
+    }
+
     DateTime? createdAt;
     if (json['created_at'] != null) {
       try {
@@ -114,6 +123,7 @@ class ProblemModel {
       source: source,
       tags: tags,
       concepts: concepts,
+      addedBy: addedBy,
     );
   }
 
@@ -126,6 +136,7 @@ class ProblemModel {
         'created_at': createdAt?.toIso8601String(),
         'source': source?.toJson(),
         'tags': tags.map((t) => t.toJson()).toList(),
+        'added_by': addedBy?.toJson(),
       };
 
   bool get hasText => conditionText != null && conditionText!.isNotEmpty;
@@ -137,6 +148,41 @@ class ProblemModel {
       : reference;
   
   String get sourceName => source?.name ?? 'Unknown';
+}
+
+/// Response wrapper for paginated problems list
+class ProblemListResponse {
+  final List<ProblemModel> items;
+  final int total;
+  final int limit;
+  final int offset;
+
+  ProblemListResponse({
+    required this.items,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+
+  factory ProblemListResponse.fromJson(Map<String, dynamic> json) {
+    return ProblemListResponse(
+      items: (json['items'] as List?)
+          ?.map((p) => ProblemModel.fromJson(p as Map<String, dynamic>))
+          .toList() ?? [],
+      total: json['total'] as int? ?? 0,
+      limit: json['limit'] as int? ?? 20,
+      offset: json['offset'] as int? ?? 0,
+    );
+  }
+
+  /// Check if there are more items to load
+  bool get hasMore => offset + items.length < total;
+  
+  /// Current page number (1-based)
+  int get currentPage => (offset / limit).floor() + 1;
+  
+  /// Total pages count
+  int get totalPages => (total / limit).ceil();
 }
 
 class ProblemCreate {

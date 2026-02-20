@@ -8,7 +8,7 @@ import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 
-/// Library screen - browse sources and problems
+/// Library screen - browse sources and problems with pagination
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
@@ -19,13 +19,31 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedSource;
   String _searchQuery = '';
+  int _currentOffset = 0;
+  final int _pageSize = 20;
+  
+  // Accumulated problems list for infinite scroll
+  List<ProblemModel> _accumulatedProblems = [];
+  int _totalProblems = 0;
+  bool _hasMore = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reset when source changes
+    _resetPagination();
+  }
+  
+  void _resetPagination() {
+    _currentOffset = 0;
+    _accumulatedProblems = [];
+    _totalProblems = 0;
+    _hasMore = true;
+  }
 
   @override
   Widget build(BuildContext context) {
     final sources = ref.watch(sourcesProvider);
-    final problems = ref.watch(problemsProvider(
-      ProblemsFilter(source: _selectedSource, search: _searchQuery.isEmpty ? null : _searchQuery),
-    ));
     final activeSolutions = ref.watch(activeSolutionsProvider);
 
     // Get active problem IDs
@@ -34,15 +52,38 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             .toSet() ??
         {};
 
+    // Current filter
+    final filter = ProblemsFilter(
+      source: _selectedSource,
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+      limit: _pageSize,
+      offset: _currentOffset,
+    );
+
+    // Watch problems list with current filter
+    final problemsListAsync = ref.watch(problemsListProvider(filter));
+
+    // Update accumulated list when new data arrives
+    problemsListAsync.whenData((response) {
+      if (_currentOffset == 0) {
+        _accumulatedProblems = response.items;
+      } else if (_accumulatedProblems.length < _currentOffset + response.items.length) {
+        // Avoid duplicates
+        final existingIds = _accumulatedProblems.map((p) => p.id).toSet();
+        final newItems = response.items.where((p) => !existingIds.contains(p.id)).toList();
+        _accumulatedProblems = [..._accumulatedProblems, ...newItems];
+      }
+      _totalProblems = response.total;
+      _hasMore = response.hasMore;
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Библиотека'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Show search
-            },
+            onPressed: () => _showSearchDialog(context),
           ),
         ],
       ),
@@ -59,7 +100,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   FilterChip(
                     label: const Text('Все'),
                     selected: _selectedSource == null,
-                    onSelected: (_) => setState(() => _selectedSource = null),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedSource = null;
+                        _resetPagination();
+                      });
+                    },
                   ),
                   const SizedBox(width: 8),
                   ...data.map((source) => Padding(
@@ -67,8 +113,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         child: FilterChip(
                           label: Text(source.name),
                           selected: _selectedSource == source.name,
-                          onSelected: (_) =>
-                              setState(() => _selectedSource = source.name),
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedSource = source.name;
+                              _resetPagination();
+                            });
+                          },
                         ),
                       )),
                 ],
@@ -79,11 +129,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
           const Divider(),
 
-          // Problems list
+          // Problems list with pagination
           Expanded(
-            child: problems.when(
-              data: (data) {
-                if (data.isEmpty) {
+            child: problemsListAsync.when(
+              data: (response) {
+                final problems = _accumulatedProblems;
+                
+                if (problems.isEmpty && _currentOffset == 0) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -110,26 +162,94 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: data.length,
-                  itemBuilder: (context, index) {
-                    final problem = data[index];
-                    final isActive = activeProblemIds.contains(problem.id);
+                return Column(
+                  children: [
+                    // Total count indicator
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      child: Text(
+                        'Всего задач: $_totalProblems',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    
+                    // Problems list
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: problems.length + (_hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          // Load more button
+                          if (index == problems.length && _hasMore) {
+                            return _LoadMoreCard(
+                              isLoading: problemsListAsync.isLoading,
+                              onLoadMore: () {
+                                if (!problemsListAsync.isLoading) {
+                                  setState(() {
+                                    _currentOffset += _pageSize;
+                                  });
+                                }
+                              },
+                              remainingCount: _totalProblems - problems.length,
+                            );
+                          }
+                          
+                          final problem = problems[index];
+                          final isActive = activeProblemIds.contains(problem.id);
 
-                    return _ProblemCard(
-                      problem: problem,
-                      isActive: isActive,
-                      onTap: () async {
-                        await context.push('/problems/${problem.id}');
-                        // Refresh after returning from problem detail
-                        ref.invalidate(problemsProvider);
-                      },
-                    );
-                  },
+                          return _ProblemCard(
+                            problem: problem,
+                            isActive: isActive,
+                            onTap: () async {
+                              await context.push('/problems/${problem.id}');
+                              // Refresh after returning from problem detail
+                              ref.invalidate(problemsListProvider);
+                              _resetPagination();
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () {
+                if (_accumulatedProblems.isNotEmpty) {
+                  // Show existing data while loading more
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _accumulatedProblems.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == _accumulatedProblems.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      
+                      final problem = _accumulatedProblems[index];
+                      final isActive = activeProblemIds.contains(problem.id);
+
+                      return _ProblemCard(
+                        problem: problem,
+                        isActive: isActive,
+                        onTap: () async {
+                          await context.push('/problems/${problem.id}');
+                          ref.invalidate(problemsListProvider);
+                          _resetPagination();
+                        },
+                      );
+                    },
+                  );
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
               error: (error, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -139,7 +259,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     Text('Ошибка загрузки: $error'),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: () => ref.invalidate(sourcesProvider),
+                      onPressed: () {
+                        ref.invalidate(sourcesProvider);
+                        ref.invalidate(problemsListProvider);
+                        _resetPagination();
+                      },
                       child: const Text('Повторить'),
                     ),
                   ],
@@ -153,6 +277,55 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         onPressed: () => _showCreateProblemDialog(context, sources.valueOrNull ?? []),
         icon: const Icon(Icons.add),
         label: const Text('Новая задача'),
+      ),
+    );
+  }
+
+  /// Show search dialog
+  void _showSearchDialog(BuildContext context) {
+    final searchController = TextEditingController(text: _searchQuery);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Поиск задач'),
+        content: TextField(
+          controller: searchController,
+          decoration: const InputDecoration(
+            hintText: 'Введите текст для поиска...',
+            prefixIcon: Icon(Icons.search),
+          ),
+          autofocus: true,
+          onSubmitted: (value) {
+            Navigator.pop(context);
+            setState(() {
+              _searchQuery = value;
+              _resetPagination();
+            });
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _searchQuery = '';
+                _resetPagination();
+              });
+            },
+            child: const Text('Сбросить'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _searchQuery = searchController.text;
+                _resetPagination();
+              });
+            },
+            child: const Text('Найти'),
+          ),
+        ],
       ),
     );
   }
@@ -349,7 +522,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           Navigator.pop(dialogContext);
 
                           // Refresh problems list
-                          ref.invalidate(problemsProvider);
+                          ref.invalidate(problemsListProvider);
+                          _resetPagination();
 
                           // Ask if user wants to add photo - use outerContext for navigation
                           final addPhoto = await showDialog<bool>(
@@ -387,12 +561,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           if (addPhoto == true && outerContext.mounted) {
                             await outerContext.push('/camera?category=condition&entityId=${problem.id}');
                             // Refresh after returning from camera
-                            ref.invalidate(problemsProvider);
+                            ref.invalidate(problemsListProvider);
+                            _resetPagination();
                           } else if (outerContext.mounted) {
                             // Navigate to problem detail
                             await outerContext.push('/problems/${problem.id}');
                             // Refresh after returning from problem detail
-                            ref.invalidate(problemsProvider);
+                            ref.invalidate(problemsListProvider);
+                            _resetPagination();
                           }
                         }
                       } catch (e) {
@@ -417,6 +593,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               label: Text(isLoading ? 'Создание...' : 'Создать'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Load more card widget
+class _LoadMoreCard extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onLoadMore;
+  final int remainingCount;
+
+  const _LoadMoreCard({
+    required this.isLoading,
+    required this.onLoadMore,
+    required this.remainingCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: isLoading ? null : onLoadMore,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Center(
+            child: isLoading
+                ? const CircularProgressIndicator()
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.expand_more),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Загрузить ещё ($remainingCount осталось)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -701,6 +921,7 @@ class _ProblemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final previewText = _previewText;
     final hasPreview = previewText != null || problem.hasImage;
+    final addedBy = problem.addedBy;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -777,11 +998,38 @@ class _ProblemCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          problem.sourceName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        Row(
+                          children: [
+                            Text(
+                              problem.sourceName,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            // Show added_by user
+                            if (addedBy != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '•',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.person_outline,
+                                size: 12,
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
+                              const SizedBox(width: 2),
+                              Text(
+                                addedBy.displayName,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -854,6 +1102,53 @@ class _ProblemCard extends StatelessWidget {
                               .colorScheme
                               .onPrimaryContainer,
                         ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              
+              // Concepts row (if any)
+              if (problem.concepts != null && problem.concepts!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: problem.concepts!.take(3).map((concept) {
+                    final conceptName = concept.concept?.name;
+                    if (conceptName == null) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            size: 10,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            conceptName,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }).toList(),
