@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
+import '../../../data/repositories/concepts_repository.dart' show SolutionConceptModel;
 import '../../providers/solutions_provider.dart';
 import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/concepts_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -22,6 +24,7 @@ class SolutionDetailScreen extends ConsumerStatefulWidget {
 
 class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
   bool _ocrLoading = false;
+  bool _conceptsLoading = false;
   bool _isEditing = false;
   final _textController = TextEditingController();
 
@@ -90,6 +93,36 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     }
   }
 
+  Future<void> _runConceptsAnalysis() async {
+    final persona = await showPersonaSheet(
+      context,
+      defaultPersona: PersonaId.legendre,
+    );
+    if (persona == null) return;
+
+    setState(() => _conceptsLoading = true);
+    try {
+      final concepts = await ref.read(conceptsAnalysisNotifierProvider.notifier).analyzeSolution(
+        solutionId: widget.solutionId,
+        persona: persona,
+      );
+      if (concepts != null && mounted) {
+        ref.invalidate(solutionConceptsProvider(widget.solutionId));
+        if (concepts.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Найдено ${concepts.length} навыков')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Навыки не найдены')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _conceptsLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final solution = ref.watch(solutionProvider(widget.solutionId));
@@ -147,6 +180,14 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
+
+              // Concepts section
+              _SolutionConceptsSection(
+                solutionId: widget.solutionId,
+                isLoading: _conceptsLoading,
+                onAnalyze: _runConceptsAnalysis,
+              ),
+              const SizedBox(height: 16),
 
               // Solution text section
               _SolutionTextSection(
@@ -885,6 +926,144 @@ class _HintItemState extends State<_HintItem> {
                     ),
                   ],
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Solution concepts section widget
+class _SolutionConceptsSection extends ConsumerWidget {
+  final int solutionId;
+  final bool isLoading;
+  final VoidCallback onAnalyze;
+
+  const _SolutionConceptsSection({
+    required this.solutionId,
+    required this.isLoading,
+    required this.onAnalyze,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final conceptsAsync = ref.watch(solutionConceptsProvider(solutionId));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.school_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Навыки',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: onAnalyze,
+                    icon: const Icon(Icons.psychology, size: 18),
+                    label: const Text('Анализ'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            conceptsAsync.when(
+              data: (concepts) {
+                if (concepts.isEmpty) {
+                  return Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.psychology_outlined,
+                          size: 40,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Нажмите "Анализ" для определения навыков',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: concepts.map((concept) {
+                    return Tooltip(
+                      message: concept.usageContext ?? concept.concept?.description ?? '',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.school,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                concept.concept?.name ?? 'Unknown',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (_, __) => Center(
+                child: Text(
+                  'Ошибка загрузки',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
               ),
             ),
           ],

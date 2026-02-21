@@ -96,6 +96,22 @@ class ConceptsRepository {
 
   ConceptsRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
+  /// Get existing concepts for a solution
+  Future<List<SolutionConceptModel>> getSolutionConcepts(int solutionId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '/concepts/by-solution/$solutionId',
+      );
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((c) =>
+                SolutionConceptModel.fromJson(c as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Analyze problem concepts (Knowledge Map)
   Future<List<ProblemConceptModel>> analyzeProblem({
     required int problemId,

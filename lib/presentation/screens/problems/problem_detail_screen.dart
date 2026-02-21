@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/artifacts.dart';
 import '../../../data/models/problem.dart';
+import '../../../data/repositories/concepts_repository.dart' show ProblemConceptModel;
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/concepts_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -23,6 +25,7 @@ class ProblemDetailScreen extends ConsumerStatefulWidget {
 class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   bool _isLoading = false;
   bool _ocrLoading = false;
+  bool _conceptsLoading = false;
   String? _ocrText;
   bool _showConditionImage = false;
   final _conditionController = TextEditingController();
@@ -73,6 +76,36 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _runConceptsAnalysis() async {
+    final persona = await showPersonaSheet(
+      context,
+      defaultPersona: PersonaId.legendre,
+    );
+    if (persona == null) return;
+
+    setState(() => _conceptsLoading = true);
+    try {
+      final concepts = await ref.read(conceptsAnalysisNotifierProvider.notifier).analyzeProblem(
+        problemId: widget.problemId,
+        persona: persona,
+      );
+      if (concepts != null && mounted) {
+        ref.invalidate(problemProvider(widget.problemId));
+        if (concepts.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Найдено ${concepts.length} концептов')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Концепты не найдены')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _conceptsLoading = false);
     }
   }
 
@@ -331,6 +364,14 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                     label: const Text('Теги'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              // Concepts card
+              _ConceptsSection(
+                concepts: data.concepts,
+                isLoading: _conceptsLoading,
+                onAnalyze: _runConceptsAnalysis,
               ),
               const SizedBox(height: 16),
 
@@ -783,5 +824,149 @@ class _TagsEditorState extends ConsumerState<_TagsEditor> {
         ),
       ],
     );
+  }
+}
+
+/// Concepts section widget for problem detail
+class _ConceptsSection extends StatelessWidget {
+  final List<ProblemConceptModel>? concepts;
+  final bool isLoading;
+  final VoidCallback onAnalyze;
+
+  const _ConceptsSection({
+    required this.concepts,
+    required this.isLoading,
+    required this.onAnalyze,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasConcepts = concepts != null && concepts!.isNotEmpty;
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.lightbulb_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Концепты',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: onAnalyze,
+                    icon: const Icon(Icons.psychology, size: 18),
+                    label: Text(hasConcepts ? 'Обновить' : 'Анализ'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            if (hasConcepts) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: concepts!.map((concept) {
+                  final relevance = concept.relevance ?? 0.0;
+                  final relevancePercent = (relevance * 100).toStringAsFixed(0);
+                  final color = _getRelevanceColor(relevance);
+                  
+                  return Tooltip(
+                    message: concept.explanation ?? concept.concept?.description ?? '',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: color.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            size: 16,
+                            color: color,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            concept.concept?.name ?? 'Unknown',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: color,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$relevancePercent%',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ] else ...[
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.psychology_outlined,
+                      size: 40,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Нажмите "Анализ" для определения концептов',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getRelevanceColor(double relevance) {
+    if (relevance >= 0.8) return Colors.green;
+    if (relevance >= 0.5) return Colors.orange;
+    return Colors.grey;
   }
 }
