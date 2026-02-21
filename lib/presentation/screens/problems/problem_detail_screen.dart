@@ -424,53 +424,10 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                           textStyle: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ] else if (data.hasImage) ...[
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ImageViewerScreen(
-                                  category: 'condition',
-                                  entityId: widget.problemId,
-                                  title: 'Условие: ${data.reference}',
-                                ),
-                              ),
-                            );
-                          },
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: ConditionImageThumbnail(
-                                  problemId: widget.problemId,
-                                  title: 'Условие: ${data.reference}',
-                                  height: 250,
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.zoom_in, color: Colors.white, size: 18),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Увеличить',
-                                        style: TextStyle(color: Colors.white, fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        ConditionImageThumbnail(
+                          problemId: widget.problemId,
+                          title: 'Условие: ${data.reference}',
+                          height: 250,
                         ),
                       ] else if (_ocrText != null) ...[
                         MarkdownWithMath(
