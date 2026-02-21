@@ -1139,13 +1139,16 @@ class _ProblemCard extends StatelessWidget {
                                 .onSecondaryContainer,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            conceptName,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSecondaryContainer,
+                          Flexible(
+                            child: Text(
+                              conceptName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
