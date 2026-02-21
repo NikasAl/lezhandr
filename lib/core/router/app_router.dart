@@ -14,6 +14,7 @@ import '../../presentation/screens/solutions/solution_session_screen.dart';
 import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
 import '../../presentation/screens/billing/transactions_screen.dart';
+import '../../presentation/screens/concepts/concepts_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -157,6 +158,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/transactions',
         name: 'transactions',
         builder: (context, state) => const TransactionsScreen(),
+      ),
+
+      // Concepts Analysis
+      GoRoute(
+        path: '/concepts',
+        name: 'concepts',
+        builder: (context, state) => const ConceptsScreen(),
       ),
     ],
 

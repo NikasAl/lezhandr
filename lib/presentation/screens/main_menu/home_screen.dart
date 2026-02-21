@@ -116,9 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _QuickActionButton(
                       icon: Icons.psychology,
                       label: 'Анализ концепций',
-                      onTap: () {
-                        // TODO: Navigate to concepts
-                      },
+                      onTap: () => context.push('/concepts'),
                     ),
                   ),
                 ],
