@@ -21,4 +21,19 @@ class BillingRepository {
     );
     return TopUpResponse.fromJson(response.data);
   }
+
+  /// Get transactions with pagination
+  Future<TransactionListResponse> getTransactions({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '/billing/transactions',
+      queryParameters: {
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    return TransactionListResponse.fromJson(response.data);
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
@@ -222,6 +223,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Transactions link
+                      InkWell(
+                        onTap: () => context.push('/transactions'),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'История транзакций',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(

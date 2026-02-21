@@ -13,6 +13,7 @@ import '../../presentation/screens/problems/problem_detail_screen.dart';
 import '../../presentation/screens/solutions/solution_session_screen.dart';
 import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
+import '../../presentation/screens/billing/transactions_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -149,6 +150,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             entityId: entityId,
           );
         },
+      ),
+
+      // Transactions
+      GoRoute(
+        path: '/transactions',
+        name: 'transactions',
+        builder: (context, state) => const TransactionsScreen(),
       ),
     ],
 

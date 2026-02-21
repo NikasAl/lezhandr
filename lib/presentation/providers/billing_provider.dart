@@ -13,6 +13,49 @@ final billingBalanceProvider = FutureProvider<BillingBalanceModel?>((ref) async 
   }
 });
 
+/// Transactions filter for pagination
+class TransactionsFilter {
+  final int limit;
+  final int offset;
+
+  const TransactionsFilter({
+    this.limit = 20,
+    this.offset = 0,
+  });
+
+  TransactionsFilter copyWith({
+    int? limit,
+    int? offset,
+  }) {
+    return TransactionsFilter(
+      limit: limit ?? this.limit,
+      offset: offset ?? this.offset,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransactionsFilter &&
+          runtimeType == other.runtimeType &&
+          limit == other.limit &&
+          offset == other.offset;
+
+  @override
+  int get hashCode => limit.hashCode ^ offset.hashCode;
+}
+
+/// Transactions list provider with pagination
+final transactionsListProvider =
+    FutureProvider.family<TransactionListResponse, TransactionsFilter>(
+        (ref, filter) async {
+  final repo = ref.watch(billingRepositoryProvider);
+  return await repo.getTransactions(
+    limit: filter.limit,
+    offset: filter.offset,
+  );
+});
+
 /// Billing notifier for actions
 class BillingNotifier extends StateNotifier<AsyncValue<BillingBalanceModel?>> {
   final BillingRepository _repo;
