@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/artifacts.dart';
 import '../../../data/models/problem.dart';
-import '../../../data/repositories/concepts_repository.dart' show ProblemConceptModel;
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
-import '../../providers/concepts_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -88,7 +86,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
     setState(() => _conceptsLoading = true);
     try {
-      final concepts = await ref.read(conceptsAnalysisNotifierProvider.notifier).analyzeProblem(
+      final concepts = await ref.read(conceptsNotifierProvider.notifier).analyzeProblem(
         problemId: widget.problemId,
         persona: persona,
       );
