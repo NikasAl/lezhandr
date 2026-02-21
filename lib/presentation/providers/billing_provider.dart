@@ -19,10 +19,11 @@ class BillingNotifier extends StateNotifier<AsyncValue<BillingBalanceModel?>> {
 
   BillingNotifier(this._repo) : super(const AsyncValue.data(null));
 
-  Future<String?> createTopUp(double amount) async {
+  /// Create top-up payment and return payment URL
+  Future<TopUpResponse?> createTopUp(double amount) async {
     try {
       final response = await _repo.createTopUp(amount);
-      return response.paymentUrl;
+      return response;
     } catch (e) {
       return null;
     }

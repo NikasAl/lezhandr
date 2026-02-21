@@ -36,23 +36,23 @@ class BillingBalanceModel {
 }
 
 class TopUpResponse {
+  final String invoiceId;
   final String paymentUrl;
-  final String? paymentId;
 
   TopUpResponse({
-    this.paymentUrl = '',
-    this.paymentId,
+    required this.invoiceId,
+    required this.paymentUrl,
   });
 
   factory TopUpResponse.fromJson(Map<String, dynamic> json) {
     return TopUpResponse(
+      invoiceId: json['invoice_id'] as String? ?? '',
       paymentUrl: json['payment_url'] as String? ?? '',
-      paymentId: json['payment_id'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
+        'invoice_id': invoiceId,
         'payment_url': paymentUrl,
-        'payment_id': paymentId,
       };
 }

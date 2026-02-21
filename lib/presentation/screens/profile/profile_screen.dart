@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 
@@ -385,10 +386,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _showTopUpDialog(BuildContext context) {
     final amounts = [10, 50, 100, 500, 5000, 10000];
     int? selectedAmount;
+    bool isLoading = false;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Пополнить баланс'),
           content: Column(
@@ -408,24 +410,143 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 }).toList(),
               ),
+              if (isLoading) ...[
+                const SizedBox(height: 16),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
               child: const Text('Отмена'),
             ),
             FilledButton(
-              onPressed: selectedAmount == null
+              onPressed: selectedAmount == null || isLoading
                   ? null
-                  : () {
-                      Navigator.pop(context);
-                      // TODO: Call top-up API
+                  : () async {
+                      setState(() => isLoading = true);
+                      try {
+                        // Create top-up payment
+                        final response = await ref
+                            .read(billingNotifierProvider.notifier)
+                            .createTopUp(selectedAmount!.toDouble());
+
+                        if (response != null && response.paymentUrl.isNotEmpty) {
+                          // Close dialog
+                          Navigator.pop(dialogContext);
+
+                          // Open payment URL in browser
+                          final uri = Uri.parse(response.paymentUrl);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+                            // Show dialog waiting for payment
+                            if (mounted) {
+                              _showPaymentWaitingDialog(
+                                context,
+                                invoiceId: response.invoiceId,
+                                amount: selectedAmount!,
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Не удалось открыть ссылку оплаты'),
+                                ),
+                              );
+                            }
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Ошибка создания платежа'),
+                              ),
+                            );
+                          }
+                        }
+                      } finally {
+                        if (dialogContext.mounted) {
+                          setState(() => isLoading = false);
+                        }
+                      }
                     },
               child: const Text('Оплатить'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Show dialog waiting for payment completion
+  void _showPaymentWaitingDialog(BuildContext context, {
+    required String invoiceId,
+    required int amount,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.payment, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Оплата'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Счёт на $amount ₽ создан',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Завершите оплату в браузере и вернитесь в приложение',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ID: $invoiceId',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              // Open payment URL again
+              final response = await ref
+                  .read(billingNotifierProvider.notifier)
+                  .createTopUp(amount.toDouble());
+              if (response != null && response.paymentUrl.isNotEmpty) {
+                final uri = Uri.parse(response.paymentUrl);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            icon: const Icon(Icons.open_in_browser, size: 18),
+            label: const Text('Открыть снова'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // Refresh balance
+              ref.invalidate(billingBalanceProvider);
+            },
+            icon: const Icon(Icons.check),
+            label: const Text('Готово'),
+          ),
+        ],
       ),
     );
   }
