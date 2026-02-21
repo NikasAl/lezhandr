@@ -945,6 +945,125 @@ class _SolutionConceptsSection extends ConsumerWidget {
     required this.onAnalyze,
   });
 
+  void _showConceptDetail(BuildContext context, SolutionConceptModel concept) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.school,
+                        color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        concept.concept?.name ?? 'Unknown',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (concept.usageContext != null && concept.usageContext!.isNotEmpty) ...[
+                        Text(
+                          'Контекст использования',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.usageContext!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      if (concept.concept?.description != null && concept.concept!.description!.isNotEmpty) ...[
+                        Text(
+                          'Описание навыка',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.concept!.description!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      if (concept.concept?.utilityDescription != null && concept.concept!.utilityDescription!.isNotEmpty) ...[
+                        Text(
+                          'Практическое применение',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.concept!.utilityDescription!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conceptsAsync = ref.watch(solutionConceptsProvider(solutionId));
@@ -1014,8 +1133,8 @@ class _SolutionConceptsSection extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: concepts.map((concept) {
-                    return Tooltip(
-                      message: concept.usageContext ?? concept.concept?.description ?? '',
+                    return GestureDetector(
+                      onTap: () => _showConceptDetail(context, concept),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(

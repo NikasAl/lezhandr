@@ -365,14 +365,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Concepts card
-              _ConceptsSection(
-                concepts: data.concepts,
-                isLoading: _conceptsLoading,
-                onAnalyze: _runConceptsAnalysis,
-              ),
-              const SizedBox(height: 16),
-
               // Condition card
               Card(
                 child: Padding(
@@ -515,6 +507,15 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                     ],
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Concepts card
+              _ConceptsSection(
+                concepts: data.concepts,
+                isLoading: _conceptsLoading,
+                onAnalyze: _runConceptsAnalysis,
               ),
 
               const SizedBox(height: 16),
@@ -837,6 +838,158 @@ class _ConceptsSection extends StatelessWidget {
     required this.onAnalyze,
   });
 
+  void _showConceptDetail(BuildContext context, ProblemConceptModel concept) {
+    final relevance = concept.relevance ?? 0.0;
+    final relevancePercent = (relevance * 100).toStringAsFixed(0);
+    final color = _getRelevanceColor(relevance);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.school_outlined,
+                        color: color,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            concept.concept?.name ?? 'Unknown',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                'Релевантность: ',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '$relevancePercent%',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (concept.explanation != null && concept.explanation!.isNotEmpty) ...[
+                        Text(
+                          'Объяснение',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.explanation!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      if (concept.concept?.description != null && concept.concept!.description!.isNotEmpty) ...[
+                        Text(
+                          'Описание концепта',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.concept!.description!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      if (concept.concept?.utilityDescription != null && concept.concept!.utilityDescription!.isNotEmpty) ...[
+                        Text(
+                          'Практическое применение',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MarkdownWithMath(
+                          text: concept.concept!.utilityDescription!,
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasConcepts = concepts != null && concepts!.isNotEmpty;
@@ -888,8 +1041,8 @@ class _ConceptsSection extends StatelessWidget {
                   final relevancePercent = (relevance * 100).toStringAsFixed(0);
                   final color = _getRelevanceColor(relevance);
                   
-                  return Tooltip(
-                    message: concept.explanation ?? concept.concept?.description ?? '',
+                  return GestureDetector(
+                    onTap: () => _showConceptDetail(context, concept),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
