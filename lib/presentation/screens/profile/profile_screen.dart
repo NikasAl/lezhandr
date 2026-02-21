@@ -383,7 +383,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showTopUpDialog(BuildContext context) {
-    final amounts = [100, 250, 500, 1000];
+    final amounts = [10, 50, 100, 500, 5000, 10000];
     int? selectedAmount;
 
     showDialog(
