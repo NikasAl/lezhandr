@@ -1059,12 +1059,15 @@ class _ConceptsSection extends StatelessWidget {
                             color: color,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            concept.concept?.name ?? 'Unknown',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: color,
+                          Flexible(
+                            child: Text(
+                              concept.concept?.name ?? 'Unknown',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: color,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
