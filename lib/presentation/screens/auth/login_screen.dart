@@ -6,7 +6,7 @@ import '../../providers/solutions_provider.dart';
 import '../../providers/gamification_provider.dart';
 
 /// Login screen with splash-like design
-/// Main button starts device login, expandable forms for existing account
+/// Main button starts account login, expandable forms for existing account
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -30,20 +30,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// Main action button - login with existing device_id or create new account
+  /// Main action button - login with existing account_key or create new account
   Future<void> _startButtonPressed() async {
     setState(() => _isLoading = true);
 
     final authState = ref.read(authStateProvider);
-    print('[LoginScreen] hasDeviceCredentials = ${authState.hasDeviceCredentials}');
+    print('[LoginScreen] hasAccountKey = ${authState.hasAccountKey}');
     bool success;
 
-    if (authState.hasDeviceCredentials) {
-      // Already has device_id - try to login with it
-      print('[LoginScreen] Calling loginWithDeviceCredentials()');
-      success = await ref.read(authStateProvider.notifier).loginWithDeviceCredentials();
+    if (authState.hasAccountKey) {
+      // Already has account_key - try to login with it
+      print('[LoginScreen] Calling loginWithAccountKey()');
+      success = await ref.read(authStateProvider.notifier).loginWithAccountKey();
     } else {
-      // No device_id - create new account
+      // No account_key - create new account
       print('[LoginScreen] Calling createNewAccount()');
       success = await ref.read(authStateProvider.notifier).createNewAccount();
     }
@@ -174,7 +174,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildStartButton(BuildContext context) {
     final authState = ref.watch(authStateProvider);
-    final buttonText = authState.hasDeviceCredentials ? 'Войти' : 'Начать';
+    final buttonText = authState.hasAccountKey ? 'Войти' : 'Начать';
 
     return FilledButton(
       onPressed: _isLoading ? null : _startButtonPressed,
@@ -194,7 +194,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  authState.hasDeviceCredentials 
+                  authState.hasAccountKey 
                       ? Icons.login_rounded 
                       : Icons.play_arrow_rounded, 
                   size: 28

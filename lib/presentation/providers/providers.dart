@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/services/api_client.dart';
 import '../../data/storage/token_storage.dart';
-import '../../data/storage/device_storage.dart';
+import '../../data/storage/account_storage.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/problems_repository.dart';
 import '../../data/repositories/solutions_repository.dart';
@@ -17,15 +17,15 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
   return TokenStorage();
 });
 
-final deviceStorageProvider = Provider<DeviceStorage>((ref) {
-  return DeviceStorage();
+final accountStorageProvider = Provider<AccountStorage>((ref) {
+  return AccountStorage();
 });
 
 // API Client provider
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
     tokenStorage: ref.watch(tokenStorageProvider),
-    deviceStorage: ref.watch(deviceStorageProvider),
+    accountStorage: ref.watch(accountStorageProvider),
   );
 });
 
@@ -34,7 +34,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
     apiClient: ref.watch(apiClientProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
-    deviceStorage: ref.watch(deviceStorageProvider),
+    accountStorage: ref.watch(accountStorageProvider),
   );
 });
 

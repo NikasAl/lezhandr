@@ -113,15 +113,13 @@ class AuthResponse {
   final String accessToken;
   final String tokenType;
   final UserModel? user;
-  final String? deviceId;
-  final String? secretKey;
+  final String? accountKey;
 
   AuthResponse({
     this.accessToken = '',
     this.tokenType = 'bearer',
     this.user,
-    this.deviceId,
-    this.secretKey,
+    this.accountKey,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
@@ -131,8 +129,7 @@ class AuthResponse {
       user: json['user'] != null && json['user'] is Map<String, dynamic>
           ? UserModel.fromJson(json['user'] as Map<String, dynamic>)
           : null,
-      deviceId: json['device_id'] as String?,
-      secretKey: json['secret_key'] as String?,
+      accountKey: json['account_key'] as String?,
     );
   }
 
@@ -140,23 +137,7 @@ class AuthResponse {
         'access_token': accessToken,
         'token_type': tokenType,
         'user': user?.toJson(),
-        'device_id': deviceId,
-        'secret_key': secretKey,
-      };
-}
-
-class DeviceLoginRequest {
-  final String deviceId;
-  final String secretKey;
-
-  DeviceLoginRequest({
-    required this.deviceId,
-    required this.secretKey,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'device_id': deviceId,
-        'secret_key': secretKey,
+        'account_key': accountKey,
       };
 }
 
@@ -166,10 +147,12 @@ class ConvertAccountRequest {
   final String? username;
 
   ConvertAccountRequest({
-    required this.email,
-    required this.password,
-    this.username,
-  });
+    required String email,
+    required String password,
+    String? username,
+  })  : email = email,
+        password = password,
+        username = username;
 
   Map<String, dynamic> toJson() => {
         'email': email,

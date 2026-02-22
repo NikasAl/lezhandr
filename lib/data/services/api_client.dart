@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../storage/token_storage.dart';
-import '../storage/device_storage.dart';
+import '../storage/account_storage.dart';
 import '../../core/config/app_config.dart';
 
 /// Main API client with authentication interceptors
@@ -8,13 +8,13 @@ class ApiClient {
   late final Dio _dio;
   late final Dio _refreshDio; // Separate Dio for refresh requests (no interceptors)
   final TokenStorage _tokenStorage;
-  final DeviceStorage _deviceStorage;
+  final AccountStorage _accountStorage;
 
   ApiClient({
     required TokenStorage tokenStorage,
-    required DeviceStorage deviceStorage,
+    required AccountStorage accountStorage,
   })  : _tokenStorage = tokenStorage,
-        _deviceStorage = deviceStorage {
+        _accountStorage = accountStorage {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.apiUrl,
@@ -42,7 +42,7 @@ class ApiClient {
     _dio.interceptors.addAll([
       _AuthInterceptor(
         tokenStorage: _tokenStorage,
-        deviceStorage: _deviceStorage,
+        accountStorage: _accountStorage,
         refreshDio: _refreshDio,
         dio: _dio,
       ),
@@ -56,17 +56,17 @@ class ApiClient {
 /// Authentication interceptor for automatic token handling
 class _AuthInterceptor extends Interceptor {
   final TokenStorage _tokenStorage;
-  final DeviceStorage _deviceStorage;
+  final AccountStorage _accountStorage;
   final Dio _refreshDio; // Separate Dio for refresh (no interceptors)
   final Dio _dio;
 
   _AuthInterceptor({
     required TokenStorage tokenStorage,
-    required DeviceStorage deviceStorage,
+    required AccountStorage accountStorage,
     required Dio refreshDio,
     required Dio dio,
   })  : _tokenStorage = tokenStorage,
-        _deviceStorage = deviceStorage,
+        _accountStorage = accountStorage,
         _refreshDio = refreshDio,
         _dio = dio;
 
@@ -96,7 +96,7 @@ class _AuthInterceptor extends Interceptor {
     }
 
     if (err.response?.statusCode == 401) {
-      // Try to refresh token via device login
+      // Try to refresh token via account login
       final success = await _refreshToken();
 
       if (success) {
@@ -117,20 +117,24 @@ class _AuthInterceptor extends Interceptor {
   }
 
   bool _isAuthEndpoint(String path) {
-    return path.contains('/auth/device-register') ||
+    return path.contains('/auth/account-login') ||
         path.contains('/auth/login') ||
         path.contains('/auth/register');
   }
 
   Future<bool> _refreshToken() async {
     try {
-      final creds = await _deviceStorage.getOrCreateCredentials();
+      final accountKey = await _accountStorage.getAccountKey();
+      if (accountKey == null) {
+        print('❌ Token refresh failed: No account key');
+        return false;
+      }
+      
       // Use _refreshDio (no interceptors) to avoid recursion
       final response = await _refreshDio.post(
-        '/auth/device-register',
+        '/auth/account-login',
         data: {
-          'device_id': creds.deviceId,
-          'secret_key': creds.secretKey,
+          'account_key': accountKey,
         },
       );
 

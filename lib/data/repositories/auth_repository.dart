@@ -1,43 +1,42 @@
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../storage/token_storage.dart';
-import '../storage/device_storage.dart';
+import '../storage/account_storage.dart';
 
 /// Repository for authentication operations
 class AuthRepository {
   final ApiClient _apiClient;
   final TokenStorage _tokenStorage;
-  final DeviceStorage _deviceStorage;
+  final AccountStorage _accountStorage;
 
   AuthRepository({
     required ApiClient apiClient,
     required TokenStorage tokenStorage,
-    required DeviceStorage deviceStorage,
+    required AccountStorage accountStorage,
   })  : _apiClient = apiClient,
         _tokenStorage = tokenStorage,
-        _deviceStorage = deviceStorage;
+        _accountStorage = accountStorage;
 
-  /// Check if device has credentials stored
-  Future<bool> hasDeviceCredentials() async {
-    return await _deviceStorage.hasCredentials();
+  /// Check if account key exists locally
+  Future<bool> hasAccountKey() async {
+    return await _accountStorage.hasAccountKey();
   }
 
-  /// Authenticate using existing device credentials (no new account creation)
-  /// Returns null if no credentials exist
-  Future<AuthResponse?> deviceLoginExisting() async {
-    final creds = await _deviceStorage.getCredentials();
-    if (creds == null) {
-      print('[AUTH] deviceLoginExisting: No credentials found');
+  /// Login with existing account key
+  /// Returns null if no key exists
+  Future<AuthResponse?> loginWithAccountKey() async {
+    final accountKey = await _accountStorage.getAccountKey();
+    if (accountKey == null) {
+      print('[AUTH] loginWithAccountKey: No account key found');
       return null;
     }
 
-    print('[AUTH] deviceLoginExisting: Using device_id: ${creds.deviceId}');
+    print('[AUTH] loginWithAccountKey: Using key ${accountKey.substring(0, 10)}...');
 
     final response = await _apiClient.dio.post(
-      '/auth/device-register',
+      '/auth/account-login',
       data: {
-        'device_id': creds.deviceId,
-        'secret_key': creds.secretKey,
+        'account_key': accountKey,
       },
     );
 
@@ -47,16 +46,15 @@ class AuthRepository {
     return authResponse;
   }
 
-  /// Create new account with new device credentials
-  Future<AuthResponse> deviceLoginCreateNew() async {
-    final creds = await _deviceStorage.getOrCreateCredentials();
-    print('[AUTH] deviceLoginCreateNew: Using device_id: ${creds.deviceId}');
+  /// Create new account with new account key
+  Future<AuthResponse> createNewAccount() async {
+    final accountKey = await _accountStorage.getOrCreateAccountKey();
+    print('[AUTH] createNewAccount: Using key ${accountKey.substring(0, 10)}...');
 
     final response = await _apiClient.dio.post(
-      '/auth/device-register',
+      '/auth/account-login',
       data: {
-        'device_id': creds.deviceId,
-        'secret_key': creds.secretKey,
+        'account_key': accountKey,
       },
     );
 
@@ -64,15 +62,10 @@ class AuthRepository {
     await _tokenStorage.saveToken(authResponse.accessToken);
 
     return authResponse;
-  }
-
-  /// Authenticate using device credentials (legacy - creates new if not exist)
-  Future<AuthResponse> deviceLogin() async {
-    return await deviceLoginCreateNew();
   }
 
   /// Login with email and password
-  /// Server returns device_id and secret_key which are saved locally
+  /// Server returns account_key which is saved locally
   Future<AuthResponse> login({
     required String email,
     required String password,
@@ -90,18 +83,13 @@ class AuthRepository {
     final authResponse = AuthResponse.fromJson(response.data);
     await _tokenStorage.saveToken(authResponse.accessToken);
     
-    print('[AUTH] Login response device_id: ${authResponse.deviceId}');
+    print('[AUTH] Login response account_key: ${authResponse.accountKey?.substring(0, 10)}...');
 
-    // Save device credentials from server
-    // This allows subsequent logins via device_id
-    if (authResponse.deviceId != null && authResponse.secretKey != null) {
-      await _deviceStorage.setCredentials(
-        DeviceCredentials(
-          deviceId: authResponse.deviceId!,
-          secretKey: authResponse.secretKey!,
-        ),
-      );
-      print('[AUTH] Saved server device_id to local storage');
+    // Save account key from server
+    // This allows subsequent logins via account_key
+    if (authResponse.accountKey != null) {
+      await _accountStorage.setAccountKey(authResponse.accountKey!);
+      print('[AUTH] Saved server account_key to local storage');
     }
 
     return authResponse;

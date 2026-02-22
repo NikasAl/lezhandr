@@ -8,7 +8,7 @@ class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
   final bool showLoginScreen; // True when need to show login screen
-  final bool hasDeviceCredentials; // True if device has stored credentials
+  final bool hasAccountKey; // True if device has stored account key
   final UserModel? user;
   final String? error;
 
@@ -16,7 +16,7 @@ class AuthState {
     this.isLoading = false,
     this.isAuthenticated = false,
     this.showLoginScreen = false,
-    this.hasDeviceCredentials = false,
+    this.hasAccountKey = false,
     this.user,
     this.error,
   });
@@ -25,7 +25,7 @@ class AuthState {
     bool? isLoading,
     bool? isAuthenticated,
     bool? showLoginScreen,
-    bool? hasDeviceCredentials,
+    bool? hasAccountKey,
     UserModel? user,
     String? error,
     bool clearUser = false,
@@ -35,7 +35,7 @@ class AuthState {
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       showLoginScreen: showLoginScreen ?? this.showLoginScreen,
-      hasDeviceCredentials: hasDeviceCredentials ?? this.hasDeviceCredentials,
+      hasAccountKey: hasAccountKey ?? this.hasAccountKey,
       user: clearUser ? null : (user ?? this.user),
       error: clearError ? null : (error ?? this.error),
     );
@@ -51,18 +51,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Check if user is authenticated
-  /// Logic:
-  /// 1. If has valid token -> authenticated
-  /// 2. If token expired but has device_id -> try device login
-  /// 3. If no token and has device_id -> try device login
-  /// 4. If no device_id -> show login screen
   Future<void> checkAuth() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final hasDeviceCreds = await _authRepository.hasDeviceCredentials();
+      final hasKey = await _authRepository.hasAccountKey();
       final isAuth = await _authRepository.isAuthenticated();
-      print('[AuthProvider] checkAuth: hasDeviceCreds=$hasDeviceCreds, isAuth=$isAuth');
+      print('[AuthProvider] checkAuth: hasAccountKey=$hasKey, isAuth=$isAuth');
 
       if (isAuth) {
         // Try to get user profile with existing token
@@ -70,19 +65,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final user = await _authRepository.getMe();
           state = AuthState(
             isAuthenticated: true,
-            hasDeviceCredentials: hasDeviceCreds,
+            hasAccountKey: hasKey,
             user: user,
           );
           return;
         } catch (e) {
-          // Token expired - try to refresh via device login if we have credentials
-          if (hasDeviceCreds) {
+          // Token expired - try to refresh via account key if we have it
+          if (hasKey) {
             try {
-              await _authRepository.deviceLoginExisting();
+              await _authRepository.loginWithAccountKey();
               final user = await _authRepository.getMe();
               state = AuthState(
                 isAuthenticated: true,
-                hasDeviceCredentials: true,
+                hasAccountKey: true,
                 user: user,
               );
               return;
@@ -91,24 +86,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
-      // No valid token - try device login if we have credentials
-      if (hasDeviceCreds) {
+      // No valid token - try account key if we have it
+      if (hasKey) {
         try {
-          await _authRepository.deviceLoginExisting();
+          await _authRepository.loginWithAccountKey();
           final user = await _authRepository.getMe();
           state = AuthState(
             isAuthenticated: true,
-            hasDeviceCredentials: true,
+            hasAccountKey: true,
             user: user,
           );
           return;
         } catch (_) {}
       }
 
-      // No device credentials - show login screen
+      // No account key - show login screen
       state = AuthState(
         showLoginScreen: true,
-        hasDeviceCredentials: false,
+        hasAccountKey: false,
       );
     } catch (e) {
       state = AuthState(
@@ -118,14 +113,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Device login - create new account
-  /// Only called when user explicitly taps "Start" button on login screen
+  /// Create new account
   Future<bool> createNewAccount() async {
     print('[AuthProvider] createNewAccount: starting...');
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _authRepository.deviceLoginCreateNew();
+      await _authRepository.createNewAccount();
 
       // Get user profile
       UserModel? user;
@@ -133,12 +127,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user = await _authRepository.getMe();
       } catch (_) {}
 
-      final hasCreds = await _authRepository.hasDeviceCredentials();
-      print('[AuthProvider] createNewAccount: success, hasDeviceCredentials = $hasCreds');
+      final hasKey = await _authRepository.hasAccountKey();
+      print('[AuthProvider] createNewAccount: success, hasAccountKey = $hasKey');
       
       state = AuthState(
         isAuthenticated: true,
-        hasDeviceCredentials: true,
+        hasAccountKey: true,
         user: user,
       );
 
@@ -147,20 +141,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('[AuthProvider] createNewAccount: error = $e');
       state = AuthState(
         showLoginScreen: true,
-        hasDeviceCredentials: false,
+        hasAccountKey: false,
         error: e.toString(),
       );
       return false;
     }
   }
 
-  /// Login with existing device credentials
-  /// Used when user has credentials but logged out
-  Future<bool> loginWithDeviceCredentials() async {
+  /// Login with existing account key
+  Future<bool> loginWithAccountKey() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _authRepository.deviceLoginExisting();
+      await _authRepository.loginWithAccountKey();
 
       // Get user profile
       UserModel? user;
@@ -170,7 +163,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = AuthState(
         isAuthenticated: true,
-        hasDeviceCredentials: true,
+        hasAccountKey: true,
         user: user,
       );
 
@@ -185,7 +178,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Login with email/username and password
-  /// Server returns device_id which is saved locally
   Future<bool> login(String emailOrUsername, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -203,7 +195,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = AuthState(
         isAuthenticated: true,
-        hasDeviceCredentials: true,
+        hasAccountKey: true,
         user: user,
       );
 
@@ -241,17 +233,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Logout - clear token but keep device_id
+  /// Logout - clear token but keep account key
   Future<void> logout() async {
     await _authRepository.logout();
     
-    // Check if we have device credentials
-    final hasDeviceCreds = await _authRepository.hasDeviceCredentials();
-    print('[AuthProvider] logout: hasDeviceCredentials = $hasDeviceCreds');
+    // Check if we have account key
+    final hasKey = await _authRepository.hasAccountKey();
+    print('[AuthProvider] logout: hasAccountKey = $hasKey');
     
     state = AuthState(
       showLoginScreen: true,
-      hasDeviceCredentials: hasDeviceCreds,
+      hasAccountKey: hasKey,
     );
   }
 
