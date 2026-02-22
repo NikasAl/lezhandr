@@ -72,23 +72,18 @@ class AuthRepository {
   }
 
   /// Login with email and password
-  /// Sends local device credentials to link them with account
+  /// Server returns device_id and secret_key which are saved locally
   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
-    // Get or create local device credentials to link with account
-    final localCreds = await _deviceStorage.getOrCreateCredentials();
-    
-    print('[AUTH] Login with email, sending device_id: ${localCreds.deviceId}');
+    print('[AUTH] Login with email: $email');
 
     final response = await _apiClient.dio.post(
       '/auth/login',
       data: {
         'email': email,
         'password': password,
-        'device_id': localCreds.deviceId,
-        'secret_key': localCreds.secretKey,
       },
     );
 
@@ -97,8 +92,17 @@ class AuthRepository {
     
     print('[AUTH] Login response device_id: ${authResponse.deviceId}');
 
-    // Credentials already saved locally (in getOrCreateCredentials above)
-    // Server should update user.device_id to match
+    // Save device credentials from server
+    // This allows subsequent logins via device_id
+    if (authResponse.deviceId != null && authResponse.secretKey != null) {
+      await _deviceStorage.setCredentials(
+        DeviceCredentials(
+          deviceId: authResponse.deviceId!,
+          secretKey: authResponse.secretKey!,
+        ),
+      );
+      print('[AUTH] Saved server device_id to local storage');
+    }
 
     return authResponse;
   }
