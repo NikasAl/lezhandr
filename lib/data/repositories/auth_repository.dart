@@ -27,8 +27,11 @@ class AuthRepository {
   Future<AuthResponse?> deviceLoginExisting() async {
     final creds = await _deviceStorage.getCredentials();
     if (creds == null) {
+      print('[AUTH] deviceLoginExisting: No credentials found');
       return null;
     }
+
+    print('[AUTH] deviceLoginExisting: Using device_id: ${creds.deviceId}');
 
     final response = await _apiClient.dio.post(
       '/auth/device-register',
@@ -75,6 +78,8 @@ class AuthRepository {
   }) async {
     // Get or create local device credentials to link with account
     final localCreds = await _deviceStorage.getOrCreateCredentials();
+    
+    print('[AUTH] Login with email, sending device_id: ${localCreds.deviceId}');
 
     final response = await _apiClient.dio.post(
       '/auth/login',
@@ -88,6 +93,8 @@ class AuthRepository {
 
     final authResponse = AuthResponse.fromJson(response.data);
     await _tokenStorage.saveToken(authResponse.accessToken);
+    
+    print('[AUTH] Login response device_id: ${authResponse.deviceId}');
 
     // Credentials already saved locally (in getOrCreateCredentials above)
     // Server should update user.device_id to match
