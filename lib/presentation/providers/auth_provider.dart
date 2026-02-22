@@ -62,6 +62,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final hasDeviceCreds = await _authRepository.hasDeviceCredentials();
       final isAuth = await _authRepository.isAuthenticated();
+      print('[AuthProvider] checkAuth: hasDeviceCreds=$hasDeviceCreds, isAuth=$isAuth');
 
       if (isAuth) {
         // Try to get user profile with existing token
@@ -120,6 +121,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Device login - create new account
   /// Only called when user explicitly taps "Start" button on login screen
   Future<bool> createNewAccount() async {
+    print('[AuthProvider] createNewAccount: starting...');
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
@@ -131,6 +133,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user = await _authRepository.getMe();
       } catch (_) {}
 
+      final hasCreds = await _authRepository.hasDeviceCredentials();
+      print('[AuthProvider] createNewAccount: success, hasDeviceCredentials = $hasCreds');
+      
       state = AuthState(
         isAuthenticated: true,
         hasDeviceCredentials: true,
@@ -139,6 +144,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       return true;
     } catch (e) {
+      print('[AuthProvider] createNewAccount: error = $e');
       state = AuthState(
         showLoginScreen: true,
         hasDeviceCredentials: false,
@@ -241,6 +247,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     
     // Check if we have device credentials
     final hasDeviceCreds = await _authRepository.hasDeviceCredentials();
+    print('[AuthProvider] logout: hasDeviceCredentials = $hasDeviceCreds');
     
     state = AuthState(
       showLoginScreen: true,

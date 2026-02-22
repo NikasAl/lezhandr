@@ -50,6 +50,7 @@ class AuthRepository {
   /// Create new account with new device credentials
   Future<AuthResponse> deviceLoginCreateNew() async {
     final creds = await _deviceStorage.getOrCreateCredentials();
+    print('[AUTH] deviceLoginCreateNew: Using device_id: ${creds.deviceId}');
 
     final response = await _apiClient.dio.post(
       '/auth/device-register',

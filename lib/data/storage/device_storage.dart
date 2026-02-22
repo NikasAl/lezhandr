@@ -51,18 +51,22 @@ class DeviceStorage {
   /// Check if credentials exist
   Future<bool> hasCredentials() async {
     final creds = await _storage.read(key: _deviceCredsKey);
+    print('[DeviceStorage] hasCredentials: ${creds != null && creds.isNotEmpty}');
     return creds != null && creds.isNotEmpty;
   }
 
   /// Get existing credentials (returns null if not exist)
   Future<DeviceCredentials?> getCredentials() async {
     final existing = await _storage.read(key: _deviceCredsKey);
+    print('[DeviceStorage] getCredentials: raw data exists = ${existing != null}');
 
     if (existing != null) {
       try {
-        return DeviceCredentials.fromJson(existing);
-      } catch (_) {
-        // Invalid data
+        final creds = DeviceCredentials.fromJson(existing);
+        print('[DeviceStorage] getCredentials: deviceId = ${creds.deviceId}');
+        return creds;
+      } catch (e) {
+        print('[DeviceStorage] getCredentials: parse error = $e');
       }
     }
     return null;
@@ -73,15 +77,18 @@ class DeviceStorage {
   Future<DeviceCredentials> getOrCreateCredentials() async {
     final existing = await getCredentials();
     if (existing != null) {
+      print('[DeviceStorage] getOrCreateCredentials: returning existing deviceId = ${existing.deviceId}');
       return existing;
     }
 
     // Generate new credentials for new account
+    print('[DeviceStorage] getOrCreateCredentials: no existing, creating new...');
     return await _createNewCredentials();
   }
 
   /// Set credentials from server (after email/login auth)
   Future<void> setCredentials(DeviceCredentials creds) async {
+    print('[DeviceStorage] setCredentials: deviceId = ${creds.deviceId}');
     await _storage.write(
       key: _deviceCredsKey,
       value: creds.toJson(),
@@ -98,10 +105,14 @@ class DeviceStorage {
       secretKey: secretKey,
     );
 
+    print('[DeviceStorage] _createNewCredentials: created deviceId = $deviceId');
+    
     await _storage.write(
       key: _deviceCredsKey,
       value: creds.toJson(),
     );
+    
+    print('[DeviceStorage] _createNewCredentials: saved to storage');
 
     return creds;
   }

@@ -35,13 +35,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     final authState = ref.read(authStateProvider);
+    print('[LoginScreen] hasDeviceCredentials = ${authState.hasDeviceCredentials}');
     bool success;
 
     if (authState.hasDeviceCredentials) {
       // Already has device_id - try to login with it
+      print('[LoginScreen] Calling loginWithDeviceCredentials()');
       success = await ref.read(authStateProvider.notifier).loginWithDeviceCredentials();
     } else {
       // No device_id - create new account
+      print('[LoginScreen] Calling createNewAccount()');
       success = await ref.read(authStateProvider.notifier).createNewAccount();
     }
 
