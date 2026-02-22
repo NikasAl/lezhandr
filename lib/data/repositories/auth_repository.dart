@@ -17,8 +17,35 @@ class AuthRepository {
         _tokenStorage = tokenStorage,
         _deviceStorage = deviceStorage;
 
-  /// Authenticate using device credentials
-  Future<AuthResponse> deviceLogin() async {
+  /// Check if device has credentials stored
+  Future<bool> hasDeviceCredentials() async {
+    return await _deviceStorage.hasCredentials();
+  }
+
+  /// Authenticate using existing device credentials (no new account creation)
+  /// Returns null if no credentials exist
+  Future<AuthResponse?> deviceLoginExisting() async {
+    final creds = await _deviceStorage.getCredentials();
+    if (creds == null) {
+      return null;
+    }
+
+    final response = await _apiClient.dio.post(
+      '/auth/device-register',
+      data: {
+        'device_id': creds.deviceId,
+        'secret_key': creds.secretKey,
+      },
+    );
+
+    final authResponse = AuthResponse.fromJson(response.data);
+    await _tokenStorage.saveToken(authResponse.accessToken);
+
+    return authResponse;
+  }
+
+  /// Create new account with new device credentials
+  Future<AuthResponse> deviceLoginCreateNew() async {
     final creds = await _deviceStorage.getOrCreateCredentials();
 
     final response = await _apiClient.dio.post(
@@ -35,7 +62,13 @@ class AuthRepository {
     return authResponse;
   }
 
+  /// Authenticate using device credentials (legacy - creates new if not exist)
+  Future<AuthResponse> deviceLogin() async {
+    return await deviceLoginCreateNew();
+  }
+
   /// Login with email and password
+  /// Server should return device_id and secret_key in response
   Future<AuthResponse> login({
     required String email,
     required String password,
@@ -50,6 +83,17 @@ class AuthRepository {
 
     final authResponse = AuthResponse.fromJson(response.data);
     await _tokenStorage.saveToken(authResponse.accessToken);
+
+    // Save device credentials from server response
+    // This allows account recovery on this device
+    if (authResponse.deviceId != null && authResponse.secretKey != null) {
+      await _deviceStorage.setCredentials(
+        DeviceCredentials(
+          deviceId: authResponse.deviceId!,
+          secretKey: authResponse.secretKey!,
+        ),
+      );
+    }
 
     return authResponse;
   }

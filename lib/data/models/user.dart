@@ -113,11 +113,15 @@ class AuthResponse {
   final String accessToken;
   final String tokenType;
   final UserModel? user;
+  final String? deviceId;
+  final String? secretKey;
 
   AuthResponse({
     this.accessToken = '',
     this.tokenType = 'bearer',
     this.user,
+    this.deviceId,
+    this.secretKey,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
@@ -127,6 +131,8 @@ class AuthResponse {
       user: json['user'] != null && json['user'] is Map<String, dynamic>
           ? UserModel.fromJson(json['user'] as Map<String, dynamic>)
           : null,
+      deviceId: json['device_id'] as String?,
+      secretKey: json['secret_key'] as String?,
     );
   }
 
@@ -134,6 +140,8 @@ class AuthResponse {
         'access_token': accessToken,
         'token_type': tokenType,
         'user': user?.toJson(),
+        'device_id': deviceId,
+        'secret_key': secretKey,
       };
 }
 

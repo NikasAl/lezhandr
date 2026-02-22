@@ -31,6 +31,8 @@ class DeviceCredentials {
 }
 
 /// Secure storage for device credentials
+/// NOTE: device_id is actually an account secret key, not a device identifier
+/// It's used to authenticate and restore the same account across devices
 class DeviceStorage {
   static const _deviceCredsKey = 'device_credentials';
 
@@ -46,19 +48,48 @@ class DeviceStorage {
             ),
         _uuid = uuid ?? const Uuid();
 
-  /// Get existing credentials or create new ones
-  Future<DeviceCredentials> getOrCreateCredentials() async {
+  /// Check if credentials exist
+  Future<bool> hasCredentials() async {
+    final creds = await _storage.read(key: _deviceCredsKey);
+    return creds != null && creds.isNotEmpty;
+  }
+
+  /// Get existing credentials (returns null if not exist)
+  Future<DeviceCredentials?> getCredentials() async {
     final existing = await _storage.read(key: _deviceCredsKey);
 
     if (existing != null) {
       try {
         return DeviceCredentials.fromJson(existing);
       } catch (_) {
-        // Invalid data, create new
+        // Invalid data
       }
     }
+    return null;
+  }
 
-    // Generate new credentials
+  /// Get existing credentials or create new ones
+  /// Use this only when you explicitly want to create new account
+  Future<DeviceCredentials> getOrCreateCredentials() async {
+    final existing = await getCredentials();
+    if (existing != null) {
+      return existing;
+    }
+
+    // Generate new credentials for new account
+    return await _createNewCredentials();
+  }
+
+  /// Set credentials from server (after email/login auth)
+  Future<void> setCredentials(DeviceCredentials creds) async {
+    await _storage.write(
+      key: _deviceCredsKey,
+      value: creds.toJson(),
+    );
+  }
+
+  /// Create new credentials for new account
+  Future<DeviceCredentials> _createNewCredentials() async {
     final deviceId = 'dev_${_uuid.v4().substring(0, 12)}';
     final secretKey = _generateSecretKey();
 
@@ -82,14 +113,8 @@ class DeviceStorage {
     return hash.toString().substring(0, 43);
   }
 
-  /// Clear stored credentials
+  /// Clear stored credentials (use with caution - will lose account access!)
   Future<void> clearCredentials() async {
     await _storage.delete(key: _deviceCredsKey);
-  }
-
-  /// Check if credentials exist
-  Future<bool> hasCredentials() async {
-    final creds = await _storage.read(key: _deviceCredsKey);
-    return creds != null && creds.isNotEmpty;
   }
 }
