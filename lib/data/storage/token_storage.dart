@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,49 +8,78 @@ class TokenStorage {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
 
-  final FlutterSecureStorage? _secureStorage;
+  /// Lazy-initialized secure storage for mobile platforms
+  FlutterSecureStorage? _secureStorage;
 
-  TokenStorage({FlutterSecureStorage? storage}) : _secureStorage = storage;
+  TokenStorage({FlutterSecureStorage? storage}) {
+    if (storage != null) {
+      _secureStorage = storage;
+    }
+  }
 
   /// Check if we should use SharedPreferences fallback (Linux doesn't support flutter_secure_storage well)
   bool get _useSharedPreferences =>
       !Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS;
 
+  /// Get or create secure storage instance
+  FlutterSecureStorage _getOrCreateSecureStorage() {
+    if (_secureStorage == null) {
+      _secureStorage = const FlutterSecureStorage(
+        aOptions: AndroidOptions(
+          encryptedSharedPreferences: true,
+        ),
+        iOptions: IOSOptions(
+          accessibility: KeychainAccessibility.first_unlock,
+        ),
+      );
+    }
+    return _secureStorage!;
+  }
+
   /// Read from storage
   Future<String?> _read(String key) async {
-    if (_useSharedPreferences) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(key);
-    } else {
-      _ensureSecureStorage();
-      return await _secureStorage!.read(key: key);
+    try {
+      if (_useSharedPreferences) {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(key);
+      } else {
+        final storage = _getOrCreateSecureStorage();
+        return await storage.read(key: key);
+      }
+    } catch (e) {
+      debugPrint('[TokenStorage] _read error: $e');
+      return null;
     }
   }
 
   /// Write to storage
   Future<void> _write(String key, String value) async {
-    if (_useSharedPreferences) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(key, value);
-    } else {
-      _ensureSecureStorage();
-      await _secureStorage!.write(key: key, value: value);
+    try {
+      if (_useSharedPreferences) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(key, value);
+      } else {
+        final storage = _getOrCreateSecureStorage();
+        await storage.write(key: key, value: value);
+      }
+    } catch (e) {
+      debugPrint('[TokenStorage] _write error: $e');
     }
   }
 
   /// Delete from storage
   Future<void> _delete(String key) async {
-    if (_useSharedPreferences) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(key);
-    } else {
-      _ensureSecureStorage();
-      await _secureStorage!.delete(key: key);
+    try {
+      if (_useSharedPreferences) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      } else {
+        final storage = _getOrCreateSecureStorage();
+        await storage.delete(key: key);
+      }
+    } catch (e) {
+      debugPrint('[TokenStorage] _delete error: $e');
     }
-  }
-
-  void _ensureSecureStorage() {
-    // Lazy initialization not needed since we use late initialization in constructor
   }
 
   /// Save access token
