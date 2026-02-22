@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart';
 
@@ -36,28 +38,52 @@ class DeviceCredentials {
 class DeviceStorage {
   static const _deviceCredsKey = 'device_credentials';
 
-  final FlutterSecureStorage _storage;
+  final FlutterSecureStorage? _secureStorage;
+  final SharedPreferences? _sharedPrefs;
   final Uuid _uuid;
 
-  DeviceStorage({FlutterSecureStorage? storage, Uuid? uuid})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(
-                encryptedSharedPreferences: true,
-              ),
-            ),
+  DeviceStorage({
+    FlutterSecureStorage? storage,
+    SharedPreferences? sharedPrefs,
+    Uuid? uuid,
+  })  : _secureStorage = storage,
+        _sharedPrefs = sharedPrefs,
         _uuid = uuid ?? const Uuid();
+
+  /// Check if we should use SharedPreferences fallback (Linux doesn't support flutter_secure_storage well)
+  bool get _useSharedPreferences => 
+      !Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS;
+
+  /// Read credentials from storage
+  Future<String?> _read() async {
+    if (_useSharedPreferences || _sharedPrefs != null) {
+      final prefs = _sharedPrefs ?? await SharedPreferences.getInstance();
+      return prefs.getString(_deviceCredsKey);
+    } else {
+      return await _secureStorage!.read(key: _deviceCredsKey);
+    }
+  }
+
+  /// Write credentials to storage
+  Future<void> _write(String value) async {
+    if (_useSharedPreferences || _sharedPrefs != null) {
+      final prefs = _sharedPrefs ?? await SharedPreferences.getInstance();
+      await prefs.setString(_deviceCredsKey, value);
+    } else {
+      await _secureStorage!.write(key: _deviceCredsKey, value: value);
+    }
+  }
 
   /// Check if credentials exist
   Future<bool> hasCredentials() async {
-    final creds = await _storage.read(key: _deviceCredsKey);
+    final creds = await _read();
     print('[DeviceStorage] hasCredentials: ${creds != null && creds.isNotEmpty}');
     return creds != null && creds.isNotEmpty;
   }
 
   /// Get existing credentials (returns null if not exist)
   Future<DeviceCredentials?> getCredentials() async {
-    final existing = await _storage.read(key: _deviceCredsKey);
+    final existing = await _read();
     print('[DeviceStorage] getCredentials: raw data exists = ${existing != null}');
 
     if (existing != null) {
@@ -89,10 +115,7 @@ class DeviceStorage {
   /// Set credentials from server (after email/login auth)
   Future<void> setCredentials(DeviceCredentials creds) async {
     print('[DeviceStorage] setCredentials: deviceId = ${creds.deviceId}');
-    await _storage.write(
-      key: _deviceCredsKey,
-      value: creds.toJson(),
-    );
+    await _write(creds.toJson());
   }
 
   /// Create new credentials for new account
@@ -107,10 +130,7 @@ class DeviceStorage {
 
     print('[DeviceStorage] _createNewCredentials: created deviceId = $deviceId');
     
-    await _storage.write(
-      key: _deviceCredsKey,
-      value: creds.toJson(),
-    );
+    await _write(creds.toJson());
     
     print('[DeviceStorage] _createNewCredentials: saved to storage');
 
@@ -126,6 +146,11 @@ class DeviceStorage {
 
   /// Clear stored credentials (use with caution - will lose account access!)
   Future<void> clearCredentials() async {
-    await _storage.delete(key: _deviceCredsKey);
+    if (_useSharedPreferences || _sharedPrefs != null) {
+      final prefs = _sharedPrefs ?? await SharedPreferences.getInstance();
+      await prefs.remove(_deviceCredsKey);
+    } else {
+      await _secureStorage!.delete(key: _deviceCredsKey);
+    }
   }
 }
