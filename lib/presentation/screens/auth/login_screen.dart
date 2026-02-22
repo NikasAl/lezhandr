@@ -126,27 +126,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildHeroSection(BuildContext context) {
     return Column(
       children: [
-        // Large hero image / icon
-        Container(
-          width: 180,
-          height: 180,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text('🧮', style: TextStyle(fontSize: 90)),
+        // Hero image - horizontal image in vertical app
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/images/lezhandr.webp',
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+            ),
           ),
         ),
         
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
         // App name
         Text(
