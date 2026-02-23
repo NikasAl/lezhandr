@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -807,16 +806,14 @@ class _SafeMathPreview extends StatelessWidget {
       return MarkdownWithMath(
         text: text,
         textStyle: style,
-        maxLines: 12,
-        overflow: TextOverflow.ellipsis,
+        // No maxLines - let content take as much space as needed
       );
     } catch (e) {
-      // Fallback: show plain text with ellipsis
+      // Fallback: show plain text without $ symbols
       return Text(
         text.replaceAll(RegExp(r'\$+'), ''),  // Remove $ symbols
         style: style,
-        maxLines: 12,
-        overflow: TextOverflow.ellipsis,
+        // No maxLines - let content take as much space as needed
       );
     }
   }
@@ -834,87 +831,12 @@ class _ProblemCard extends StatelessWidget {
   });
 
   /// Get preview text from condition, respecting LaTeX formulas
-  /// Will not cut inside $...$ or $$...$$ blocks
+  /// Returns full text without truncation - card height adjusts automatically
   String? get _previewText {
     if (problem.conditionText == null || problem.conditionText!.isEmpty) {
       return null;
     }
-    final text = problem.conditionText!;
-    
-    // If text is short enough, return as-is
-    if (text.length <= 300) return text;
-    
-    // Find a safe cut point that doesn't break LaTeX
-    final cutPoint = _findSafeCutPoint(text, 300);
-    if (cutPoint < text.length) {
-      return '${text.substring(0, cutPoint)}...';
-    }
-    return text;
-  }
-  
-  /// Find a safe point to cut text without breaking LaTeX formulas
-  int _findSafeCutPoint(String text, int targetLength) {
-    // Track if we're inside math mode
-    bool inDisplayMath = false;
-    bool inInlineMath = false;
-    int lastSafePoint = targetLength;
-    
-    // Don't go beyond text length
-    if (targetLength >= text.length) return text.length;
-    
-    // Scan through text up to a bit beyond target
-    final scanLimit = min(targetLength + 50, text.length);
-    
-    for (int i = 0; i < scanLimit; i++) {
-      final char = text[i];
-      
-      // Check for $$ (display math)
-      if (i < text.length - 1 && text[i] == '\$' && text[i + 1] == '\$') {
-        if (inDisplayMath) {
-          // End of display math - this is a safe point after $$
-          if (i + 2 <= targetLength) {
-            lastSafePoint = i + 2;
-          }
-        }
-        inDisplayMath = !inDisplayMath;
-        i++; // Skip next $
-        continue;
-      }
-      
-      // Check for $ (inline math) - only if not in display math
-      if (!inDisplayMath && char == '\$') {
-        if (inInlineMath) {
-          // End of inline math - this is a safe point after $
-          if (i + 1 <= targetLength) {
-            lastSafePoint = i + 1;
-          }
-        }
-        inInlineMath = !inInlineMath;
-        continue;
-      }
-      
-      // If we're not in any math mode and we hit target, this is a good cut point
-      if (!inDisplayMath && !inInlineMath && i >= targetLength - 10) {
-        // Look for a space or punctuation for cleaner cut
-        if (char == ' ' || char == '\n' || char == ',' || char == '.') {
-          return i;
-        }
-      }
-    }
-    
-    // If we're still in math mode at target length, use last safe point
-    if (inDisplayMath || inInlineMath) {
-      return lastSafePoint;
-    }
-    
-    // Find word boundary near target
-    for (int i = targetLength; i >= max(0, targetLength - 30); i--) {
-      if (i < text.length && (text[i] == ' ' || text[i] == '\n')) {
-        return i;
-      }
-    }
-    
-    return targetLength;
+    return problem.conditionText!;
   }
 
   @override
