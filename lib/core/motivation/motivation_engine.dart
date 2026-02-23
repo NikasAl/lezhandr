@@ -33,8 +33,26 @@ class MotivationEngine {
       candidates.addAll(_getTextsByCondition('streak_100'));
     } else if (context.streakDays >= 30) {
       candidates.addAll(_getTextsByCondition('streak_30'));
+    } else if (context.streakDays >= 21) {
+      candidates.addAll(_getTextsByCondition('streak_21'));
+    } else if (context.streakDays >= 14) {
+      candidates.addAll(_getTextsByCondition('streak_14'));
+    } else if (context.streakDays >= 10) {
+      candidates.addAll(_getTextsByCondition('streak_10'));
     } else if (context.streakDays >= 7) {
       candidates.addAll(_getTextsByCondition('streak_7'));
+    } else if (context.streakDays >= 1) {
+      // For days 1-6, use streak_active with days substitution
+      final activeTexts = _getTextsByTrigger('streak_active');
+      for (final t in activeTexts) {
+        candidates.add(MotivationText(
+          id: t.id,
+          text: t.text.replaceAll('{days}', context.streakDays.toString()),
+          author: t.author,
+          tags: t.tags,
+          category: t.category,
+        ));
+      }
     }
 
     // 3. Check session state
@@ -182,26 +200,43 @@ class MotivationEngine {
 
   MotivationText? getStreakText(int days, {bool atRisk = false}) {
     if (atRisk) {
-      return _getTextsByTrigger('streak_risk').firstOrNull;
+      final texts = _getTextsByTrigger('streak_risk');
+      return texts.isNotEmpty ? texts[_random.nextInt(texts.length)] : null;
     }
 
+    // Select condition based on streak days
+    String? condition;
     if (days >= 100) {
-      return _getTextsByCondition('streak_100').firstOrNull;
+      condition = 'streak_100';
     } else if (days >= 30) {
-      return _getTextsByCondition('streak_30').firstOrNull;
+      condition = 'streak_30';
+    } else if (days >= 21) {
+      condition = 'streak_21';
+    } else if (days >= 14) {
+      condition = 'streak_14';
+    } else if (days >= 10) {
+      condition = 'streak_10';
     } else if (days >= 7) {
-      return _getTextsByCondition('streak_7').firstOrNull;
+      condition = 'streak_7';
     }
 
-    // General text for active streak
-    final text = _getTextsByTrigger('streak_active').firstOrNull;
-    if (text != null) {
+    if (condition != null) {
+      final texts = _getTextsByCondition(condition);
+      if (texts.isNotEmpty) {
+        return texts[_random.nextInt(texts.length)];
+      }
+    }
+
+    // For days 1-6 or if no condition texts found, use streak_active with days substitution
+    final texts = _getTextsByTrigger('streak_active');
+    if (texts.isNotEmpty) {
+      final baseText = texts[_random.nextInt(texts.length)];
       return MotivationText(
-        id: text.id,
-        text: text.text.replaceAll('{days}', days.toString()),
-        author: text.author,
-        tags: text.tags,
-        category: text.category,
+        id: baseText.id,
+        text: baseText.text.replaceAll('{days}', days.toString()),
+        author: baseText.author,
+        tags: baseText.tags,
+        category: baseText.category,
       );
     }
 
