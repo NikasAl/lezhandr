@@ -113,16 +113,25 @@ void showFinishSessionSheet({
                   Row(
                     children: [
                       const Text('Сложность: '),
-                      ...List.generate(5, (i) {
-                        final value = i + 1;
-                        return IconButton(
-                          icon: Icon(
-                            Icons.star,
-                            color: difficulty >= value ? Colors.amber : Colors.grey,
-                          ),
-                          onPressed: () => setModalState(() => difficulty = value),
-                        );
-                      }),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(5, (i) {
+                            final value = i + 1;
+                            return IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              icon: Icon(
+                                Icons.star,
+                                size: 28,
+                                color: difficulty >= value ? Colors.amber : Colors.grey,
+                              ),
+                              onPressed: () => setModalState(() => difficulty = value),
+                            );
+                          }),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -130,7 +139,12 @@ void showFinishSessionSheet({
                   // Quality
                   Row(
                     children: [
-                      const Text('Качество:'),
+                      Flexible(
+                        child: Text(
+                          'Качество:',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       Expanded(
                         child: Slider(
                           value: quality,
@@ -141,7 +155,13 @@ void showFinishSessionSheet({
                           onChanged: (value) => setModalState(() => quality = value),
                         ),
                       ),
-                      Text(quality.toStringAsFixed(1)),
+                      SizedBox(
+                        width: 32,
+                        child: Text(
+                          quality.toStringAsFixed(1),
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
