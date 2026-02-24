@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../data/models/problem.dart' show ProblemModel, ProblemListResponse;
+import '../../../data/models/problem.dart' show ProblemModel, ProblemListResponse, ProblemConceptModel, ConceptModel;
 import '../../../data/models/solution.dart';
 import '../../../data/models/artifacts.dart';
 import '../../../data/repositories/concepts_repository.dart'
-    show ConceptsRepository, ProblemConceptModel, SolutionConceptModel;
+    show ConceptsRepository, SolutionConceptModel, ConceptModelForSolution;
 import '../../../data/repositories/problems_repository.dart';
 import '../../../data/repositories/solutions_repository.dart';
 import '../../providers/providers.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/markdown_with_math.dart';
 
 /// Analysis mode enum
 enum AnalysisMode { problem, solution }
@@ -179,6 +180,20 @@ final solutionsForProblemProvider =
   return result.items;
 });
 
+/// Provider for existing problem concepts
+final existingProblemConceptsProvider =
+    FutureProvider.family<List<ProblemConceptModel>, int>((ref, problemId) async {
+  final repo = ref.watch(conceptsRepositoryProvider);
+  return await repo.getProblemConcepts(problemId);
+});
+
+/// Provider for existing solution concepts
+final existingSolutionConceptsProvider =
+    FutureProvider.family<List<SolutionConceptModel>, int>((ref, solutionId) async {
+  final repo = ref.watch(conceptsRepositoryProvider);
+  return await repo.getSolutionConcepts(solutionId);
+});
+
 /// Concepts Analysis Screen
 class ConceptsScreen extends ConsumerStatefulWidget {
   const ConceptsScreen({super.key});
@@ -240,28 +255,414 @@ class _ConceptsScreenState extends ConsumerState<ConceptsScreen>
   }
 }
 
-/// Problem Analysis Tab (Knowledge Map)
-class _ProblemAnalysisTab extends ConsumerWidget {
+/// Problem Analysis Tab (Knowledge Map) with swipeable cards
+class _ProblemAnalysisTab extends ConsumerStatefulWidget {
   final ConceptsAnalysisState analysisState;
 
   const _ProblemAnalysisTab({required this.analysisState});
 
   @override
+  ConsumerState<_ProblemAnalysisTab> createState() => _ProblemAnalysisTabState();
+}
+
+class _ProblemAnalysisTabState extends ConsumerState<_ProblemAnalysisTab> {
+  PageController? _pageController;
+  int _currentPage = 0;
+  List<ProblemModel> _problems = [];
+
+  @override
+  void dispose() {
+    _pageController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final problemsAsync = ref.watch(problemsForConceptsProvider);
+
+    return problemsAsync.when(
+      data: (problems) {
+        // Initialize page controller and problems list
+        if (_problems != problems) {
+          _problems = problems;
+          _pageController?.dispose();
+          _pageController = PageController(
+            initialPage: _currentPage.clamp(0, problems.length - 1),
+            viewportFraction: 0.92,
+          );
+          
+          // Select initial problem if none selected
+          if (widget.analysisState.selectedProblem == null && problems.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(conceptsAnalysisProvider.notifier).selectProblem(problems.first);
+            });
+          }
+        }
+
+        if (problems.isEmpty) {
+          return _buildEmptyState(context);
+        }
+
+        return Column(
+          children: [
+            // Swipeable problem cards
+            SizedBox(
+              height: 320,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: problems.length,
+                onPageChanged: (index) {
+                  setState(() => _currentPage = index);
+                  ref.read(conceptsAnalysisProvider.notifier).selectProblem(problems[index]);
+                },
+                itemBuilder: (context, index) {
+                  final problem = problems[index];
+                  final isSelected = widget.analysisState.selectedProblem?.id == problem.id;
+                  return _ProblemSwipeCard(
+                    problem: problem,
+                    isSelected: isSelected,
+                  );
+                },
+              ),
+            ),
+            
+            // Page indicator
+            if (problems.length > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    problems.length > 10 ? 10 : problems.length,
+                    (index) {
+                      final isActive = index == _currentPage;
+                      final isRealIndex = problems.length <= 10 || index < problems.length - (problems.length - 10);
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: isActive ? 16 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            
+            // Expanded content
+            Expanded(
+              child: _ProblemAnalysisContent(
+                analysisState: widget.analysisState,
+                selectedProblem: widget.analysisState.selectedProblem,
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Ошибка: $error'),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => ref.invalidate(problemsForConceptsProvider),
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Нет задач для анализа',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Создайте задачи в Библиотеке',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Swipeable problem card with concepts preview
+class _ProblemSwipeCard extends ConsumerWidget {
+  final ProblemModel problem;
+  final bool isSelected;
+
+  const _ProblemSwipeCard({
+    required this.problem,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final existingConcepts = ref.watch(existingProblemConceptsProvider(problem.id));
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      problem.hasText ? Icons.description : Icons.image,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          problem.reference,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          problem.sourceName,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Tags
+            if (problem.tags.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Wrap(
+                  spacing: 4,
+                  runSpacing: 2,
+                  children: problem.tags.take(4).map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tag.name,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            
+            // Condition preview
+            if (problem.hasText)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SingleChildScrollView(
+                      child: MarkdownWithMath(
+                        text: problem.conditionText!,
+                        textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else if (problem.hasImage)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.photo_camera_outlined,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Есть фото условия',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Existing concepts chips
+            existingConcepts.when(
+              data: (concepts) {
+                if (concepts.isEmpty) return const SizedBox.shrink();
+                return Container(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            size: 14,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Концепты: ${concepts.length}',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: concepts.take(3).map((c) {
+                          final name = c.concept?.name ?? '?';
+                          final relevance = c.relevance ?? 0;
+                          final color = _getRelevanceColor(relevance);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: color.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              name,
+                              style: TextStyle(fontSize: 10, color: color),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (concepts.length > 3)
+                        Text(
+                          '  +${concepts.length - 3} ещё',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getRelevanceColor(double relevance) {
+    if (relevance >= 0.8) return Colors.green;
+    if (relevance >= 0.5) return Colors.orange;
+    return Colors.grey;
+  }
+}
+
+/// Content area for problem analysis
+class _ProblemAnalysisContent extends ConsumerWidget {
+  final ConceptsAnalysisState analysisState;
+  final ProblemModel? selectedProblem;
+
+  const _ProblemAnalysisContent({
+    required this.analysisState,
+    required this.selectedProblem,
+  });
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Problem selector
-          _ProblemSelector(
-            selectedProblem: analysisState.selectedProblem,
-            onProblemSelected: (problem) {
-              ref.read(conceptsAnalysisProvider.notifier).selectProblem(problem);
-            },
-          ),
-          const SizedBox(height: 16),
-
           // Persona selector
           PersonaSelector(
             selectedPersona: analysisState.selectedPersona,
@@ -269,13 +670,13 @@ class _ProblemAnalysisTab extends ConsumerWidget {
               ref.read(conceptsAnalysisProvider.notifier).setPersona(persona);
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Analyze button
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: analysisState.isLoading || analysisState.selectedProblem == null
+              onPressed: analysisState.isLoading || selectedProblem == null
                   ? null
                   : () {
                       ref.read(conceptsAnalysisProvider.notifier).runAnalysis();
@@ -350,53 +751,657 @@ class _ProblemAnalysisTab extends ConsumerWidget {
   }
 }
 
-/// Solution Analysis Tab (Skill Trace)
-class _SolutionAnalysisTab extends ConsumerWidget {
+/// Solution Analysis Tab (Skill Trace) with swipeable solution cards
+class _SolutionAnalysisTab extends ConsumerStatefulWidget {
   final ConceptsAnalysisState analysisState;
 
   const _SolutionAnalysisTab({required this.analysisState});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final solutionsAsync = analysisState.selectedProblem != null
-        ? ref.watch(solutionsForProblemProvider(analysisState.selectedProblem!.id))
-        : null;
+  ConsumerState<_SolutionAnalysisTab> createState() => _SolutionAnalysisTabState();
+}
 
+class _SolutionAnalysisTabState extends ConsumerState<_SolutionAnalysisTab> {
+  PageController? _problemPageController;
+  PageController? _solutionPageController;
+  int _currentProblemPage = 0;
+  int _currentSolutionPage = 0;
+  List<ProblemModel> _problems = [];
+
+  @override
+  void dispose() {
+    _problemPageController?.dispose();
+    _solutionPageController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final problemsAsync = ref.watch(problemsForConceptsProvider);
+
+    return problemsAsync.when(
+      data: (problems) {
+        if (_problems != problems) {
+          _problems = problems;
+          _problemPageController?.dispose();
+          _problemPageController = PageController(
+            initialPage: _currentProblemPage.clamp(0, problems.length - 1),
+            viewportFraction: 0.92,
+          );
+          
+          // Select initial problem if none selected
+          if (widget.analysisState.selectedProblem == null && problems.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(conceptsAnalysisProvider.notifier).selectProblem(problems.first);
+            });
+          }
+        }
+
+        if (problems.isEmpty) {
+          return _buildEmptyState(context);
+        }
+
+        // Get solutions for selected problem
+        final selectedProblem = widget.analysisState.selectedProblem ?? problems.first;
+        final solutionsAsync = ref.watch(solutionsForProblemProvider(selectedProblem.id));
+
+        return Column(
+          children: [
+            // Problem selector header
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.article_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Задача',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Problem cards (smaller)
+            SizedBox(
+              height: 140,
+              child: PageView.builder(
+                controller: _problemPageController,
+                itemCount: problems.length,
+                onPageChanged: (index) {
+                  setState(() => _currentProblemPage = index);
+                  ref.read(conceptsAnalysisProvider.notifier).selectProblem(problems[index]);
+                },
+                itemBuilder: (context, index) {
+                  final problem = problems[index];
+                  return _SmallProblemCard(
+                    problem: problem,
+                    isSelected: selectedProblem.id == problem.id,
+                  );
+                },
+              ),
+            ),
+            
+            // Problem page indicator
+            if (problems.length > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    problems.length > 10 ? 10 : problems.length,
+                    (index) {
+                      final isActive = index == _currentProblemPage;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: isActive ? 12 : 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            
+            // Solutions section
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.play_circle_outline,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Решение',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Solution cards
+            Expanded(
+              child: solutionsAsync.when(
+                data: (solutions) {
+                  if (solutions.isEmpty) {
+                    return _buildNoSolutions(context);
+                  }
+                  
+                  // Initialize solution page controller
+                  _solutionPageController?.dispose();
+                  _solutionPageController = PageController(
+                    initialPage: _currentSolutionPage.clamp(0, solutions.length - 1),
+                    viewportFraction: 0.92,
+                  );
+                  
+                  // Select first solution if none selected
+                  if (widget.analysisState.selectedSolution == null && solutions.isNotEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref.read(conceptsAnalysisProvider.notifier).selectSolution(solutions.first);
+                    });
+                  }
+                  
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 160,
+                        child: PageView.builder(
+                          controller: _solutionPageController,
+                          itemCount: solutions.length,
+                          onPageChanged: (index) {
+                            setState(() => _currentSolutionPage = index);
+                            ref.read(conceptsAnalysisProvider.notifier).selectSolution(solutions[index]);
+                          },
+                          itemBuilder: (context, index) {
+                            final solution = solutions[index];
+                            final isSelected = widget.analysisState.selectedSolution?.id == solution.id;
+                            return _SolutionSwipeCard(
+                              solution: solution,
+                              isSelected: isSelected,
+                            );
+                          },
+                        ),
+                      ),
+                      
+                      // Solution page indicator
+                      if (solutions.length > 1)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              solutions.length > 10 ? 10 : solutions.length,
+                              (index) {
+                                final isActive = index == _currentSolutionPage;
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                                  width: isActive ? 12 : 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: isActive
+                                        ? Theme.of(context).colorScheme.secondary
+                                        : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      
+                      // Analysis content
+                      Expanded(
+                        child: _SolutionAnalysisContent(
+                          analysisState: widget.analysisState,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Center(child: Text('Ошибка загрузки решений')),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Ошибка: $error'),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => ref.invalidate(problemsForConceptsProvider),
+              child: const Text('Повторить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Нет задач для анализа',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSolutions(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.hourglass_empty,
+            size: 48,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Нет решений для этой задачи',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Решите задачу, чтобы проанализировать навыки',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small problem card for solution tab
+class _SmallProblemCard extends StatelessWidget {
+  final ProblemModel problem;
+  final bool isSelected;
+
+  const _SmallProblemCard({
+    required this.problem,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  problem.hasText ? Icons.description : Icons.image,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      problem.reference,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      problem.sourceName,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (problem.tags.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(
+                          spacing: 4,
+                          children: problem.tags.take(2).map((tag) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondaryContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                tag.name,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Swipeable solution card
+class _SolutionSwipeCard extends ConsumerWidget {
+  final SolutionModel solution;
+  final bool isSelected;
+
+  const _SolutionSwipeCard({
+    required this.solution,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final existingConcepts = ref.watch(existingSolutionConceptsProvider(solution.id));
+    
+    final statusColor = solution.isCompleted
+        ? Colors.blue
+        : solution.isActive
+            ? Colors.green
+            : Colors.orange;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.secondary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      solution.isActive
+                          ? Icons.timer
+                          : solution.isCompleted
+                              ? Icons.check_circle
+                              : Icons.pause_circle,
+                      size: 18,
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'ID: ${solution.id}',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                solution.statusText,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.schedule, size: 12, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${solution.totalMinutes.toStringAsFixed(0)} мин',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            if (solution.xpEarned != null) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.star, size: 12, color: Colors.amber[700]),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${solution.xpEarned!.toStringAsFixed(0)} XP',
+                                style: TextStyle(fontSize: 11, color: Colors.amber[700]),
+                              ),
+                            ],
+                            if (solution.hasText) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.article, size: 12, color: Colors.grey[600]),
+                            ],
+                            if (solution.hasImage) ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.photo, size: 12, color: Colors.grey[600]),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Existing concepts
+            existingConcepts.when(
+              data: (concepts) {
+                if (concepts.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.school_outlined,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Навыки ещё не проанализированы',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.school,
+                            size: 14,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Навыки: ${concepts.length}',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: concepts.take(4).map((c) {
+                          final name = c.concept?.name ?? '?';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (concepts.length > 4)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '+${concepts.length - 4} ещё',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.all(12),
+                child: Center(child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Content area for solution analysis
+class _SolutionAnalysisContent extends ConsumerWidget {
+  final ConceptsAnalysisState analysisState;
+
+  const _SolutionAnalysisContent({
+    required this.analysisState,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Problem selector
-          _ProblemSelector(
-            selectedProblem: analysisState.selectedProblem,
-            onProblemSelected: (problem) {
-              ref.read(conceptsAnalysisProvider.notifier).selectProblem(problem);
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Solution selector
-          if (analysisState.selectedProblem != null) ...[
-            Text(
-              'Решение',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            solutionsAsync?.when(
-              data: (solutions) => _SolutionDropdown(
-                solutions: solutions,
-                selectedSolution: analysisState.selectedSolution,
-                onSolutionSelected: (solution) {
-                  ref.read(conceptsAnalysisProvider.notifier).selectSolution(solution);
-                },
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('Ошибка загрузки решений'),
-            ) ?? const SizedBox.shrink(),
-            const SizedBox(height: 16),
-          ],
-
           // Persona selector
           PersonaSelector(
             selectedPersona: analysisState.selectedPersona,
@@ -404,7 +1409,7 @@ class _SolutionAnalysisTab extends ConsumerWidget {
               ref.read(conceptsAnalysisProvider.notifier).setPersona(persona);
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Analyze button
           SizedBox(
@@ -470,7 +1475,7 @@ class _SolutionAnalysisTab extends ConsumerWidget {
                           color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 12),
                       Text(
-                        'Концепты не найдены',
+                        'Навыки не найдены',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ],
@@ -481,117 +1486,6 @@ class _SolutionAnalysisTab extends ConsumerWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Problem selector widget
-class _ProblemSelector extends ConsumerWidget {
-  final ProblemModel? selectedProblem;
-  final Function(ProblemModel?) onProblemSelected;
-
-  const _ProblemSelector({
-    required this.selectedProblem,
-    required this.onProblemSelected,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final problemsAsync = ref.watch(problemsForConceptsProvider);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Задача',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        problemsAsync.when(
-          data: (problems) {
-            if (problems.isEmpty) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Нет доступных задач'),
-                ),
-              );
-            }
-            return DropdownButtonFormField<ProblemModel>(
-              value: selectedProblem,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Выберите задачу',
-              ),
-              items: problems.map((problem) {
-                return DropdownMenuItem(
-                  value: problem,
-                  child: Text(
-                    problem.displayTitle,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: onProblemSelected,
-              isExpanded: true,
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Card(
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Ошибка загрузки: $error'),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Solution dropdown widget
-class _SolutionDropdown extends StatelessWidget {
-  final List<SolutionModel> solutions;
-  final SolutionModel? selectedSolution;
-  final Function(SolutionModel?) onSolutionSelected;
-
-  const _SolutionDropdown({
-    required this.solutions,
-    required this.selectedSolution,
-    required this.onSolutionSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (solutions.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Нет решений для этой задачи'),
-        ),
-      );
-    }
-
-    return DropdownButtonFormField<SolutionModel>(
-      value: selectedSolution,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        hintText: 'Выберите решение',
-      ),
-      items: solutions.map((solution) {
-        final statusIcon = solution.isCompleted ? '✅' : (solution.isActive ? '⏳' : '❌');
-        final textIcon = solution.hasText ? '📝' : '🖼️';
-        return DropdownMenuItem(
-          value: solution,
-          child: Text(
-            '$statusIcon $textIcon ID:${solution.id} (${solution.totalMinutes.toStringAsFixed(0)} мин)',
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
-      }).toList(),
-      onChanged: onSolutionSelected,
-      isExpanded: true,
     );
   }
 }

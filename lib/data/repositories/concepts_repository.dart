@@ -1,72 +1,14 @@
 import 'package:dio/dio.dart';
+import '../models/problem.dart' show ProblemConceptModel, ConceptModel;
 import '../models/artifacts.dart';
 import '../services/api_client.dart';
-
-/// Concept model for knowledge analysis
-class ConceptModel {
-  final int? id;
-  final String? name;
-  final String? slug;
-  final String? description;
-  final String? utilityDescription;
-
-  ConceptModel({
-    this.id,
-    this.name,
-    this.slug,
-    this.description,
-    this.utilityDescription,
-  });
-
-  factory ConceptModel.fromJson(Map<String, dynamic> json) {
-    return ConceptModel(
-      id: json['id'] as int?,
-      name: json['name'] as String?,
-      slug: json['slug'] as String?,
-      description: json['description'] as String?,
-      utilityDescription: json['utility_description'] as String?,
-    );
-  }
-}
-
-/// Problem concept (knowledge map)
-class ProblemConceptModel {
-  final int? problemId;
-  final int? conceptId;
-  final double? relevance;
-  final String? explanation;
-  final ConceptModel? concept;
-
-  ProblemConceptModel({
-    this.problemId,
-    this.conceptId,
-    this.relevance,
-    this.explanation,
-    this.concept,
-  });
-
-  factory ProblemConceptModel.fromJson(Map<String, dynamic> json) {
-    ConceptModel? concept;
-    if (json['concept'] != null) {
-      concept = ConceptModel.fromJson(json['concept'] as Map<String, dynamic>);
-    }
-
-    return ProblemConceptModel(
-      problemId: json['problem_id'] as int?,
-      conceptId: json['concept_id'] as int?,
-      relevance: (json['relevance'] as num?)?.toDouble(),
-      explanation: json['explanation'] as String?,
-      concept: concept,
-    );
-  }
-}
 
 /// Solution concept (skill trace)
 class SolutionConceptModel {
   final int? solutionId;
   final int? conceptId;
   final String? usageContext;
-  final ConceptModel? concept;
+  final ConceptModelForSolution? concept;
 
   SolutionConceptModel({
     this.solutionId,
@@ -76,9 +18,9 @@ class SolutionConceptModel {
   });
 
   factory SolutionConceptModel.fromJson(Map<String, dynamic> json) {
-    ConceptModel? concept;
+    ConceptModelForSolution? concept;
     if (json['concept'] != null) {
-      concept = ConceptModel.fromJson(json['concept'] as Map<String, dynamic>);
+      concept = ConceptModelForSolution.fromJson(json['concept'] as Map<String, dynamic>);
     }
 
     return SolutionConceptModel(
@@ -86,6 +28,33 @@ class SolutionConceptModel {
       conceptId: json['concept_id'] as int?,
       usageContext: json['usage_context'] as String?,
       concept: concept,
+    );
+  }
+}
+
+/// Concept model for solution (simplified version for solution concepts)
+class ConceptModelForSolution {
+  final int? id;
+  final String? name;
+  final String? slug;
+  final String? description;
+  final String? utilityDescription;
+
+  ConceptModelForSolution({
+    this.id,
+    this.name,
+    this.slug,
+    this.description,
+    this.utilityDescription,
+  });
+
+  factory ConceptModelForSolution.fromJson(Map<String, dynamic> json) {
+    return ConceptModelForSolution(
+      id: json['id'] as int?,
+      name: json['name'] as String?,
+      slug: json['slug'] as String?,
+      description: json['description'] as String?,
+      utilityDescription: json['utility_description'] as String?,
     );
   }
 }
