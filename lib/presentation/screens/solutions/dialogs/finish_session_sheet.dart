@@ -114,20 +114,22 @@ void showFinishSessionSheet({
                     children: [
                       const Text('Сложность: '),
                       const SizedBox(width: 4),
-                      Flexible(
+                      Expanded(
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: List.generate(5, (i) {
                             final value = i + 1;
-                            return IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                              icon: Icon(
-                                Icons.star,
-                                size: 28,
-                                color: difficulty >= value ? Colors.amber : Colors.grey,
+                            return GestureDetector(
+                              onTap: () => setModalState(() => difficulty = value),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  Icons.star,
+                                  size: 32,
+                                  color: difficulty >= value ? Colors.amber : Colors.grey,
+                                ),
                               ),
-                              onPressed: () => setModalState(() => difficulty = value),
                             );
                           }),
                         ),
