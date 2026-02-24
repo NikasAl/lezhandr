@@ -233,6 +233,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Update user profile (username and/or email)
+  Future<bool> updateProfile({
+    String? username,
+    String? email,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final user = await _authRepository.updateProfile(
+        username: username,
+        email: email,
+      );
+
+      state = state.copyWith(user: user);
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
   /// Logout - clear token but keep account key
   Future<void> logout() async {
     await _authRepository.logout();

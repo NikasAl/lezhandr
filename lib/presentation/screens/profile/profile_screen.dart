@@ -62,14 +62,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              user?.username ?? 'Пользователь',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    user?.username ?? 'Пользователь',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 20),
+                                  onPressed: () => _showEditUsernameDialog(context, user?.username ?? ''),
+                                  tooltip: 'Изменить имя',
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -579,6 +591,77 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             label: const Text('Готово'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditUsernameDialog(BuildContext context, String currentUsername) {
+    final usernameController = TextEditingController(text: currentUsername);
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Изменить имя'),
+          content: TextField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+              labelText: 'Имя пользователя',
+              prefixIcon: Icon(Icons.person),
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final newUsername = usernameController.text.trim();
+                      if (newUsername.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Имя не может быть пустым')),
+                        );
+                        return;
+                      }
+                      if (newUsername == currentUsername) {
+                        Navigator.pop(dialogContext);
+                        return;
+                      }
+
+                      setDialogState(() => isLoading = true);
+
+                      final success = await ref
+                          .read(authStateProvider.notifier)
+                          .updateProfile(username: newUsername);
+
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Имя обновлено')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Ошибка обновления имени')),
+                          );
+                        }
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Сохранить'),
+            ),
+          ],
+        ),
       ),
     );
   }

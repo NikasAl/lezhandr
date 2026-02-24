@@ -119,6 +119,23 @@ class AuthRepository {
     return UserModel.fromJson(response.data);
   }
 
+  /// Update current user profile
+  Future<UserModel> updateProfile({
+    String? username,
+    String? email,
+  }) async {
+    final data = <String, dynamic>{};
+    if (username != null) data['username'] = username;
+    if (email != null) data['email'] = email;
+
+    final response = await _apiClient.dio.patch(
+      '/users/me',
+      data: data,
+    );
+
+    return UserModel.fromJson(response.data);
+  }
+
   /// Logout user
   Future<void> logout() async {
     await _tokenStorage.deleteToken();
