@@ -25,7 +25,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   List<ProblemModel> _accumulatedProblems = [];
   int _totalProblems = 0;
   bool _hasMore = true;
+  
+  // Scroll controller to preserve scroll position
+  final ScrollController _scrollController = ScrollController(keepScrollOffset: true);
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -38,6 +47,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     _accumulatedProblems = [];
     _totalProblems = 0;
     _hasMore = true;
+    // Reset scroll position when filter changes
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   @override
@@ -179,6 +192,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     // Problems list
                     Expanded(
                       child: ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.all(16),
                         itemCount: problems.length + (_hasMore ? 1 : 0),
                         itemBuilder: (context, index) {
@@ -220,6 +234,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 if (_accumulatedProblems.isNotEmpty) {
                   // Show existing data while loading more
                   return ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: _accumulatedProblems.length + 1,
                     itemBuilder: (context, index) {
