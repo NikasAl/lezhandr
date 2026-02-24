@@ -1,8 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/artifacts.dart';
+import '../../data/models/problem.dart' show ProblemConceptModel;
 import '../../data/repositories/uploads_repository.dart';
-import '../../data/repositories/concepts_repository.dart';
+import '../../data/repositories/concepts_repository.dart' show ConceptsRepository, SolutionConceptModel;
 import 'providers.dart';
 
 // ============ IMAGE FETCHING ============
