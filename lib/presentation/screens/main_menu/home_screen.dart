@@ -188,16 +188,22 @@ class _GreetingCard extends StatelessWidget {
                         color: streak > 0 ? Colors.orange : Colors.grey,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'Стрик: $streak дн.',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Flexible(
+                        child: Text(
+                          'Стрик: $streak дн.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       const Icon(Icons.check_circle, size: 18, color: Colors.green),
                       const SizedBox(width: 4),
-                      Text(
-                        'Сегодня: $tasksToday',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Flexible(
+                        child: Text(
+                          'Сегодня: $tasksToday',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
