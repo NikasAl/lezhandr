@@ -18,13 +18,12 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedSource;
   String _searchQuery = '';
-  int _currentOffset = 0;
-  final int _pageSize = 20;
   
   // Accumulated problems list for infinite scroll
   List<ProblemModel> _accumulatedProblems = [];
   int _totalProblems = 0;
   bool _hasMore = true;
+  bool _isLoadingMore = false;
   
   // Scroll controller to preserve scroll position
   final ScrollController _scrollController = ScrollController(keepScrollOffset: true);
@@ -35,21 +34,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     super.dispose();
   }
   
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Reset when source changes
-    _resetPagination();
-  }
-  
   void _resetPagination() {
-    _currentOffset = 0;
     _accumulatedProblems = [];
     _totalProblems = 0;
     _hasMore = true;
+    _isLoadingMore = false;
     // Reset scroll position when filter changes
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
+    }
+  }
+
+  /// Load more problems
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    
+    setState(() => _isLoadingMore = true);
+    
+    try {
+      final repo = ref.read(problemsRepositoryProvider);
+      final response = await repo.getProblems(
+        source: _selectedSource,
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+        limit: 20,
+        offset: _accumulatedProblems.length,
+      );
+      
+      if (mounted) {
+        setState(() {
+          // Avoid duplicates
+          final existingIds = _accumulatedProblems.map((p) => p.id).toSet();
+          final newItems = response.items.where((p) => !existingIds.contains(p.id)).toList();
+          _accumulatedProblems = [..._accumulatedProblems, ...newItems];
+          _totalProblems = response.total;
+          _hasMore = response.hasMore;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка загрузки: $e')),
+        );
+      }
     }
   }
 
@@ -64,29 +92,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             .toSet() ??
         {};
 
-    // Current filter
-    final filter = ProblemsFilter(
+    // Base filter for initial load (always offset 0)
+    final baseFilter = ProblemsFilter(
       source: _selectedSource,
       search: _searchQuery.isEmpty ? null : _searchQuery,
-      limit: _pageSize,
-      offset: _currentOffset,
+      limit: 20,
+      offset: 0,
     );
 
-    // Watch problems list with current filter
-    final problemsListAsync = ref.watch(problemsListProvider(filter));
+    // Watch only the base filter for initial data
+    final problemsListAsync = ref.watch(problemsListProvider(baseFilter));
 
-    // Update accumulated list when new data arrives
+    // Update accumulated list when initial data arrives
     problemsListAsync.whenData((response) {
-      if (_currentOffset == 0) {
+      if (_accumulatedProblems.isEmpty) {
         _accumulatedProblems = response.items;
-      } else if (_accumulatedProblems.length < _currentOffset + response.items.length) {
-        // Avoid duplicates
-        final existingIds = _accumulatedProblems.map((p) => p.id).toSet();
-        final newItems = response.items.where((p) => !existingIds.contains(p.id)).toList();
-        _accumulatedProblems = [..._accumulatedProblems, ...newItems];
+        _totalProblems = response.total;
+        _hasMore = response.hasMore;
       }
-      _totalProblems = response.total;
-      _hasMore = response.hasMore;
     });
 
     return Scaffold(
@@ -116,6 +139,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       setState(() {
                         _selectedSource = null;
                         _resetPagination();
+                        ref.invalidate(problemsListProvider);
                       });
                     },
                   ),
@@ -129,6 +153,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             setState(() {
                               _selectedSource = source.name;
                               _resetPagination();
+                              ref.invalidate(problemsListProvider);
                             });
                           },
                         ),
@@ -147,7 +172,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               data: (response) {
                 final problems = _accumulatedProblems;
                 
-                if (problems.isEmpty && _currentOffset == 0) {
+                if (problems.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -199,14 +224,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           // Load more button
                           if (index == problems.length && _hasMore) {
                             return _LoadMoreCard(
-                              isLoading: problemsListAsync.isLoading,
-                              onLoadMore: () {
-                                if (!problemsListAsync.isLoading) {
-                                  setState(() {
-                                    _currentOffset += _pageSize;
-                                  });
-                                }
-                              },
+                              isLoading: _isLoadingMore,
+                              onLoadMore: _loadMore,
                               remainingCount: _totalProblems - problems.length,
                             );
                           }
@@ -221,7 +240,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               await context.push('/problems/${problem.id}');
                               // Refresh after returning from problem detail
                               ref.invalidate(problemsListProvider);
-                              _resetPagination();
+                              setState(() {
+                                _resetPagination();
+                              });
                             },
                           );
                         },
@@ -230,40 +251,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ],
                 );
               },
-              loading: () {
-                if (_accumulatedProblems.isNotEmpty) {
-                  // Show existing data while loading more
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _accumulatedProblems.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _accumulatedProblems.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      
-                      final problem = _accumulatedProblems[index];
-                      final isActive = activeProblemIds.contains(problem.id);
-
-                      return _ProblemCard(
-                        problem: problem,
-                        isActive: isActive,
-                        onTap: () async {
-                          await context.push('/problems/${problem.id}');
-                          ref.invalidate(problemsListProvider);
-                          _resetPagination();
-                        },
-                      );
-                    },
-                  );
-                }
-                return const Center(child: CircularProgressIndicator());
-              },
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -315,6 +303,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             setState(() {
               _searchQuery = value;
               _resetPagination();
+              ref.invalidate(problemsListProvider);
             });
           },
         ),
@@ -325,6 +314,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               setState(() {
                 _searchQuery = '';
                 _resetPagination();
+                ref.invalidate(problemsListProvider);
               });
             },
             child: const Text('Сбросить'),
@@ -335,6 +325,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               setState(() {
                 _searchQuery = searchController.text;
                 _resetPagination();
+                ref.invalidate(problemsListProvider);
               });
             },
             child: const Text('Найти'),
