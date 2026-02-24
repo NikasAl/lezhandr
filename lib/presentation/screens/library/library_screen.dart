@@ -928,11 +928,15 @@ class _ProblemCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Text(
-                              problem.sourceName,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
+                            Flexible(
+                              child: Text(
+                                problem.sourceName,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
                             // Show added_by user
                             if (addedBy != null) ...[
@@ -950,10 +954,14 @@ class _ProblemCard extends StatelessWidget {
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 2),
-                              Text(
-                                addedBy.displayName,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              Flexible(
+                                child: Text(
+                                  addedBy.displayName,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                             ],
