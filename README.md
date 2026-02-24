@@ -5,11 +5,12 @@
 ## Особенности
 
 - 🧮 **Решение задач** — отслеживание времени, озарения, вопросы, подсказки
-- 📚 **Библиотека** — источники и задачи с тегами
+- 📚 **Библиотека** — источники и задачи с тегами и пагинацией
 - 📊 **Статистика** — XP, стрик, активность
 - 🤖 **AI Помощь** — подсказки от разных AI-персон (Кот Базис, Петрович, Лежандр)
-- 📸 **Камера** — фотографирование условий и решений
-- ✨ **Мотивация** — вдохновляющие тексты
+- 📸 **Камера** — фотографирование условий и решений с OCR
+- ✨ **Мотивация** — вдохновляющие тексты в зависимости от контекста
+- 💰 **Финансы** — баланс, пополнение через ЮKassa, история транзакций
 
 ## Технологии
 
@@ -29,15 +30,13 @@ lib/
 │   ├── config/                  # Конфигурация (API URL и т.д.)
 │   ├── theme/                   # Тема приложения
 │   ├── router/                  # GoRouter навигация
+│   ├── services/                # Сервисы (image crop)
 │   └── motivation/              # Модуль мотивации
 ├── data/
 │   ├── models/                  # DTO модели
 │   ├── repositories/            # Репозитории
 │   ├── services/                # API сервисы
-│   └── storage/                 # Локальное хранилище
-├── domain/
-│   ├── entities/                # Business entities
-│   └── usecases/                # Use cases
+│   └── storage/                 # Локальное ханилище
 └── presentation/
     ├── providers/               # Riverpod providers
     ├── screens/                 # Экраны
@@ -50,11 +49,11 @@ lib/
 # Получить зависимости
 flutter pub get
 
-# Сгенерировать код (JSON serialization)
-flutter pub run build_runner build
-
 # Запустить на устройстве
 flutter run
+
+# Сборка release APK
+flutter build apk --release
 ```
 
 ## Конфигурация
@@ -71,18 +70,19 @@ static const String apiUrl = 'http://your-server:8000/api/v1';
 |-------|---------|----------|
 | Splash | `/` | Загрузка и авторизация |
 | Home | `/main/home` | Главная страница |
-| Library | `/main/library` | Библиотека задач |
+| Library | `/main/library` | Библиотека задач с пагинацией |
 | Statistics | `/main/statistics` | Статистика |
 | Profile | `/main/profile` | Профиль пользователя |
 | Problem Detail | `/problems/:id` | Детали задачи |
-| Session | `/session/:id` | Интерактивная сессия |
+| Solution Session | `/session/:id` | Интерактивная сессия решения |
+| Solution Detail | `/solutions/:id` | Просмотр завершённого решения |
 | Camera | `/camera` | Захват фото |
 
 ## AI Персоны
 
 | Персона | Модель | Цена |
 |---------|--------|------|
-| 🐱 Кот Базис | basis | Бесплатно (лимит) |
+| 🐱 Кот Базис | basis | Бесплатно (лимит 5/день) |
 | 🧹 Петрович | petrovich | 2 ₽ |
 | 🧐 Лежандр | legendre | 10 ₽ |
 
@@ -92,7 +92,53 @@ static const String apiUrl = 'http://your-server:8000/api/v1';
 - Утро/день/вечер — разное время суток
 - Начало сессии — мотивация на решение
 - Достижения — поздравления с里程碑ами
-- Стрик — поддержка цепочки дней
+- Стрик — поддержка цепочки дней (1-90+ дней)
+
+## Подготовка к релизу в RuStore
+
+### Необходимые ресурсы
+
+1. **Иконки приложения:**
+   - `mipmap-mdpi/ic_launcher.png` (48×48)
+   - `mipmap-hdpi/ic_launcher.png` (72×72)
+   - `mipmap-xhdpi/ic_launcher.png` (96×96)
+   - `mipmap-xxhdpi/ic_launcher.png` (144×144)
+   - `mipmap-xxxhdpi/ic_launcher.png` (192×192)
+
+2. **Скриншоты для магазина:**
+   - Минимум 2 скриншота
+   - Рекомендуемый размер: 1080×1920 или 1920×1080
+   - Формат: PNG или JPEG
+
+3. **Тексты:**
+   - Краткое описание (до 80 символов)
+   - Полное описание (до 4000 символов)
+   - Ключевые слова для поиска
+
+### Сборка release APK
+
+```bash
+# Подписание (настроить в android/app/build.gradle.kts)
+flutter build apk --release
+
+# APK будет в:
+# build/app/outputs/flutter-apk/app-release.apk
+```
+
+### Чек-лист перед релизом
+
+- [ ] Иконка приложения
+- [ ] Скриншоты (минимум 2)
+- [ ] Описание приложения
+- [ ] Политика конфиденциальности
+- [ ] Возрастной рейтинг
+- [ ] Тестирование на разных устройствах
+
+## Документация
+
+- `docs/PROJECT_STATUS.md` — статус багов и функционала
+- `docs/CHANGELOG.md` — история изменений
+- `docs/QUICK_REFERENCE.md` — краткий справочник
 
 ## Разработка
 
@@ -101,12 +147,6 @@ static const String apiUrl = 'http://your-server:8000/api/v1';
 - Flutter SDK 3.x
 - Dart 3.x
 - Android Studio / VS Code
-
-### Генерация кода
-
-```bash
-flutter pub run build_runner watch
-```
 
 ### Линтер
 
