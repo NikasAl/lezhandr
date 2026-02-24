@@ -18,6 +18,7 @@ final solutionsListProvider =
     problemId: filter.problemId,
     status: filter.status,
     userId: filter.userId,
+    mineOnly: filter.mineOnly,
     limit: filter.limit,
     offset: filter.offset,
   );
@@ -117,6 +118,7 @@ class SolutionsFilter {
   final int? problemId;
   final SolutionStatus? status;
   final int? userId;
+  final bool mineOnly;
   final int limit;
   final int offset;
 
@@ -124,6 +126,7 @@ class SolutionsFilter {
     this.problemId,
     this.status,
     this.userId,
+    this.mineOnly = false,
     this.limit = 20,
     this.offset = 0,
   });
@@ -132,6 +135,7 @@ class SolutionsFilter {
     int? problemId,
     SolutionStatus? status,
     int? userId,
+    bool? mineOnly,
     int? limit,
     int? offset,
   }) {
@@ -139,6 +143,7 @@ class SolutionsFilter {
       problemId: problemId ?? this.problemId,
       status: status ?? this.status,
       userId: userId ?? this.userId,
+      mineOnly: mineOnly ?? this.mineOnly,
       limit: limit ?? this.limit,
       offset: offset ?? this.offset,
     );
@@ -160,6 +165,7 @@ class SolutionsFilter {
           problemId == other.problemId &&
           status == other.status &&
           userId == other.userId &&
+          mineOnly == other.mineOnly &&
           limit == other.limit &&
           offset == other.offset;
 
@@ -168,6 +174,7 @@ class SolutionsFilter {
       problemId.hashCode ^
       status.hashCode ^
       userId.hashCode ^
+      mineOnly.hashCode ^
       limit.hashCode ^
       offset.hashCode;
 }

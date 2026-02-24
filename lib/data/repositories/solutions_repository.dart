@@ -9,10 +9,12 @@ class SolutionsRepository {
 
   /// Get solutions with pagination and optional filters
   /// Returns SolutionListResponse with items, total, limit, offset
+  /// [mineOnly] - if true, returns only current user's solutions
   Future<SolutionListResponse> getSolutions({
     int? problemId,
     SolutionStatus? status,
     int? userId,
+    bool mineOnly = false,
     int limit = 20,
     int offset = 0,
   }) async {
@@ -23,6 +25,7 @@ class SolutionsRepository {
     if (problemId != null) queryParams['problem_id'] = problemId;
     if (status != null) queryParams['status'] = status.name;
     if (userId != null) queryParams['user_id'] = userId;
+    if (mineOnly) queryParams['mine_only'] = true;
 
     final response = await _apiClient.dio.get(
       '/solutions',
@@ -32,9 +35,14 @@ class SolutionsRepository {
     return SolutionListResponse.fromJson(response.data);
   }
 
-  /// Get active solutions (convenience method)
+  /// Get active solutions for current user only
+  /// Uses mine_only=true to filter solutions belonging to the authenticated user
   Future<List<SolutionModel>> getActiveSolutions() async {
-    final response = await getSolutions(status: SolutionStatus.active, limit: 100);
+    final response = await getSolutions(
+      status: SolutionStatus.active,
+      mineOnly: true,
+      limit: 100,
+    );
     return response.items;
   }
 
