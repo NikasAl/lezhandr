@@ -167,13 +167,6 @@ class OcrNotifier extends StateNotifier<OcrState> {
 
 // ============ CONCEPTS ============
 
-/// Problem concepts (Knowledge Map) - fetches existing concepts without analysis
-final problemConceptsProvider =
-    FutureProvider.family<List<ProblemConceptModel>, int>((ref, problemId) {
-  final repo = ref.watch(conceptsRepositoryProvider);
-  return repo.getProblemConcepts(problemId);
-});
-
 /// Solution concepts (Skill Trace) - fetches existing concepts without analysis
 final solutionConceptsProvider =
     FutureProvider.family<List<SolutionConceptModel>, int>((ref, solutionId) {

@@ -180,13 +180,6 @@ final solutionsForProblemProvider =
   return result.items;
 });
 
-/// Provider for existing problem concepts
-final existingProblemConceptsProvider =
-    FutureProvider.family<List<ProblemConceptModel>, int>((ref, problemId) async {
-  final repo = ref.watch(conceptsRepositoryProvider);
-  return await repo.getProblemConcepts(problemId);
-});
-
 /// Provider for existing solution concepts
 final existingSolutionConceptsProvider =
     FutureProvider.family<List<SolutionConceptModel>, int>((ref, solutionId) async {
@@ -411,7 +404,7 @@ class _ProblemAnalysisTabState extends ConsumerState<_ProblemAnalysisTab> {
 }
 
 /// Swipeable problem card with concepts preview
-class _ProblemSwipeCard extends ConsumerWidget {
+class _ProblemSwipeCard extends StatelessWidget {
   final ProblemModel problem;
   final bool isSelected;
 
@@ -421,8 +414,9 @@ class _ProblemSwipeCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final existingConcepts = ref.watch(existingProblemConceptsProvider(problem.id));
+  Widget build(BuildContext context) {
+    // Use concepts from problem model directly (no separate API call)
+    final concepts = problem.concepts ?? [];
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
@@ -572,67 +566,61 @@ class _ProblemSwipeCard extends ConsumerWidget {
                 ),
               ),
             
-            // Existing concepts chips
-            existingConcepts.when(
-              data: (concepts) {
-                if (concepts.isEmpty) return const SizedBox.shrink();
-                return Container(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 14,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Концепты: ${concepts.length}',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 2,
-                        children: concepts.take(3).map((c) {
-                          final name = c.concept?.name ?? '?';
-                          final relevance = c.relevance ?? 0;
-                          final color = _getRelevanceColor(relevance);
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: color.withOpacity(0.3)),
-                            ),
-                            child: Text(
-                              name,
-                              style: TextStyle(fontSize: 10, color: color),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      if (concepts.length > 3)
+            // Existing concepts chips (from problem model)
+            if (concepts.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
                         Text(
-                          '  +${concepts.length - 3} ещё',
+                          'Концепты: ${concepts.length}',
                           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
-                    ],
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
+                      children: concepts.take(3).map((c) {
+                        final name = c.concept?.name ?? '?';
+                        final relevance = c.relevance;
+                        final color = _getRelevanceColor(relevance);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: color.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            name,
+                            style: TextStyle(fontSize: 10, color: color),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    if (concepts.length > 3)
+                      Text(
+                        '  +${concepts.length - 3} ещё',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../models/problem.dart' show ProblemConceptModel, ConceptModel;
+import '../models/problem.dart' show ProblemConceptModel;
 import '../models/artifacts.dart';
 import '../services/api_client.dart';
 
@@ -75,22 +75,6 @@ class ConceptsRepository {
         return (response.data as List)
             .map((c) =>
                 SolutionConceptModel.fromJson(c as Map<String, dynamic>))
-            .toList();
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  /// Get existing concepts for a problem
-  Future<List<ProblemConceptModel>> getProblemConcepts(int problemId) async {
-    try {
-      final response = await _apiClient.dio.get(
-        '/concepts/by-problem/$problemId',
-      );
-      if (response.statusCode == 200 && response.data is List) {
-        return (response.data as List)
-            .map((c) =>
-                ProblemConceptModel.fromJson(c as Map<String, dynamic>))
             .toList();
       }
     } catch (_) {}
