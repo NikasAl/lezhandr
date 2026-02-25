@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// Profile screen - user settings and account
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -292,14 +293,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Card(
                 child: Column(
                   children: [
-                    SwitchListTile(
-                      title: const Text('Тёмная тема'),
-                      secondary: const Icon(Icons.dark_mode_outlined),
-                      value: false,
-                      onChanged: (value) {
-                        // TODO: Toggle theme
-                      },
-                    ),
+                    // Theme selector
+                    _ThemeSelector(),
                     const Divider(height: 1),
                     SwitchListTile(
                       title: const Text('Уведомления'),
@@ -949,6 +944,57 @@ class _TopUpAmountCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Theme selector widget with three options: light, dark, system
+class _ThemeSelector extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.palette_outlined),
+              const SizedBox(width: 16),
+              Text(
+                'Тема оформления',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(
+                value: ThemeMode.light,
+                label: Text('Светлая'),
+                icon: Icon(Icons.light_mode),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                label: Text('Тёмная'),
+                icon: Icon(Icons.dark_mode),
+              ),
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text('Авто'),
+                icon: Icon(Icons.brightness_auto),
+              ),
+            ],
+            selected: {themeMode},
+            onSelectionChanged: (Set<ThemeMode> selection) {
+              ref.read(themeModeProvider.notifier).setThemeMode(selection.first);
+            },
+          ),
+        ],
       ),
     );
   }

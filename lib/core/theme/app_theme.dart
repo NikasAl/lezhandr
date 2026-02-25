@@ -1,8 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/storage/theme_storage.dart';
 
-/// Theme mode provider
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+/// Theme storage provider
+final themeStorageProvider = Provider<ThemeStorage>((ref) {
+  return ThemeStorage();
+});
+
+/// Theme mode notifier with persistence
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() {
+    // Load saved theme on init
+    _loadTheme();
+    return ThemeMode.system;
+  }
+
+  Future<void> _loadTheme() async {
+    final storage = ref.read(themeStorageProvider);
+    final savedMode = await storage.getThemeMode();
+    state = savedMode;
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    final storage = ref.read(themeStorageProvider);
+    await storage.setThemeMode(mode);
+  }
+
+  void cycleTheme() {
+    final next = switch (state) {
+      ThemeMode.system => ThemeMode.light,
+      ThemeMode.light => ThemeMode.dark,
+      ThemeMode.dark => ThemeMode.system,
+    };
+    setThemeMode(next);
+  }
+}
+
+/// Theme mode provider with persistence
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(() {
+  return ThemeModeNotifier();
+});
 
 /// Application theme configuration
 class AppTheme {
