@@ -19,7 +19,11 @@ import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  // Only watch fields that affect routing decisions, not user data
+  // This prevents router rebuild on user refresh (which was causing redirect to home)
+  final isAuthenticated = ref.watch(authStateProvider.select((s) => s.isAuthenticated));
+  final showLoginScreen = ref.watch(authStateProvider.select((s) => s.showLoginScreen));
+  final isLoading = ref.watch(authStateProvider.select((s) => s.isLoading));
 
   return GoRouter(
     debugLogDiagnostics: true,
@@ -27,9 +31,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     // Redirect based on auth state
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
-      final showLoginScreen = authState.showLoginScreen;
-      final isLoading = authState.isLoading;
       
       final isSplash = state.matchedLocation == '/';
       final isLogin = state.matchedLocation == '/login';

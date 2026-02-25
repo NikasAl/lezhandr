@@ -33,8 +33,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.read(authStateProvider.notifier).refreshUser();
-          ref.invalidate(billingBalanceProvider);
+          await ref.read(authStateProvider.notifier).refreshUser();
+          await ref.refresh(billingBalanceProvider.future);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
