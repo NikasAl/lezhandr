@@ -196,7 +196,11 @@ class _GreetingCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
                       const Icon(Icons.check_circle, size: 18, color: Colors.green),
                       const SizedBox(width: 4),
                       Flexible(
@@ -212,16 +216,16 @@ class _GreetingCard extends StatelessWidget {
               ),
             ),
             Container(
-              width: 60,
-              height: 60,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: Center(
                 child: Text(
                   '🧮',
-                  style: const TextStyle(fontSize: 32),
+                  style: const TextStyle(fontSize: 56),
                 ),
               ),
             ),
