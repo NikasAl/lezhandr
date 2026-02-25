@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'motivation_models.dart';
 import 'motivation_texts.dart';
+import '../utils/russian_plural.dart';
 
 /// Engine for selecting appropriate motivation texts
 class MotivationEngine {
@@ -47,7 +48,7 @@ class MotivationEngine {
       for (final t in activeTexts) {
         candidates.add(MotivationText(
           id: t.id,
-          text: t.text.replaceAll('{days}', context.streakDays.toString()),
+          text: t.text.replaceAll('{days}', RussianPlural.formatDays(context.streakDays)),
           author: t.author,
           tags: t.tags,
           category: t.category,
@@ -233,7 +234,7 @@ class MotivationEngine {
       final baseText = texts[_random.nextInt(texts.length)];
       return MotivationText(
         id: baseText.id,
-        text: baseText.text.replaceAll('{days}', days.toString()),
+        text: baseText.text.replaceAll('{days}', RussianPlural.formatDays(days)),
         author: baseText.author,
         tags: baseText.tags,
         category: baseText.category,

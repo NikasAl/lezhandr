@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/gamification_provider.dart';
+import '../../../core/utils/russian_plural.dart';
 
 /// Statistics screen - show progress and activity
 class StatisticsScreen extends ConsumerWidget {
@@ -63,10 +64,10 @@ class StatisticsScreen extends ConsumerWidget {
                       icon: Icons.local_fire_department,
                       iconColor: Colors.orange,
                       title: 'Стрик',
-                      value: '${gamification.value?.streakCurrent ?? 0} дн.',
+                      value: RussianPlural.formatDays(gamification.value?.streakCurrent ?? 0),
                       subtitle: gamification.value?.streakCurrent == 0
                           ? null
-                          : 'Макс: ${gamification.value?.streakBest ?? 0}',
+                          : 'Макс: ${RussianPlural.formatDays(gamification.value?.streakBest ?? 0)}',
                     ),
                   ),
                 ],
@@ -125,8 +126,7 @@ class StatisticsScreen extends ConsumerWidget {
                     _StatRow(
                       icon: Icons.emoji_events,
                       label: 'Максимальный стрик',
-                      value:
-                          '${gamification.value?.streakBest ?? 0} дней',
+                      value: RussianPlural.formatDays(gamification.value?.streakBest ?? 0),
                     ),
                   ],
                 ),

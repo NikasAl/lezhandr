@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/russian_plural.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/gamification_provider.dart';
@@ -190,7 +191,7 @@ class _GreetingCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'Стрик: $streak дн.',
+                          'Стрик: ${RussianPlural.formatDays(streak)}',
                           style: Theme.of(context).textTheme.bodyMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -200,7 +201,7 @@ class _GreetingCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'Сегодня: $tasksToday',
+                          'Сегодня: ${RussianPlural.formatTasks(tasksToday)}',
                           style: Theme.of(context).textTheme.bodyMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -417,7 +418,7 @@ class _ActiveSolutionsCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  '${solution.totalMinutes.toStringAsFixed(0)} мин',
+                  RussianPlural.formatMinutes(solution.totalMinutes.toInt()),
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.play_arrow),
