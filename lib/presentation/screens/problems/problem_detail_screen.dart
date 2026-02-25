@@ -6,6 +6,7 @@ import '../../../data/models/problem.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -186,7 +187,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     );
   }
 
-  void _showConditionActions(ProblemModel data) {
+  void _showConditionActions(ProblemModel data, bool isOwner) {
     final ocrState = ref.read(ocrNotifierProvider);
     final isOcrLoading = ocrState.isLoading;
     
@@ -196,49 +197,53 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Редактировать текст'),
-              subtitle: Text(data.hasText ? 'Изменить текущий текст' : 'Добавить текст'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _showEditConditionDialog(data.conditionText ?? '');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Загрузить фото'),
-              subtitle: Text(data.hasImage ? 'Заменить текущее фото' : 'Добавить фото'),
-              onTap: () async {
-                Navigator.pop(sheetContext);
-                await context.push('/camera?category=condition&entityId=${widget.problemId}');
-                if (mounted) {
-                  ref.invalidate(problemProvider(widget.problemId));
-                  ref.invalidate(imageProvider((category: 'condition', entityId: widget.problemId)));
-                }
-              },
-            ),
-            if (data.hasImage)
+            // Owner-only actions
+            if (isOwner) ...[
               ListTile(
-                leading: isOcrLoading 
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome),
-                title: const Text('Распознать текст (OCR)'),
-                subtitle: isOcrLoading 
-                    ? Text('${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...')
-                    : const Text('Извлечь текст с фото'),
-                enabled: !isOcrLoading,
-                onTap: isOcrLoading
-                    ? null
-                    : () async {
-                        Navigator.pop(sheetContext);
-                        await _runOcr();
-                      },
+                leading: const Icon(Icons.edit),
+                title: const Text('Редактировать текст'),
+                subtitle: Text(data.hasText ? 'Изменить текущий текст' : 'Добавить текст'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showEditConditionDialog(data.conditionText ?? '');
+                },
               ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Загрузить фото'),
+                subtitle: Text(data.hasImage ? 'Заменить текущее фото' : 'Добавить фото'),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await context.push('/camera?category=condition&entityId=${widget.problemId}');
+                  if (mounted) {
+                    ref.invalidate(problemProvider(widget.problemId));
+                    ref.invalidate(imageProvider((category: 'condition', entityId: widget.problemId)));
+                  }
+                },
+              ),
+              if (data.hasImage)
+                ListTile(
+                  leading: isOcrLoading 
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                  title: const Text('Распознать текст (OCR)'),
+                  subtitle: isOcrLoading 
+                      ? Text('${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...')
+                      : const Text('Извлечь текст с фото'),
+                  enabled: !isOcrLoading,
+                  onTap: isOcrLoading
+                      ? null
+                      : () async {
+                          Navigator.pop(sheetContext);
+                          await _runOcr();
+                        },
+                ),
+            ],
+            // Always available: view photo
             if (data.hasImage)
               ListTile(
                 leading: const Icon(Icons.photo_size_select_large),
@@ -258,6 +263,18 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   );
                 },
               ),
+            // Info for non-owners
+            if (!isOwner && !data.hasImage)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Только автор задачи может редактировать условие',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
         ),
       ),
@@ -270,6 +287,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     final solutions = ref.watch(problemSolutionsProvider(widget.problemId));
     final ocrState = ref.watch(ocrNotifierProvider);
     final conceptsState = ref.watch(conceptsNotifierProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -278,18 +296,24 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
-              problem.whenData((data) => _showConditionActions(data));
+              problem.whenData((data) {
+                final isOwner = currentUser?.id == data.addedBy?.id;
+                _showConditionActions(data, isOwner);
+              });
             },
           ),
         ],
       ),
       body: problem.when(
-        data: (data) => SingleChildScrollView(
+        data: (data) {
+          final isOwner = currentUser?.id == data.addedBy?.id;
+          
+          return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Source and reference
+              // Source and reference with added_by
               Row(
                 children: [
                   Container(
@@ -309,18 +333,44 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    data.reference,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.reference,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
+                        if (data.addedBy != null) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.person_outline,
+                                size: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                data.addedBy!.displayName,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
 
               const SizedBox(height: 16),
 
-              // Tags with edit button
+              // Tags with edit button (owner only)
               Row(
                 children: [
                   if (data.tags.isNotEmpty)
@@ -346,12 +396,14 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                         ),
                       ),
                     ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _showEditTagsDialog(data.tags),
-                    icon: const Icon(Icons.sell_outlined, size: 18),
-                    label: const Text('Теги'),
-                  ),
+                  if (isOwner) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: () => _showEditTagsDialog(data.tags),
+                      icon: const Icon(Icons.sell_outlined, size: 18),
+                      label: const Text('Теги'),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
@@ -372,23 +424,26 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          // OCR button (shows spinner while loading)
-                          if (data.hasImage)
-                            ocrState.isLoading
-                                ? Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: ThinkingIndicator(persona: ocrState.currentPersona ?? PersonaId.petrovich),
-                                  )
-                                : IconButton(
-                                    icon: const Icon(Icons.auto_awesome, size: 20),
-                                    onPressed: _runOcr,
-                                    tooltip: 'Распознать текст (OCR)',
-                                  ),
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => _showEditConditionDialog(data.conditionText ?? ''),
-                            tooltip: 'Редактировать текст',
-                          ),
+                          // Owner-only buttons
+                          if (isOwner) ...[
+                            // OCR button (shows spinner while loading)
+                            if (data.hasImage)
+                              ocrState.isLoading
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      child: ThinkingIndicator(persona: ocrState.currentPersona ?? PersonaId.petrovich),
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(Icons.auto_awesome, size: 20),
+                                      onPressed: _runOcr,
+                                      tooltip: 'Распознать текст (OCR)',
+                                    ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              onPressed: () => _showEditConditionDialog(data.conditionText ?? ''),
+                              tooltip: 'Редактировать текст',
+                            ),
+                          ],
                           if (data.hasImage && data.hasText)
                             TextButton.icon(
                               onPressed: () {
@@ -434,7 +489,9 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Нажмите ⋮ для добавления условия',
+                                isOwner 
+                                    ? 'Нажмите ⋮ для добавления условия'
+                                    : 'Условие не добавлено',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium

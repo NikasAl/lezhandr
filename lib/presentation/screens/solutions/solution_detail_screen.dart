@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/repositories/concepts_repository.dart';
 import '../../../data/models/solution.dart';
+import '../../../data/models/user.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -101,47 +103,60 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     final solution = ref.watch(solutionProvider(widget.solutionId));
     final ocrState = ref.watch(ocrNotifierProvider);
     final conceptsState = ref.watch(conceptsNotifierProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Решение #${widget.solutionId}'),
         actions: [
-          // OCR button
-          IconButton(
-            icon: ocrState.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome),
-            onPressed: ocrState.isLoading ? null : _runOcr,
-            tooltip: ocrState.isLoading 
-                ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
-                : 'OCR',
-          ),
-          // Edit button
-          IconButton(
-            icon: Icon(_isEditing ? Icons.visibility : Icons.edit),
-            onPressed: () {
-              setState(() => _isEditing = !_isEditing);
-              if (_isEditing) {
-                final sol = solution.valueOrNull;
-                _textController.text = sol?.solutionText ?? '';
-              }
-            },
-            tooltip: _isEditing ? 'Просмотр' : 'Редактировать',
-          ),
+          // OCR button (owner only)
+          solution.whenData((sol) {
+            final isOwner = currentUser?.id == sol.addedBy?.id;
+            if (isOwner) ...[
+              IconButton(
+                icon: ocrState.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome),
+                onPressed: ocrState.isLoading ? null : _runOcr,
+                tooltip: ocrState.isLoading 
+                    ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
+                    : 'OCR',
+              ),
+            ];
+          }),
+          // Edit button (owner only)
+          solution.whenData((sol) {
+            final isOwner = currentUser?.id == sol.addedBy?.id;
+            if (isOwner) ...[
+              IconButton(
+                icon: Icon(_isEditing ? Icons.visibility : Icons.edit),
+                onPressed: () {
+                  setState(() => _isEditing = !_isEditing);
+                  if (_isEditing) {
+                    _textController.text = sol.solutionText ?? '';
+                  }
+                },
+                tooltip: _isEditing ? 'Просмотр' : 'Редактировать',
+              ),
+            ];
+          }),
         ],
       ),
       body: solution.when(
-        data: (sol) => SingleChildScrollView(
+        data: (sol) {
+          final isOwner = currentUser?.id == sol.addedBy?.id;
+          
+          return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Status card
-              _StatusCard(solution: sol),
+              // Status card with added_by
+              _StatusCard(solution: sol, addedBy: sol.addedBy),
               const SizedBox(height: 16),
 
               // Problem reference
@@ -176,7 +191,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Solution photo section - always show upload option
+              // Solution photo section - upload only for owner
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -192,17 +207,18 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          TextButton.icon(
-                            onPressed: () async {
-                              await context.push(
-                                  '/camera?category=solution&entityId=${widget.solutionId}');
-                              // Refresh solution to get updated image
-                              ref.invalidate(solutionProvider(widget.solutionId));
-                              ref.invalidate(imageProvider((category: 'solution', entityId: widget.solutionId)));
-                            },
-                            icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                            label: Text(sol.hasImage ? 'Обновить' : 'Добавить'),
-                          ),
+                          if (isOwner)
+                            TextButton.icon(
+                              onPressed: () async {
+                                await context.push(
+                                    '/camera?category=solution&entityId=${widget.solutionId}');
+                                // Refresh solution to get updated image
+                                ref.invalidate(solutionProvider(widget.solutionId));
+                                ref.invalidate(imageProvider((category: 'solution', entityId: widget.solutionId)));
+                              },
+                              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                              label: Text(sol.hasImage ? 'Обновить' : 'Добавить'),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -297,8 +313,9 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
 /// Status card showing solution status and stats
 class _StatusCard extends StatelessWidget {
   final SolutionModel solution;
+  final UserPublicProfile? addedBy;
 
-  const _StatusCard({required this.solution});
+  const _StatusCard({required this.solution, this.addedBy});
 
   @override
   Widget build(BuildContext context) {
@@ -323,11 +340,37 @@ class _StatusCard extends StatelessWidget {
                           : Colors.orange,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  solution.statusText,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        solution.statusText,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
+                      if (addedBy != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              size: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              addedBy!.displayName,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
