@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../data/models/artifacts.dart';
+import '../../../data/models/artifacts.dart';
 
 /// Animated "thinking" widget that shows persona-specific messages
 /// Displays rotating messages while an AI operation is in progress
