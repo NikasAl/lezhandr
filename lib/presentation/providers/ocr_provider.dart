@@ -4,6 +4,7 @@ import '../../data/models/artifacts.dart';
 import '../../data/models/problem.dart' show ProblemConceptModel;
 import '../../data/repositories/uploads_repository.dart';
 import '../../data/repositories/concepts_repository.dart' show ConceptsRepository, SolutionConceptModel;
+import '../../core/services/notification_service.dart';
 import 'providers.dart';
 
 // ============ IMAGE FETCHING ============
@@ -66,36 +67,38 @@ class UploadNotifier extends StateNotifier<AsyncValue<UploadResult?>> {
 
 // ============ OCR ============
 
-/// OCR state
+/// OCR state with persona tracking for "thinking" UI
 class OcrState {
   final bool isLoading;
   final String? text;
   final String? error;
-  final PersonaId? lastPersona;
+  final PersonaId? currentPersona;
 
   OcrState({
     this.isLoading = false,
     this.text,
     this.error,
-    this.lastPersona,
+    this.currentPersona,
   });
 
   OcrState copyWith({
     bool? isLoading,
     String? text,
     String? error,
-    PersonaId? lastPersona,
+    PersonaId? currentPersona,
+    bool clearError = false,
+    bool clearText = false,
   }) {
     return OcrState(
       isLoading: isLoading ?? this.isLoading,
-      text: text ?? this.text,
-      error: error ?? this.error,
-      lastPersona: lastPersona ?? this.lastPersona,
+      text: clearText ? null : (text ?? this.text),
+      error: clearError ? null : (error ?? this.error),
+      currentPersona: currentPersona ?? this.currentPersona,
     );
   }
 }
 
-/// OCR notifier
+/// OCR notifier with extended timeout support and notifications
 final ocrNotifierProvider =
     StateNotifierProvider<OcrNotifier, OcrState>((ref) {
   return OcrNotifier(ref.watch(ocrRepositoryProvider));
@@ -110,18 +113,35 @@ class OcrNotifier extends StateNotifier<OcrState> {
     required int problemId,
     PersonaId persona = PersonaId.petrovich,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, currentPersona: persona, clearError: true, clearText: true);
+    
     try {
       final result = await _repo.processProblemImage(
         problemId: problemId,
         persona: persona,
       );
+      
       state = state.copyWith(
         isLoading: false,
         text: result.text,
         error: result.error,
-        lastPersona: persona,
       );
+      
+      // Show notification even if user navigated away
+      if (result.success && result.text != null) {
+        NotificationService.showAiResult(
+          title: '${persona.displayName} завершил распознавание',
+          details: 'Текст условия успешно извлечён',
+          success: true,
+        );
+      } else if (result.error != null) {
+        NotificationService.showAiResult(
+          title: 'Ошибка распознавания',
+          details: result.error!,
+          success: false,
+        );
+      }
+      
       return result;
     } catch (e) {
       final result = OcrResult.error(e.toString());
@@ -129,6 +149,8 @@ class OcrNotifier extends StateNotifier<OcrState> {
         isLoading: false,
         error: result.error,
       );
+      
+      NotificationService.showError('OCR: ${result.error}');
       return result;
     }
   }
@@ -137,18 +159,35 @@ class OcrNotifier extends StateNotifier<OcrState> {
     required int solutionId,
     PersonaId persona = PersonaId.petrovich,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, currentPersona: persona, clearError: true, clearText: true);
+    
     try {
       final result = await _repo.processSolutionImage(
         solutionId: solutionId,
         persona: persona,
       );
+      
       state = state.copyWith(
         isLoading: false,
         text: result.text,
         error: result.error,
-        lastPersona: persona,
       );
+      
+      // Show notification even if user navigated away
+      if (result.success && result.text != null) {
+        NotificationService.showAiResult(
+          title: '${persona.displayName} завершил распознавание',
+          details: 'Текст решения успешно извлечён',
+          success: true,
+        );
+      } else if (result.error != null) {
+        NotificationService.showAiResult(
+          title: 'Ошибка распознавания',
+          details: result.error!,
+          success: false,
+        );
+      }
+      
       return result;
     } catch (e) {
       final result = OcrResult.error(e.toString());
@@ -156,6 +195,8 @@ class OcrNotifier extends StateNotifier<OcrState> {
         isLoading: false,
         error: result.error,
       );
+      
+      NotificationService.showError('OCR: ${result.error}');
       return result;
     }
   }
@@ -174,31 +215,84 @@ final solutionConceptsProvider =
   return repo.getSolutionConcepts(solutionId);
 });
 
-/// Concepts analysis notifier
+/// Concepts analysis state with persona tracking
+class ConceptsAnalysisState {
+  final bool isLoading;
+  final PersonaId? currentPersona;
+  final String? error;
+
+  ConceptsAnalysisState({
+    this.isLoading = false,
+    this.currentPersona,
+    this.error,
+  });
+
+  ConceptsAnalysisState copyWith({
+    bool? isLoading,
+    PersonaId? currentPersona,
+    String? error,
+    bool clearError = false,
+  }) {
+    return ConceptsAnalysisState(
+      isLoading: isLoading ?? this.isLoading,
+      currentPersona: currentPersona ?? this.currentPersona,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+/// Concepts analysis notifier with notifications
 final conceptsNotifierProvider =
-    StateNotifierProvider<ConceptsNotifier, AsyncValue<void>>((ref) {
+    StateNotifierProvider<ConceptsNotifier, ConceptsAnalysisState>((ref) {
   return ConceptsNotifier(ref.watch(conceptsRepositoryProvider));
 });
 
-class ConceptsNotifier extends StateNotifier<AsyncValue<void>> {
+class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
   final ConceptsRepository _repo;
 
-  ConceptsNotifier(this._repo) : super(const AsyncValue.data(null));
+  ConceptsNotifier(this._repo) : super(ConceptsAnalysisState());
 
   Future<List<ProblemConceptModel>> analyzeProblem({
     required int problemId,
     PersonaId persona = PersonaId.legendre,
   }) async {
-    state = const AsyncValue.loading();
+    state = state.copyWith(isLoading: true, currentPersona: persona, clearError: true);
+    
     try {
       final result = await _repo.analyzeProblem(
         problemId: problemId,
         persona: persona,
       );
-      state = const AsyncValue.data(null);
+      
+      state = state.copyWith(isLoading: false);
+      
+      // Show notification even if user navigated away
+      if (result.isNotEmpty) {
+        NotificationService.showAiResult(
+          title: '${persona.displayName} завершил анализ',
+          details: 'Найдено ${result.length} концептов',
+          success: true,
+        );
+      } else {
+        NotificationService.showInfo(
+          '${persona.displayName}: Концепты не найдены',
+        );
+      }
+      
       return result;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      state = state.copyWith(isLoading: false, error: e.toString());
+      
+      String errorMsg = 'Ошибка анализа';
+      if (e.toString().contains('402')) {
+        errorMsg = 'Недостаточно средств на балансе';
+      }
+      
+      NotificationService.showAiResult(
+        title: 'Ошибка анализа концептов',
+        details: errorMsg,
+        success: false,
+      );
       return [];
     }
   }
@@ -207,17 +301,48 @@ class ConceptsNotifier extends StateNotifier<AsyncValue<void>> {
     required int solutionId,
     PersonaId persona = PersonaId.legendre,
   }) async {
-    state = const AsyncValue.loading();
+    state = state.copyWith(isLoading: true, currentPersona: persona, clearError: true);
+    
     try {
       final result = await _repo.analyzeSolution(
         solutionId: solutionId,
         persona: persona,
       );
-      state = const AsyncValue.data(null);
+      
+      state = state.copyWith(isLoading: false);
+      
+      // Show notification even if user navigated away
+      if (result.isNotEmpty) {
+        NotificationService.showAiResult(
+          title: '${persona.displayName} завершил анализ',
+          details: 'Найдено ${result.length} навыков',
+          success: true,
+        );
+      } else {
+        NotificationService.showInfo(
+          '${persona.displayName}: Навыки не найдены',
+        );
+      }
+      
       return result;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      state = state.copyWith(isLoading: false, error: e.toString());
+      
+      String errorMsg = 'Ошибка анализа';
+      if (e.toString().contains('402')) {
+        errorMsg = 'Недостаточно средств на балансе';
+      }
+      
+      NotificationService.showAiResult(
+        title: 'Ошибка анализа навыков',
+        details: errorMsg,
+        success: false,
+      );
       return [];
     }
+  }
+  
+  void clearError() {
+    state = state.copyWith(clearError: true);
   }
 }

@@ -7,6 +7,7 @@ import '../../core/config/app_config.dart';
 class ApiClient {
   late final Dio _dio;
   late final Dio _refreshDio; // Separate Dio for refresh requests (no interceptors)
+  late final Dio _longPollDio; // For AI requests with extended timeout
   final TokenStorage _tokenStorage;
   final AccountStorage _accountStorage;
 
@@ -39,6 +40,31 @@ class ApiClient {
       ),
     );
 
+    // Long polling Dio for AI requests (5 minutes timeout)
+    _longPollDio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.apiUrl,
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(minutes: 5),
+        sendTimeout: const Duration(minutes: 1),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Add auth interceptor to long poll dio as well
+    _longPollDio.interceptors.addAll([
+      _AuthInterceptor(
+        tokenStorage: _tokenStorage,
+        accountStorage: _accountStorage,
+        refreshDio: _refreshDio,
+        dio: _longPollDio,
+      ),
+      _LoggingInterceptor(),
+    ]);
+
     _dio.interceptors.addAll([
       _AuthInterceptor(
         tokenStorage: _tokenStorage,
@@ -51,6 +77,9 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+  
+  /// Dio client for long-running AI requests (5 min timeout)
+  Dio get longPollDio => _longPollDio;
 }
 
 /// Authentication interceptor for automatic token handling
