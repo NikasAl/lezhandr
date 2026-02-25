@@ -108,186 +108,188 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Решение #${widget.solutionId}'),
-        actions: [
-          // OCR button (owner only)
-          solution.whenData((sol) {
+        actions: solution.when(
+          data: (sol) {
             final isOwner = currentUser?.id == sol.addedBy?.id;
-            if (isOwner) ...[
-              IconButton(
-                icon: ocrState.isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome),
-                onPressed: ocrState.isLoading ? null : _runOcr,
-                tooltip: ocrState.isLoading 
-                    ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
-                    : 'OCR',
-              ),
+            return [
+              // OCR button (owner only)
+              if (isOwner)
+                IconButton(
+                  icon: ocrState.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                  onPressed: ocrState.isLoading ? null : _runOcr,
+                  tooltip: ocrState.isLoading 
+                      ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
+                      : 'OCR',
+                ),
+              // Edit button (owner only)
+              if (isOwner)
+                IconButton(
+                  icon: Icon(_isEditing ? Icons.visibility : Icons.edit),
+                  onPressed: () {
+                    setState(() => _isEditing = !_isEditing);
+                    if (_isEditing) {
+                      _textController.text = sol.solutionText ?? '';
+                    }
+                  },
+                  tooltip: _isEditing ? 'Просмотр' : 'Редактировать',
+                ),
             ];
-          }),
-          // Edit button (owner only)
-          solution.whenData((sol) {
-            final isOwner = currentUser?.id == sol.addedBy?.id;
-            if (isOwner) ...[
-              IconButton(
-                icon: Icon(_isEditing ? Icons.visibility : Icons.edit),
-                onPressed: () {
-                  setState(() => _isEditing = !_isEditing);
-                  if (_isEditing) {
-                    _textController.text = sol.solutionText ?? '';
-                  }
-                },
-                tooltip: _isEditing ? 'Просмотр' : 'Редактировать',
-              ),
-            ];
-          }),
-        ],
+          },
+          loading: () => [],
+          error: (_, __) => [],
+        ),
       ),
       body: solution.when(
         data: (sol) {
           final isOwner = currentUser?.id == sol.addedBy?.id;
           
           return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Status card with added_by
-              _StatusCard(solution: sol, addedBy: sol.addedBy),
-              const SizedBox(height: 16),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status card with added_by
+                _StatusCard(solution: sol, addedBy: sol.addedBy),
+                const SizedBox(height: 16),
 
-              // Problem reference
-              if (sol.problem != null) ...[
+                // Problem reference
+                if (sol.problem != null) ...[
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.description_outlined),
+                      title: Text(sol.problem!.displayTitle),
+                      subtitle: Text(sol.problem!.sourceName),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/problems/${sol.problem!.id}'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Concepts section
+                _SolutionConceptsSection(
+                  solutionId: widget.solutionId,
+                  isLoading: conceptsState.isLoading,
+                  currentPersona: conceptsState.currentPersona,
+                  onAnalyze: _runConceptsAnalysis,
+                ),
+                const SizedBox(height: 16),
+
+                // Solution text section
+                _SolutionTextSection(
+                  solution: sol,
+                  isEditing: _isEditing,
+                  controller: _textController,
+                  onSave: _saveSolutionText,
+                ),
+                const SizedBox(height: 16),
+
+                // Solution photo section - upload only for owner
                 Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text(sol.problem!.displayTitle),
-                    subtitle: Text(sol.problem!.sourceName),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/problems/${sol.problem!.id}'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.photo_outlined, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Фото решения',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const Spacer(),
+                            if (isOwner)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  await context.push(
+                                      '/camera?category=solution&entityId=${widget.solutionId}');
+                                  // Refresh solution to get updated image
+                                  ref.invalidate(solutionProvider(widget.solutionId));
+                                  ref.invalidate(imageProvider((category: 'solution', entityId: widget.solutionId)));
+                                },
+                                icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                                label: Text(sol.hasImage ? 'Обновить' : 'Добавить'),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (sol.hasImage)
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ImageViewerScreen(
+                                    category: 'solution',
+                                    entityId: widget.solutionId,
+                                    title: 'Фото решения',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SolutionImageThumbnail(
+                                solutionId: widget.solutionId,
+                                title: 'Фото решения',
+                                height: 250,
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 48,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  isOwner 
+                                      ? 'Нажмите "Добавить" чтобы загрузить фото'
+                                      : 'Фото не добавлено',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Artifacts sections
+                _EpiphaniesSection(solutionId: widget.solutionId),
+                const SizedBox(height: 8),
+                _QuestionsSection(solutionId: widget.solutionId),
+                const SizedBox(height: 8),
+                _HintsSection(solutionId: widget.solutionId),
               ],
-
-              // Concepts section
-              _SolutionConceptsSection(
-                solutionId: widget.solutionId,
-                isLoading: conceptsState.isLoading,
-                currentPersona: conceptsState.currentPersona,
-                onAnalyze: _runConceptsAnalysis,
-              ),
-              const SizedBox(height: 16),
-
-              // Solution text section
-              _SolutionTextSection(
-                solution: sol,
-                isEditing: _isEditing,
-                controller: _textController,
-                onSave: _saveSolutionText,
-              ),
-              const SizedBox(height: 16),
-
-              // Solution photo section - upload only for owner
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.photo_outlined, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Фото решения',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const Spacer(),
-                          if (isOwner)
-                            TextButton.icon(
-                              onPressed: () async {
-                                await context.push(
-                                    '/camera?category=solution&entityId=${widget.solutionId}');
-                                // Refresh solution to get updated image
-                                ref.invalidate(solutionProvider(widget.solutionId));
-                                ref.invalidate(imageProvider((category: 'solution', entityId: widget.solutionId)));
-                              },
-                              icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                              label: Text(sol.hasImage ? 'Обновить' : 'Добавить'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (sol.hasImage)
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ImageViewerScreen(
-                                  category: 'solution',
-                                  entityId: widget.solutionId,
-                                  title: 'Фото решения',
-                                ),
-                              ),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SolutionImageThumbnail(
-                              solutionId: widget.solutionId,
-                              title: 'Фото решения',
-                              height: 250,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.add_photo_alternate_outlined,
-                                size: 48,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Нажмите "Добавить" чтобы загрузить фото',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Artifacts sections
-              _EpiphaniesSection(solutionId: widget.solutionId),
-              const SizedBox(height: 8),
-              _QuestionsSection(solutionId: widget.solutionId),
-              const SizedBox(height: 8),
-              _HintsSection(solutionId: widget.solutionId),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
@@ -1102,9 +1104,9 @@ class _SolutionConceptsSection extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  Icons.school_outlined,
+                  Icons.psychology,
                   size: 20,
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1115,7 +1117,7 @@ class _SolutionConceptsSection extends ConsumerWidget {
                 if (!isLoading)
                   TextButton.icon(
                     onPressed: onAnalyze,
-                    icon: const Icon(Icons.psychology, size: 18),
+                    icon: const Icon(Icons.auto_awesome, size: 18),
                     label: const Text('Анализ'),
                   ),
               ],
@@ -1127,82 +1129,64 @@ class _SolutionConceptsSection extends ConsumerWidget {
               ThinkingIndicator(persona: currentPersona ?? PersonaId.legendre)
             else
               conceptsAsync.when(
-              data: (concepts) {
-                if (concepts.isEmpty) {
-                  return Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.psychology_outlined,
-                          size: 40,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Нажмите "Анализ" для определения навыков',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: concepts.map((concept) {
-                    return GestureDetector(
-                      onTap: () => _showConceptDetail(context, concept),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.school,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.onSecondaryContainer,
-                            ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                concept.concept?.name ?? 'Unknown',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                data: (concepts) {
+                  if (concepts.isEmpty) {
+                    return Text(
+                      'Навыки не определены. Нажмите "Анализ" для автоматического определения.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
                       ),
                     );
-                  }).toList(),
-                );
-              },
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (_, __) => Center(
-                child: Text(
-                  'Ошибка загрузки',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
+                  }
+                  
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: concepts.map((concept) {
+                      return GestureDetector(
+                        onTap: () => _showConceptDetail(context, concept),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.school,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  concept.concept?.name ?? 'Unknown',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(),
                   ),
                 ),
+                error: (error, _) => Text(
+                  'Ошибка загрузки навыков: $error',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ),
-            ),
           ],
         ),
       ),

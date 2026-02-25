@@ -618,7 +618,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
               ),
             ],
           ),
-        ),
+        );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
