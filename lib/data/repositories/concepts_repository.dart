@@ -59,7 +59,7 @@ class ConceptModelForSolution {
   }
 }
 
-/// Repository for concept analysis
+/// Repository for concept analysis (uses long polling for AI requests)
 class ConceptsRepository {
   final ApiClient _apiClient;
 
@@ -82,12 +82,14 @@ class ConceptsRepository {
   }
 
   /// Analyze problem concepts (Knowledge Map)
+  /// Uses extended timeout for AI processing
   Future<List<ProblemConceptModel>> analyzeProblem({
     required int problemId,
     PersonaId persona = PersonaId.legendre,
   }) async {
     try {
-      final response = await _apiClient.dio.post(
+      // Use longPollDio for extended timeout (5 minutes)
+      final response = await _apiClient.longPollDio.post(
         '/concepts/analyze/problem/$problemId',
         queryParameters: {'persona': persona.name},
       );
@@ -101,17 +103,23 @@ class ConceptsRepository {
       if (e.response?.statusCode == 402) {
         rethrow;
       }
-    } catch (_) {}
+      // Log but don't crash on timeout
+      print('⚠️ Concept analysis timeout or error: ${e.message}');
+    } catch (e) {
+      print('⚠️ Concept analysis error: $e');
+    }
     return [];
   }
 
   /// Analyze solution concepts (Skill Trace)
+  /// Uses extended timeout for AI processing
   Future<List<SolutionConceptModel>> analyzeSolution({
     required int solutionId,
     PersonaId persona = PersonaId.legendre,
   }) async {
     try {
-      final response = await _apiClient.dio.post(
+      // Use longPollDio for extended timeout (5 minutes)
+      final response = await _apiClient.longPollDio.post(
         '/concepts/analyze/solution/$solutionId',
         queryParameters: {'persona': persona.name},
       );
@@ -125,7 +133,10 @@ class ConceptsRepository {
       if (e.response?.statusCode == 402) {
         rethrow;
       }
-    } catch (_) {}
+      print('⚠️ Solution analysis timeout or error: ${e.message}');
+    } catch (e) {
+      print('⚠️ Solution analysis error: $e');
+    }
     return [];
   }
 }

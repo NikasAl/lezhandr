@@ -10,6 +10,7 @@ import '../../providers/ocr_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
+import '../../widgets/shared/thinking_indicator.dart';
 
 /// Solution detail screen for viewing completed or active solution
 class SolutionDetailScreen extends ConsumerStatefulWidget {
@@ -22,8 +23,6 @@ class SolutionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
-  bool _ocrLoading = false;
-  bool _conceptsLoading = false;
   bool _isEditing = false;
   final _textController = TextEditingController();
 
@@ -49,29 +48,15 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     );
     if (persona == null) return;
 
-    setState(() => _ocrLoading = true);
-    try {
-      final result = await ref.read(ocrNotifierProvider.notifier).processSolution(
-        solutionId: widget.solutionId,
-        persona: persona,
-      );
-      if (result.success && result.text != null) {
-        // Refresh solution to get updated text
-        ref.invalidate(solutionProvider(widget.solutionId));
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('OCR завершён! Текст распознан.')),
-          );
-        }
-      } else if (result.error != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка OCR: ${result.error}')),
-          );
-        }
-      }
-    } finally {
-      if (mounted) setState(() => _ocrLoading = false);
+    // OCR runs in background with notification on completion
+    await ref.read(ocrNotifierProvider.notifier).processSolution(
+      solutionId: widget.solutionId,
+      persona: persona,
+    );
+    
+    // Refresh solution to get updated text
+    if (mounted) {
+      ref.invalidate(solutionProvider(widget.solutionId));
     }
   }
 
@@ -99,32 +84,23 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     );
     if (persona == null) return;
 
-    setState(() => _conceptsLoading = true);
-    try {
-      final concepts = await ref.read(conceptsNotifierProvider.notifier).analyzeSolution(
-        solutionId: widget.solutionId,
-        persona: persona,
-      );
-      if (concepts != null && mounted) {
-        ref.invalidate(solutionConceptsProvider(widget.solutionId));
-        if (concepts.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Найдено ${concepts.length} навыков')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Навыки не найдены')),
-          );
-        }
-      }
-    } finally {
-      if (mounted) setState(() => _conceptsLoading = false);
+    // Analysis runs in background with notification on completion
+    await ref.read(conceptsNotifierProvider.notifier).analyzeSolution(
+      solutionId: widget.solutionId,
+      persona: persona,
+    );
+    
+    // Refresh concepts
+    if (mounted) {
+      ref.invalidate(solutionConceptsProvider(widget.solutionId));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final solution = ref.watch(solutionProvider(widget.solutionId));
+    final ocrState = ref.watch(ocrNotifierProvider);
+    final conceptsState = ref.watch(conceptsNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -132,15 +108,17 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
         actions: [
           // OCR button
           IconButton(
-            icon: _ocrLoading
+            icon: ocrState.isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.auto_awesome),
-            onPressed: _ocrLoading ? null : _runOcr,
-            tooltip: 'OCR',
+            onPressed: ocrState.isLoading ? null : _runOcr,
+            tooltip: ocrState.isLoading 
+                ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
+                : 'OCR',
           ),
           // Edit button
           IconButton(
@@ -183,7 +161,8 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
               // Concepts section
               _SolutionConceptsSection(
                 solutionId: widget.solutionId,
-                isLoading: _conceptsLoading,
+                isLoading: conceptsState.isLoading,
+                currentPersona: conceptsState.currentPersona,
                 onAnalyze: _runConceptsAnalysis,
               ),
               const SizedBox(height: 16),
@@ -938,11 +917,13 @@ class _HintItemState extends State<_HintItem> {
 class _SolutionConceptsSection extends ConsumerWidget {
   final int solutionId;
   final bool isLoading;
+  final PersonaId? currentPersona;
   final VoidCallback onAnalyze;
 
   const _SolutionConceptsSection({
     required this.solutionId,
     required this.isLoading,
+    this.currentPersona,
     required this.onAnalyze,
   });
 
@@ -1088,16 +1069,7 @@ class _SolutionConceptsSection extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                if (isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                else
+                if (!isLoading)
                   TextButton.icon(
                     onPressed: onAnalyze,
                     icon: const Icon(Icons.psychology, size: 18),
@@ -1107,7 +1079,11 @@ class _SolutionConceptsSection extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             
-            conceptsAsync.when(
+            // Show thinking indicator when loading
+            if (isLoading)
+              ThinkingIndicator(persona: currentPersona ?? PersonaId.legendre)
+            else
+              conceptsAsync.when(
               data: (concepts) {
                 if (concepts.isEmpty) {
                   return Center(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 
 class LezhandrApp extends ConsumerWidget {
   const LezhandrApp({super.key});
@@ -15,6 +16,9 @@ class LezhandrApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Лежандр',
       debugShowCheckedModeBanner: false,
+
+      // Global scaffold messenger for notifications
+      scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
 
       // Theme
       theme: AppTheme.light,

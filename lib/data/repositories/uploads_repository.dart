@@ -77,19 +77,21 @@ class UploadsRepository {
   }
 }
 
-/// Repository for OCR operations
+/// Repository for OCR operations (uses long polling for AI requests)
 class OcrRepository {
   final ApiClient _apiClient;
 
   OcrRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   /// Process problem condition image (OCR)
+  /// Uses extended timeout for AI processing
   Future<OcrResult> processProblemImage({
     required int problemId,
     PersonaId persona = PersonaId.petrovich,
   }) async {
     try {
-      final response = await _apiClient.dio.post(
+      // Use longPollDio for extended timeout (5 minutes)
+      final response = await _apiClient.longPollDio.post(
         '/content/process-image/problem/$problemId',
         queryParameters: {'persona': persona.name},
       );
@@ -103,6 +105,10 @@ class OcrRepository {
       if (e.response?.statusCode == 402) {
         return OcrResult.error('Недостаточно средств');
       }
+      // Don't report timeout as error - let caller handle it
+      if (e.type == DioExceptionType.receiveTimeout) {
+        return OcrResult.error('Превышено время ожидания. Попробуйте позже.');
+      }
       return OcrResult.error(e.message ?? 'Network error');
     } catch (e) {
       return OcrResult.error(e.toString());
@@ -110,12 +116,14 @@ class OcrRepository {
   }
 
   /// Process solution image (OCR)
+  /// Uses extended timeout for AI processing
   Future<OcrResult> processSolutionImage({
     required int solutionId,
     PersonaId persona = PersonaId.petrovich,
   }) async {
     try {
-      final response = await _apiClient.dio.post(
+      // Use longPollDio for extended timeout (5 minutes)
+      final response = await _apiClient.longPollDio.post(
         '/content/process-image/solution/$solutionId',
         queryParameters: {'persona': persona.name},
       );
@@ -128,6 +136,9 @@ class OcrRepository {
     } on DioException catch (e) {
       if (e.response?.statusCode == 402) {
         return OcrResult.error('Недостаточно средств');
+      }
+      if (e.type == DioExceptionType.receiveTimeout) {
+        return OcrResult.error('Превышено время ожидания. Попробуйте позже.');
       }
       return OcrResult.error(e.message ?? 'Network error');
     } catch (e) {
