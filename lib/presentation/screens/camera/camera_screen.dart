@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/problems_provider.dart';
+import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import 'image_cropper_screen.dart';
 
@@ -183,9 +184,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     if (doOcr != true || !mounted) return;
 
     // Показать выбор персоны
+    final billing = ref.read(billingBalanceProvider);
+    final freeUsesLeft = billing.value?.freeUsesLeft;
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.petrovich,
+      freeUsesLeft: freeUsesLeft,
     );
 
     if (persona == null || !mounted) return;

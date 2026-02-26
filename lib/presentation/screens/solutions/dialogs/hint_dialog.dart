@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
+import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import 'hint_detail_dialog.dart';
 
@@ -110,9 +111,13 @@ Future<bool> showHintDialog({
 
   // Step 4: Select persona
   if (context.mounted) {
+    final billing = ref.read(billingBalanceProvider);
+    final freeUsesLeft = billing.value?.freeUsesLeft;
+    
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.basis,
+      freeUsesLeft: freeUsesLeft,
     );
 
     if (persona != null) {

@@ -6,13 +6,25 @@ class PersonaSelector extends StatelessWidget {
   final PersonaId selectedPersona;
   final Function(PersonaId) onPersonaSelected;
   final bool showCost;
+  final int? freeUsesLeft;
+  final VoidCallback? onDisabledPersonaTap;
 
   const PersonaSelector({
     super.key,
     required this.selectedPersona,
     required this.onPersonaSelected,
     this.showCost = true,
+    this.freeUsesLeft,
+    this.onDisabledPersonaTap,
   });
+
+  /// Check if a persona is disabled (only basis can be disabled due to free uses limit)
+  bool _isPersonaDisabled(PersonaId persona) {
+    if (persona == PersonaId.basis) {
+      return freeUsesLeft != null && freeUsesLeft! <= 0;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +40,7 @@ class PersonaSelector extends StatelessWidget {
         Row(
           children: PersonaId.values.map((persona) {
             final isSelected = persona == selectedPersona;
+            final isDisabled = _isPersonaDisabled(persona);
             return Expanded(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -36,8 +49,11 @@ class PersonaSelector extends StatelessWidget {
                 child: _PersonaCard(
                   persona: persona,
                   isSelected: isSelected,
+                  isDisabled: isDisabled,
                   onTap: () => onPersonaSelected(persona),
+                  onDisabledTap: onDisabledPersonaTap,
                   showCost: showCost,
+                  freeUsesLeft: freeUsesLeft,
                 ),
               ),
             );
@@ -51,27 +67,41 @@ class PersonaSelector extends StatelessWidget {
 class _PersonaCard extends StatelessWidget {
   final PersonaId persona;
   final bool isSelected;
+  final bool isDisabled;
   final VoidCallback onTap;
+  final VoidCallback? onDisabledTap;
   final bool showCost;
+  final int? freeUsesLeft;
 
   const _PersonaCard({
     required this.persona,
     required this.isSelected,
+    required this.isDisabled,
     required this.onTap,
+    this.onDisabledTap,
     required this.showCost,
+    this.freeUsesLeft,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = _getPersonaColor(persona);
+    final theme = Theme.of(context);
+
+    // Disabled state styling
+    final backgroundColor = isDisabled
+        ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.5)
+        : isSelected
+            ? color.withOpacity(0.2)
+            : theme.colorScheme.surfaceContainerHighest;
 
     return Material(
-      color: isSelected
-          ? color.withOpacity(0.2)
-          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: backgroundColor,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: onTap,
+        onTap: isDisabled
+            ? onDisabledTap
+            : onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -79,24 +109,43 @@ class _PersonaCard extends StatelessWidget {
             children: [
               Text(
                 _getPersonaEmoji(persona),
-                style: const TextStyle(fontSize: 28),
+                style: TextStyle(
+                  fontSize: 28,
+                  color: isDisabled ? theme.colorScheme.onSurface.withOpacity(0.4) : null,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 _getPersonaShortName(persona),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? color : null,
+                style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: isSelected && !isDisabled ? FontWeight.bold : FontWeight.normal,
+                      color: isDisabled
+                          ? theme.colorScheme.onSurface.withOpacity(0.4)
+                          : isSelected
+                              ? color
+                              : null,
                     ),
                 textAlign: TextAlign.center,
               ),
-              if (showCost) ...[
+              if (showCost && !isDisabled) ...[
                 const SizedBox(height: 2),
                 Text(
                   persona.cost > 0 ? '${persona.cost.toStringAsFixed(0)} ₽' : 'Free',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  style: theme.textTheme.labelSmall?.copyWith(
                         color: isSelected ? color : null,
                       ),
+                ),
+              ],
+              // Show "sleeping" message for disabled basis
+              if (isDisabled && persona == PersonaId.basis) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '💤 Сплю...',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        fontSize: 10,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ],
@@ -145,8 +194,15 @@ Future<PersonaId?> showPersonaSelectorDialog(
   BuildContext context, {
   PersonaId defaultPersona = PersonaId.petrovich,
   String title = 'Выберите AI',
+  int? freeUsesLeft,
 }) async {
-  PersonaId selected = defaultPersona;
+  // If basis is disabled and was default, switch to petrovich
+  PersonaId initialPersona = defaultPersona;
+  if (freeUsesLeft != null && freeUsesLeft <= 0 && defaultPersona == PersonaId.basis) {
+    initialPersona = PersonaId.petrovich;
+  }
+  
+  PersonaId selected = initialPersona;
 
   return await showDialog<PersonaId>(
     context: context,
@@ -155,8 +211,18 @@ Future<PersonaId?> showPersonaSelectorDialog(
         title: Text(title),
         content: PersonaSelector(
           selectedPersona: selected,
+          freeUsesLeft: freeUsesLeft,
           onPersonaSelected: (persona) {
             setState(() => selected = persona);
+          },
+          onDisabledPersonaTap: () {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('🐱 Кот Базис спит. Приходи завтра!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
           },
         ),
         actions: [
@@ -178,8 +244,15 @@ Future<PersonaId?> showPersonaSelectorDialog(
 Future<PersonaId?> showPersonaSheet(
   BuildContext context, {
   PersonaId defaultPersona = PersonaId.petrovich,
+  int? freeUsesLeft,
 }) async {
-  PersonaId selected = defaultPersona;
+  // If basis is disabled and was default, switch to petrovich
+  PersonaId initialPersona = defaultPersona;
+  if (freeUsesLeft != null && freeUsesLeft <= 0 && defaultPersona == PersonaId.basis) {
+    initialPersona = PersonaId.petrovich;
+  }
+  
+  PersonaId selected = initialPersona;
 
   return await showModalBottomSheet<PersonaId>(
     context: context,
@@ -191,8 +264,18 @@ Future<PersonaId?> showPersonaSheet(
           children: [
             PersonaSelector(
               selectedPersona: selected,
+              freeUsesLeft: freeUsesLeft,
               onPersonaSelected: (persona) {
                 setState(() => selected = persona);
+              },
+              onDisabledPersonaTap: () {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🐱 Кот Базис спит. Приходи завтра!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 24),

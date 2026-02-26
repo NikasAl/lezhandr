@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
+import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 
@@ -181,9 +182,12 @@ void showHintDetailDialog({
                   ? null
                   : () async {
                       setDialogState(() => isGenerating = true);
+                      final billing = ref.read(billingBalanceProvider);
+                      final freeUsesLeft = billing.value?.freeUsesLeft;
                       final persona = await showPersonaSheet(
                         context,
                         defaultPersona: PersonaId.basis,
+                        freeUsesLeft: freeUsesLeft,
                       );
                       if (persona != null && context.mounted) {
                         final result = await ref

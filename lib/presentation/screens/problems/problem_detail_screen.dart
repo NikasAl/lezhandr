@@ -7,6 +7,7 @@ import '../../providers/problems_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
@@ -35,9 +36,12 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   }
 
   Future<void> _runOcr() async {
+    final billing = ref.read(billingBalanceProvider);
+    final freeUsesLeft = billing.value?.freeUsesLeft;
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.petrovich,
+      freeUsesLeft: freeUsesLeft,
     );
     if (persona == null) return;
 
@@ -74,9 +78,12 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   }
 
   Future<void> _runConceptsAnalysis() async {
+    final billing = ref.read(billingBalanceProvider);
+    final freeUsesLeft = billing.value?.freeUsesLeft;
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.legendre,
+      freeUsesLeft: freeUsesLeft,
     );
     if (persona == null) return;
 
