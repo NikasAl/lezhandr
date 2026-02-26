@@ -78,17 +78,20 @@ class SolutionStatusCard extends StatelessWidget {
                 StatChip(
                   icon: Icons.timer_outlined,
                   label: '${solution.totalMinutes.toStringAsFixed(0)} мин',
+                  tooltip: 'За сколько времени была решена эта задача',
                 ),
                 if (solution.xpEarned != null)
                   StatChip(
                     icon: Icons.star,
                     label: '${solution.xpEarned!.toStringAsFixed(0)} XP',
                     color: Colors.amber,
+                    tooltip: 'Сколько XP было получено за эту задачу',
                   ),
                 if (solution.personalDifficulty != null)
                   StatChip(
                     icon: Icons.fitness_center,
-                    label: 'Сложность: ${solution.personalDifficulty}',
+                    label: '${solution.personalDifficulty} / 5',
+                    tooltip: 'Субъективная сложность задачи по шкале от 1 до 5',
                   ),
               ],
             ),
@@ -108,25 +111,29 @@ class SolutionStatusCard extends StatelessWidget {
   }
 }
 
-/// Stat chip widget for displaying metrics
+/// Stat chip widget for displaying metrics with tooltip
 class StatChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color? color;
+  final String? tooltip;
 
   const StatChip({
     super.key,
     required this.icon,
     required this.label,
     this.color,
+    this.tooltip,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final chipColor = color ?? Theme.of(context).colorScheme.primary;
+    
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (color ?? Theme.of(context).colorScheme.primary).withOpacity(0.1),
+        color: chipColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -135,18 +142,48 @@ class StatChip extends StatelessWidget {
           Icon(
             icon,
             size: 16,
-            color: color ?? Theme.of(context).colorScheme.primary,
+            color: chipColor,
           ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: color ?? Theme.of(context).colorScheme.primary,
+              color: chipColor,
             ),
           ),
         ],
       ),
     );
+
+    // If tooltip is provided, make it interactive
+    if (tooltip != null) {
+      return Tooltip(
+        message: tooltip!,
+        preferBelow: false,
+        verticalOffset: 0,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              // Show snackbar with tooltip for better visibility
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(tooltip!),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                ),
+              );
+            },
+            child: chip,
+          ),
+        ),
+      );
+    }
+
+    return chip;
   }
 }
