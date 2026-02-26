@@ -95,10 +95,12 @@ class SolutionTextSection extends StatelessWidget {
                     maxLines: 8,
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      // Clear button (icon)
+                      // Clear button (icon only)
                       IconButton(
                         onPressed: onClear,
                         icon: const Icon(Icons.clear),
@@ -106,14 +108,14 @@ class SolutionTextSection extends StatelessWidget {
                         iconSize: 20,
                         visualDensity: VisualDensity.compact,
                       ),
-                      const SizedBox(width: 8),
+                      // Reset button
                       TextButton(
                         onPressed: () {
                           controller.text = solution.solutionText ?? '';
                         },
                         child: const Text('Сбросить'),
                       ),
-                      const SizedBox(width: 8),
+                      // Save button
                       FilledButton.icon(
                         onPressed: onSave,
                         icon: const Icon(Icons.save, size: 18),
