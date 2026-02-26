@@ -345,7 +345,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     for (final s in existingSources) {
       uniqueSources.putIfAbsent(s.name, () => s);
     }
-    final sourceNames = uniqueSources.keys.toList()..sort();
+    
+    // Create mutable list of source names
+    final sourceNames = <String>[...uniqueSources.keys]..sort();
     
     // Ensure selectedSource exists in the list, otherwise null
     String? selectedSource = _selectedSource;
@@ -432,9 +434,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ),
                             FilledButton(
                               onPressed: () {
-                                if (newSourceController.text.isNotEmpty) {
+                                final newName = newSourceController.text.trim();
+                                if (newName.isNotEmpty) {
                                   setDialogState(() {
-                                    selectedSource = newSourceController.text;
+                                    // Add to list if not exists
+                                    if (!sourceNames.contains(newName)) {
+                                      sourceNames.add(newName);
+                                      sourceNames.sort();
+                                    }
+                                    selectedSource = newName;
                                   });
                                   Navigator.pop(ctx);
                                 }
