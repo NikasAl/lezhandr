@@ -144,13 +144,15 @@ class MarkdownWithMath extends StatelessWidget {
         padding: const EdgeInsets.only(left: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: block.items.map((item) {
+          children: block.items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(block.ordered ? '${block.items.indexOf(item) + 1}.' : '•',
+                  Text(block.ordered ? '${index + 1}.' : '•',
                       style: baseStyle.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Expanded(
@@ -260,19 +262,22 @@ class MarkdownWithMath extends StatelessWidget {
   }
 
   /// Parse inline markdown formatting (bold, italic, code)
+  /// Also handles inline math \(...\) and $...$ within markdown
   List<InlineSpan> _parseMarkdownInline(String text, TextStyle baseStyle) {
     final spans = <InlineSpan>[];
     
-    // Pattern for bold (**text** or __text__), italic (*text* or _text_), and code (`code`)
-    // Also handle ***bold italic***
+    // Combined pattern for all inline elements including math
+    // Groups: 1-2: code, 3-4: bold italic, 5-6: bold, 7-8: italic, 9: $math$, 10: \(math\)
     final pattern = RegExp(
-      r'(`+)([^`]+)\1|'  // code
-      r'\*{3}(.+?)\*{3}|'  // ***bold italic***
-      r'_{3}(.+?)_{3}|'    // ___bold italic___
-      r'\*{2}(.+?)\*{2}|'  // **bold**
-      r'_{2}(.+?)_{2}|'    // __bold__
-      r'\*(.+?)\*|'        // *italic*
-      r'_(.+?)_',          // _italic_
+      r'(`+)([^`]+)\1|'                    // code: `code`
+      r'\*{3}(.+?)\*{3}|'                  // ***bold italic***
+      r'_{3}(.+?)_{3}|'                    // ___bold italic___
+      r'\*{2}(.+?)\*{2}|'                  // **bold**
+      r'_{2}(.+?)_{2}|'                    // __bold__
+      r'\*(.+?)\*|'                        // *italic*
+      r'_(.+?)_|'                          // _italic_
+      r'\$([^\$\n]+?)\$|'                  // $math$
+      r'\\' r'\(' r'([\s\S]+?)' r'\\' r'\)'  // \(math\)
     );
 
     int lastEnd = 0;
@@ -300,26 +305,58 @@ class MarkdownWithMath extends StatelessWidget {
       } else if (match.group(3) != null || match.group(4) != null) {
         // Bold + italic
         final content = match.group(3) ?? match.group(4)!;
-        spans.add(TextSpan(
-          text: content,
-          style: baseStyle.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
-        ));
+        // Recursively parse content for nested math
+        spans.addAll(_parseMarkdownInline(content, baseStyle.copyWith(
+          fontWeight: FontWeight.bold,
+          fontStyle: FontStyle.italic,
+        )));
       } else if (match.group(5) != null || match.group(6) != null) {
         // Bold
         final content = match.group(5) ?? match.group(6)!;
-        spans.add(TextSpan(
-          text: content,
-          style: baseStyle.copyWith(fontWeight: FontWeight.bold),
-        ));
+        // Recursively parse content for nested math
+        spans.addAll(_parseMarkdownInline(content, baseStyle.copyWith(
+          fontWeight: FontWeight.bold,
+        )));
       } else if (match.group(7) != null || match.group(8) != null) {
         // Italic
         final content = match.group(7) ?? match.group(8)!;
-        spans.add(TextSpan(
-          text: content,
-          style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+        // Recursively parse content for nested math
+        spans.addAll(_parseMarkdownInline(content, baseStyle.copyWith(
+          fontStyle: FontStyle.italic,
+        )));
+      } else if (match.group(9) != null) {
+        // $math$
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.1,
+        );
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Math.tex(
+              match.group(9)!,
+              textStyle: mathStyle,
+              mathStyle: MathStyle.text,
+            ),
+          ),
+        ));
+      } else if (match.group(10) != null) {
+        // \(math\)
+        final mathStyle = baseStyle.copyWith(
+          fontFamily: null,
+          fontSize: (baseStyle.fontSize ?? 14) * 1.1,
+        );
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Math.tex(
+              match.group(10)!,
+              textStyle: mathStyle,
+              mathStyle: MathStyle.text,
+            ),
+          ),
         ));
       }
 
