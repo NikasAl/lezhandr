@@ -109,42 +109,6 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Решение #${widget.solutionId}'),
-        actions: solution.when(
-          data: (sol) {
-            final isOwner = currentUser?.id == sol.addedBy?.id;
-            return [
-              // OCR button (owner only)
-              if (isOwner)
-                IconButton(
-                  icon: ocrState.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.auto_awesome),
-                  onPressed: ocrState.isLoading ? null : _runOcr,
-                  tooltip: ocrState.isLoading 
-                      ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
-                      : 'OCR',
-                ),
-              // Edit button (owner only)
-              if (isOwner)
-                IconButton(
-                  icon: Icon(_isEditing ? Icons.visibility : Icons.edit),
-                  onPressed: () {
-                    setState(() => _isEditing = !_isEditing);
-                    if (_isEditing) {
-                      _textController.text = sol.solutionText ?? '';
-                    }
-                  },
-                  tooltip: _isEditing ? 'Просмотр' : 'Редактировать',
-                ),
-            ];
-          },
-          loading: () => [],
-          error: (_, __) => [],
-        ),
       ),
       body: solution.when(
         data: (sol) {
@@ -180,6 +144,21 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                   isEditing: _isEditing,
                   controller: _textController,
                   onSave: _saveSolutionText,
+                  onToggleEdit: () {
+                    setState(() {
+                      _isEditing = !_isEditing;
+                      if (_isEditing) {
+                        _textController.text = sol.solutionText ?? '';
+                      }
+                    });
+                  },
+                  onClear: () {
+                    _textController.clear();
+                  },
+                  onOcr: _runOcr,
+                  isOcrLoading: ocrState.isLoading,
+                  ocrPersona: ocrState.currentPersona,
+                  isOwner: currentUser?.id == sol.addedBy?.id,
                 ),
                 const SizedBox(height: 16),
 
@@ -449,18 +428,30 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-/// Solution text section with edit capability
+/// Solution text section with edit and OCR capability
 class _SolutionTextSection extends StatelessWidget {
   final SolutionModel solution;
   final bool isEditing;
   final TextEditingController controller;
   final VoidCallback onSave;
+  final VoidCallback onToggleEdit;
+  final VoidCallback onClear;
+  final VoidCallback onOcr;
+  final bool isOcrLoading;
+  final PersonaId? ocrPersona;
+  final bool isOwner;
 
   const _SolutionTextSection({
     required this.solution,
     required this.isEditing,
     required this.controller,
     required this.onSave,
+    required this.onToggleEdit,
+    required this.onClear,
+    required this.onOcr,
+    required this.isOcrLoading,
+    this.ocrPersona,
+    required this.isOwner,
   });
 
   @override
@@ -480,17 +471,41 @@ class _SolutionTextSection extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                if (!solution.hasText && solution.hasImage)
-                  Text(
-                    'Нет текста',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                // Action buttons for owner
+                if (isOwner) ...[
+                  // OCR button
+                  if (!isEditing)
+                    IconButton(
+                      icon: isOcrLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome),
+                      onPressed: isOcrLoading ? null : onOcr,
+                      tooltip: isOcrLoading 
+                          ? '${ocrPersona?.displayName ?? "Персонаж"} думает...'
+                          : 'OCR',
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  // Edit/View toggle button
+                  IconButton(
+                    icon: Icon(isEditing ? Icons.visibility : Icons.edit),
+                    onPressed: onToggleEdit,
+                    tooltip: isEditing ? 'Просмотр' : 'Редактировать',
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 12),
-            if (isEditing)
+            // Show thinking indicator when OCR is loading
+            if (isOcrLoading)
+              ThinkingIndicator(persona: ocrPersona ?? PersonaId.petrovich)
+            else if (isEditing)
               Column(
                 children: [
                   TextField(
@@ -505,6 +520,15 @@ class _SolutionTextSection extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      // Clear button (icon)
+                      IconButton(
+                        onPressed: onClear,
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Очистить',
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(width: 8),
                       TextButton(
                         onPressed: () {
                           controller.text = solution.solutionText ?? '';
