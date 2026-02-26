@@ -189,6 +189,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     final balance = billing.value?.balance;
     final persona = await showPersonaSheet(
       context,
+      ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,

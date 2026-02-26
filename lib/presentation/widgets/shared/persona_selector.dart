@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/artifacts.dart';
+import '../dialogs/top_up_dialog.dart';
 
 /// Persona selection widget
 class PersonaSelector extends StatelessWidget {
@@ -234,7 +235,8 @@ String _getDisabledMessage(PersonaId persona, int? freeUsesLeft, double? balance
 
 /// Show persona selection dialog
 Future<PersonaId?> showPersonaSelectorDialog(
-  BuildContext context, {
+  BuildContext context,
+  WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
   String title = 'Выберите AI',
   int? freeUsesLeft,
@@ -280,7 +282,7 @@ Future<PersonaId?> showPersonaSelectorDialog(
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.push('/transactions');
+                  showTopUpDialog(context, ref);
                 },
                 child: const Text('Пополнить'),
               ),
@@ -299,7 +301,8 @@ Future<PersonaId?> showPersonaSelectorDialog(
 
 /// Simple persona selection bottom sheet
 Future<PersonaId?> showPersonaSheet(
-  BuildContext context, {
+  BuildContext context,
+  WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
   int? freeUsesLeft,
   double? balance,
@@ -361,7 +364,7 @@ Future<PersonaId?> showPersonaSheet(
                     child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        context.push('/transactions');
+                        showTopUpDialog(context, ref);
                       },
                       icon: const Icon(Icons.account_balance_wallet),
                       label: const Text('Пополнить счет'),

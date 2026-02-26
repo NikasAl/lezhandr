@@ -44,6 +44,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     final balance = billing.value?.balance;
     final persona = await showPersonaSheet(
       context,
+      ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
@@ -85,6 +86,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     final balance = billing.value?.balance;
     final persona = await showPersonaSheet(
       context,
+      ref,
       defaultPersona: PersonaId.legendre,
       freeUsesLeft: freeUsesLeft,
       balance: balance,

@@ -117,6 +117,7 @@ Future<bool> showHintDialog({
     
     final persona = await showPersonaSheet(
       context,
+      ref,
       defaultPersona: PersonaId.basis,
       freeUsesLeft: freeUsesLeft,
       balance: balance,

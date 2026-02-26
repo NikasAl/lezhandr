@@ -138,6 +138,7 @@ void showQuestionDetailDialog({
                       final balance = billing.value?.balance;
                       final persona = await showPersonaSheet(
                         context,
+                        ref,
                         defaultPersona: PersonaId.basis,
                         freeUsesLeft: freeUsesLeft,
                         balance: balance,
