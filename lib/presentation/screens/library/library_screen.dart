@@ -81,6 +81,30 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
+  /// Update a single problem in the list without resetting pagination
+  Future<void> _updateSingleProblem(int problemId) async {
+    try {
+      // Invalidate the single problem provider to get fresh data
+      ref.invalidate(problemProvider(problemId));
+      
+      // Fetch updated problem
+      final updatedProblem = await ref.read(problemProvider(problemId).future);
+      
+      if (mounted && updatedProblem != null) {
+        setState(() {
+          // Find and replace the problem in the accumulated list
+          final index = _accumulatedProblems.indexWhere((p) => p.id == problemId);
+          if (index != -1) {
+            _accumulatedProblems[index] = updatedProblem;
+          }
+        });
+      }
+    } catch (e) {
+      // Silently fail - the problem might have been deleted or other issue
+      debugPrint('Failed to update problem $problemId: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sources = ref.watch(sourcesProvider);
@@ -238,11 +262,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             isActive: isActive,
                             onTap: () async {
                               await context.push('/problems/${problem.id}');
-                              // Refresh after returning from problem detail
-                              ref.invalidate(problemsListProvider);
-                              setState(() {
-                                _resetPagination();
-                              });
+                              // Update only this problem in the list without resetting pagination
+                              _updateSingleProblem(problem.id);
                             },
                           );
                         },
