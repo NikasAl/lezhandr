@@ -575,6 +575,10 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
                   return Column(
                     children: solutionList.map((solution) {
+                      final isSolutionOwner = currentUser?.id == solution.addedBy?.id;
+                      final canStartSession = solution.isActive && isSolutionOwner;
+                      final isBlockedActive = solution.isActive && !isSolutionOwner;
+                      
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
@@ -590,8 +594,22 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                                     ? Colors.blue
                                     : Colors.orange,
                           ),
-                          title: Text(
-                            solution.statusText,
+                          title: Row(
+                            children: [
+                              Text(solution.statusText),
+                              if (solution.addedBy != null) ...[
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '• ${solution.addedBy!.displayName}',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           subtitle: Row(
                             children: [
@@ -616,15 +634,32 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                               ],
                             ],
                           ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            if (solution.isActive) {
-                              context.push(
-                                  '/session/${solution.id}?existingMinutes=${solution.totalMinutes}');
-                            } else {
-                              context.push('/solutions/${solution.id}');
-                            }
-                          },
+                          trailing: isBlockedActive 
+                              ? Tooltip(
+                                  message: 'Другой пользователь решает',
+                                  child: Icon(Icons.lock_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                )
+                              : const Icon(Icons.chevron_right),
+                          onTap: isBlockedActive
+                              ? () {
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '🔒 ${solution.addedBy?.displayName ?? "Другой пользователь"} уже решает эту задачу',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              : () {
+                                  if (solution.isActive) {
+                                    context.push(
+                                        '/session/${solution.id}?existingMinutes=${solution.totalMinutes}');
+                                  } else {
+                                    context.push('/solutions/${solution.id}');
+                                  }
+                                },
                         ),
                       );
                     }).toList(),
