@@ -158,15 +158,58 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 _StatusCard(solution: sol, addedBy: sol.addedBy),
                 const SizedBox(height: 16),
 
-                // Problem reference
+                // Problem condition card
                 if (sol.problem != null) ...[
                   Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.description_outlined),
-                      title: Text(sol.problem!.displayTitle),
-                      subtitle: Text(sol.problem!.sourceName),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/problems/${sol.problem!.id}'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.description_outlined, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Условие задачи',
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ),
+                              Text(
+                                sol.problem!.displayTitle,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (sol.problem!.hasText)
+                            MarkdownWithMath(
+                              text: sol.problem!.conditionText!,
+                              textStyle: Theme.of(context).textTheme.bodyLarge,
+                            )
+                          else if (sol.problem!.hasImage)
+                            ConditionImageThumbnail(
+                              problemId: sol.problem!.id,
+                              title: 'Условие: ${sol.problem!.reference}',
+                              height: 200,
+                            )
+                          else
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  'Условие не добавлено',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -377,26 +420,25 @@ class _StatusCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _StatChip(
                   icon: Icons.timer_outlined,
                   label: '${solution.totalMinutes.toStringAsFixed(0)} мин',
                 ),
-                const SizedBox(width: 12),
                 if (solution.xpEarned != null)
                   _StatChip(
                     icon: Icons.star,
                     label: '${solution.xpEarned!.toStringAsFixed(0)} XP',
                     color: Colors.amber,
                   ),
-                if (solution.personalDifficulty != null) ...[
-                  const SizedBox(width: 12),
+                if (solution.personalDifficulty != null)
                   _StatChip(
                     icon: Icons.fitness_center,
                     label: 'Сложность: ${solution.personalDifficulty}',
                   ),
-                ],
               ],
             ),
             if (solution.userNotes != null && solution.userNotes!.isNotEmpty) ...[
