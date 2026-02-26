@@ -547,17 +547,17 @@ class _ThemeSelector extends ConsumerWidget {
             segments: const [
               ButtonSegment(
                 value: ThemeMode.light,
-                label: Text('Светлая'),
+                label: Text(''),
                 icon: Icon(Icons.light_mode),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                label: Text('Тёмная'),
+                label: Text(''),
                 icon: Icon(Icons.dark_mode),
               ),
               ButtonSegment(
                 value: ThemeMode.system,
-                label: Text('Авто'),
+                label: Text(''),
                 icon: Icon(Icons.brightness_auto),
               ),
             ],

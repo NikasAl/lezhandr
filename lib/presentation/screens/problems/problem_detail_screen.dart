@@ -646,7 +646,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        '🔒 ${solution.addedBy?.displayName ?? "Другой пользователь"} уже решает эту задачу',
+                                        '🔒 ${solution.addedBy?.displayName ?? "Другой пользователь"} еще решает эту задачу. Решение пока не готово для просмотра.',
                                       ),
                                       duration: const Duration(seconds: 2),
                                     ),

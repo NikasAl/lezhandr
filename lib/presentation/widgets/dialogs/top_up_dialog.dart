@@ -264,7 +264,7 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Оплата через ЮKassa. Средства зачисляются мгновенно после оплаты.',
+                              'Оплата через ЮKassa. Средства зачисляются мгновенно после оплаты. Получатель https://kreagenium.ru',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
