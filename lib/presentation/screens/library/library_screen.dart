@@ -339,7 +339,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _showCreateProblemDialog(BuildContext context, List<SourceModel> existingSources) {
     final refController = TextEditingController();
     final conditionController = TextEditingController();
+    
+    // Remove duplicate sources by name
+    final uniqueSources = <String, SourceModel>{};
+    for (final s in existingSources) {
+      uniqueSources.putIfAbsent(s.name, () => s);
+    }
+    final sourceNames = uniqueSources.keys.toList()..sort();
+    
+    // Ensure selectedSource exists in the list, otherwise null
     String? selectedSource = _selectedSource;
+    if (selectedSource != null && !sourceNames.contains(selectedSource)) {
+      selectedSource = null;
+    }
+    
     List<String> selectedTags = [];
     bool isLoading = false;
     
@@ -383,16 +396,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       border: OutlineInputBorder(),
                       hintText: 'Выберите или введите новый',
                     ),
-                    items: [
-                      ...existingSources.map((s) => DropdownMenuItem(
-                        value: s.name,
-                        child: Text(
-                          s.name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      )),
-                    ],
+                    items: sourceNames.map((name) => DropdownMenuItem(
+                      value: name,
+                      child: Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    )).toList(),
                     onChanged: (value) {
                       setDialogState(() => selectedSource = value);
                     },
