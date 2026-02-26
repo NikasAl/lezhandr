@@ -456,8 +456,15 @@ class MarkdownWithMath extends StatelessWidget {
   List<_InlineSegment> _parseInlineSegments(String text) {
     final segments = <_InlineSegment>[];
     // Match $...$ or \(...\)
-    // Group 1: $formula$, Group 2: \(formula\)
-    final pattern = RegExp(r'\$([^\$\n]+?)\$|\\\(([\s\S]+?)\\\)');
+    // Using string concatenation for clarity:
+    // r'\\' produces regex \\ which matches literal \
+    // r'\(' produces regex \( which matches literal (
+    final pattern = RegExp(
+      r'\$([^\$\n]+?)\$|'        // $formula$
+      r'\\' r'\('                // \(  (literal backslash + open paren)
+      r'([\s\S]+?)'              // formula content
+      r'\\' r'\)'                // \)  (literal backslash + close paren)
+    );
     
     int lastEnd = 0;
     
