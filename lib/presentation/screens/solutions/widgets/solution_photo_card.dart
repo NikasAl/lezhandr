@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/solutions_provider.dart';
-import '../../providers/artifacts_provider.dart';
-import '../../widgets/shared/image_viewer.dart';
+import '../../../providers/solutions_provider.dart';
+import '../../../providers/artifacts_provider.dart';
+import '../../../widgets/shared/image_viewer.dart';
 
 /// Solution photo card with upload capability
 class SolutionPhotoCard extends StatelessWidget {

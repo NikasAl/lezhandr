@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/solution.dart';
-import '../../../data/models/user.dart';
+import '../../../../data/models/solution.dart';
+import '../../../../data/models/user.dart';
 
 /// Status card showing solution status and stats
 class SolutionStatusCard extends StatelessWidget {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/solution.dart';
-import '../../widgets/shared/persona_selector.dart';
-import '../../widgets/shared/markdown_with_math.dart';
-import '../../widgets/shared/thinking_indicator.dart';
+import '../../../../data/models/solution.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/thinking_indicator.dart';
 
 /// Solution text section with edit and OCR capability
 class SolutionTextSection extends StatelessWidget {

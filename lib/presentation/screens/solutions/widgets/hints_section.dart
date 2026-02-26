@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/models/artifacts.dart';
-import '../../providers/artifacts_provider.dart';
-import '../../widgets/shared/markdown_with_math.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../providers/artifacts_provider.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
 
 /// Hints section widget
 class HintsSection extends ConsumerWidget {

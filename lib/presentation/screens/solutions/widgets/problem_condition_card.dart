@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/models/artifacts.dart';
-import '../../providers/problems_provider.dart';
-import '../../widgets/shared/markdown_with_math.dart';
-import '../../widgets/shared/image_viewer.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../providers/problems_provider.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/image_viewer.dart';
 
 /// Problem condition card - loads full problem data
 class ProblemConditionCard extends ConsumerWidget {
