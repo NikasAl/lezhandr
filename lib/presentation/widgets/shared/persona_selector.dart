@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/models/artifacts.dart';
 
 /// Persona selection widget
@@ -7,6 +8,7 @@ class PersonaSelector extends StatelessWidget {
   final Function(PersonaId) onPersonaSelected;
   final bool showCost;
   final int? freeUsesLeft;
+  final double? balance;
   final VoidCallback? onDisabledPersonaTap;
 
   const PersonaSelector({
@@ -15,15 +17,30 @@ class PersonaSelector extends StatelessWidget {
     required this.onPersonaSelected,
     this.showCost = true,
     this.freeUsesLeft,
+    this.balance,
     this.onDisabledPersonaTap,
   });
 
-  /// Check if a persona is disabled (only basis can be disabled due to free uses limit)
+  /// Check if a persona is disabled:
+  /// - Basis: disabled when free uses exhausted
+  /// - Petrovich/Legendre: disabled when insufficient balance
   bool _isPersonaDisabled(PersonaId persona) {
     if (persona == PersonaId.basis) {
       return freeUsesLeft != null && freeUsesLeft! <= 0;
     }
+    // For paid personas, check if balance is insufficient
+    if (balance != null && persona.cost > balance!) {
+      return true;
+    }
     return false;
+  }
+
+  /// Get the reason why persona is disabled
+  String _getDisabledReason(PersonaId persona) {
+    if (persona == PersonaId.basis) {
+      return '💤 Сплю...';
+    }
+    return 'Недостаточно средств';
   }
 
   @override
@@ -50,10 +67,11 @@ class PersonaSelector extends StatelessWidget {
                   persona: persona,
                   isSelected: isSelected,
                   isDisabled: isDisabled,
+                  disabledReason: isDisabled ? _getDisabledReason(persona) : null,
                   onTap: () => onPersonaSelected(persona),
                   onDisabledTap: onDisabledPersonaTap,
                   showCost: showCost,
-                  freeUsesLeft: freeUsesLeft,
+                  balance: balance,
                 ),
               ),
             );
@@ -68,19 +86,21 @@ class _PersonaCard extends StatelessWidget {
   final PersonaId persona;
   final bool isSelected;
   final bool isDisabled;
+  final String? disabledReason;
   final VoidCallback onTap;
   final VoidCallback? onDisabledTap;
   final bool showCost;
-  final int? freeUsesLeft;
+  final double? balance;
 
   const _PersonaCard({
     required this.persona,
     required this.isSelected,
     required this.isDisabled,
+    this.disabledReason,
     required this.onTap,
     this.onDisabledTap,
     required this.showCost,
-    this.freeUsesLeft,
+    this.balance,
   });
 
   @override
@@ -125,6 +145,7 @@ class _PersonaCard extends StatelessWidget {
                     ),
                 textAlign: TextAlign.center,
               ),
+              // Show cost or disabled reason
               if (showCost && !isDisabled) ...[
                 const SizedBox(height: 2),
                 Text(
@@ -134,11 +155,11 @@ class _PersonaCard extends StatelessWidget {
                       ),
                 ),
               ],
-              // Show "sleeping" message for disabled basis
-              if (isDisabled && persona == PersonaId.basis) ...[
+              // Show disabled reason
+              if (isDisabled && disabledReason != null) ...[
                 const SizedBox(height: 2),
                 Text(
-                  '💤 Сплю...',
+                  disabledReason!,
                   style: theme.textTheme.labelSmall?.copyWith(
                         color: isSelected 
                             ? theme.colorScheme.error 
@@ -190,12 +211,34 @@ class _PersonaCard extends StatelessWidget {
   }
 }
 
+/// Check if a persona selection is disabled
+bool _isSelectionDisabled(PersonaId persona, int? freeUsesLeft, double? balance) {
+  if (persona == PersonaId.basis) {
+    return freeUsesLeft != null && freeUsesLeft <= 0;
+  }
+  return balance != null && persona.cost > balance!;
+}
+
+/// Get disabled message for persona
+String _getDisabledMessage(PersonaId persona, int? freeUsesLeft, double? balance) {
+  if (persona == PersonaId.basis && freeUsesLeft != null && freeUsesLeft <= 0) {
+    return '🐱 Кот Базис устал сегодня. Выберите другого персонажа!';
+  }
+  if (balance != null && persona.cost > balance!) {
+    final cost = persona.cost.toStringAsFixed(0);
+    final currentBalance = balance!.toStringAsFixed(2);
+    return '💰 Недостаточно средств. Нужно ${cost} ₽, на счету ${currentBalance} ₽';
+  }
+  return '';
+}
+
 /// Show persona selection dialog
 Future<PersonaId?> showPersonaSelectorDialog(
   BuildContext context, {
   PersonaId defaultPersona = PersonaId.petrovich,
   String title = 'Выберите AI',
   int? freeUsesLeft,
+  double? balance,
 }) async {
   PersonaId selected = defaultPersona;
 
@@ -203,23 +246,27 @@ Future<PersonaId?> showPersonaSelectorDialog(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
-        final isBasisDisabled = freeUsesLeft != null && freeUsesLeft <= 0;
-        final isSelectionDisabled = selected == PersonaId.basis && isBasisDisabled;
+        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance);
+        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance);
+        final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         
         return AlertDialog(
           title: Text(title),
           content: PersonaSelector(
             selectedPersona: selected,
             freeUsesLeft: freeUsesLeft,
+            balance: balance,
             onPersonaSelected: (persona) {
               setState(() => selected = persona);
             },
             onDisabledPersonaTap: () {
               ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(disabledMessage.isNotEmpty 
+                      ? disabledMessage 
+                      : 'Персонаж недоступен'),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
@@ -229,11 +276,19 @@ Future<PersonaId?> showPersonaSelectorDialog(
               onPressed: () => Navigator.pop(context),
               child: const Text('Отмена'),
             ),
+            if (isInsufficientBalance)
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.push('/transactions');
+                },
+                child: const Text('Пополнить'),
+              ),
             FilledButton(
               onPressed: isSelectionDisabled
-                  ? null  // Disable button visually when disabled persona selected
+                  ? null
                   : () => Navigator.pop(context, selected),
-              child: Text(isSelectionDisabled ? 'Выберите другого' : 'Выбрать'),
+              child: Text(isSelectionDisabled ? 'Недоступно' : 'Выбрать'),
             ),
           ],
         );
@@ -247,6 +302,7 @@ Future<PersonaId?> showPersonaSheet(
   BuildContext context, {
   PersonaId defaultPersona = PersonaId.petrovich,
   int? freeUsesLeft,
+  double? balance,
 }) async {
   PersonaId selected = defaultPersona;
 
@@ -254,8 +310,9 @@ Future<PersonaId?> showPersonaSheet(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
-        final isBasisDisabled = freeUsesLeft != null && freeUsesLeft <= 0;
-        final isSelectionDisabled = selected == PersonaId.basis && isBasisDisabled;
+        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance);
+        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance);
+        final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -265,15 +322,18 @@ Future<PersonaId?> showPersonaSheet(
               PersonaSelector(
                 selectedPersona: selected,
                 freeUsesLeft: freeUsesLeft,
+                balance: balance,
                 onPersonaSelected: (persona) {
                   setState(() => selected = persona);
                 },
                 onDisabledPersonaTap: () {
                   ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: Text(disabledMessage.isNotEmpty 
+                          ? disabledMessage 
+                          : 'Персонаж недоступен'),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
@@ -284,7 +344,7 @@ Future<PersonaId?> showPersonaSheet(
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    '🐱 Кот Базис устал сегодня. Выберите другого персонажа!',
+                    disabledMessage,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 14,
@@ -292,11 +352,27 @@ Future<PersonaId?> showPersonaSheet(
                     textAlign: TextAlign.center,
                   ),
                 ),
+              // Top up button for insufficient balance
+              if (isInsufficientBalance)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.push('/transactions');
+                      },
+                      icon: const Icon(Icons.account_balance_wallet),
+                      label: const Text('Пополнить счет'),
+                    ),
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: isSelectionDisabled
-                      ? null  // Disable button visually when disabled persona selected
+                      ? null
                       : () => Navigator.pop(context, selected),
                   child: Text(isSelectionDisabled ? 'Недоступно' : 'Запросить'),
                 ),

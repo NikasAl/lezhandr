@@ -184,10 +184,12 @@ void showHintDetailDialog({
                       setDialogState(() => isGenerating = true);
                       final billing = ref.read(billingBalanceProvider);
                       final freeUsesLeft = billing.value?.freeUsesLeft;
+                      final balance = billing.value?.balance;
                       final persona = await showPersonaSheet(
                         context,
                         defaultPersona: PersonaId.basis,
                         freeUsesLeft: freeUsesLeft,
+                        balance: balance,
                       );
                       if (persona != null && context.mounted) {
                         final result = await ref

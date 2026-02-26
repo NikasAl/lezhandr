@@ -38,10 +38,12 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
+    final balance = billing.value?.balance;
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
+      balance: balance,
     );
     if (persona == null) return;
 
@@ -80,10 +82,12 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   Future<void> _runConceptsAnalysis() async {
     final billing = ref.read(billingBalanceProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
+    final balance = billing.value?.balance;
     final persona = await showPersonaSheet(
       context,
       defaultPersona: PersonaId.legendre,
       freeUsesLeft: freeUsesLeft,
+      balance: balance,
     );
     if (persona == null) return;
 

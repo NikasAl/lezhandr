@@ -135,10 +135,12 @@ void showQuestionDetailDialog({
                       setDialogState(() => isGenerating = true);
                       final billing = ref.read(billingBalanceProvider);
                       final freeUsesLeft = billing.value?.freeUsesLeft;
+                      final balance = billing.value?.balance;
                       final persona = await showPersonaSheet(
                         context,
                         defaultPersona: PersonaId.basis,
                         freeUsesLeft: freeUsesLeft,
+                        balance: balance,
                       );
                       if (persona != null && question.id != null) {
                         final result = await ref
