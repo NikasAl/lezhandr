@@ -11,7 +11,7 @@ import 'auto_scaling_math.dart';
 /// - Inline code: `code`
 /// - Bullet lists: - item or * item
 /// - Numbered lists: 1. item
-/// - Inline formulas: `$E = mc^2$`
+/// - Inline formulas: `$E = mc^2$` or `\(E = mc^2\)`
 /// - Display (block) formulas: `$$\int_a^b f(x)dx$$`
 class MarkdownWithMath extends StatelessWidget {
   final String text;
@@ -452,9 +452,12 @@ class MarkdownWithMath extends StatelessWidget {
   }
 
   /// Parse inline segments (text and inline math)
+  /// Supports both $...$ and \(...\) for inline LaTeX
   List<_InlineSegment> _parseInlineSegments(String text) {
     final segments = <_InlineSegment>[];
-    final pattern = RegExp(r'\$([^\$\n]+?)\$');
+    // Match $...$ or \(...\)
+    // Group 1: $formula$, Group 2: \(formula\)
+    final pattern = RegExp(r'\$([^\$\n]+?)\$|\\\(([\s\S]+?)\\\)');
     
     int lastEnd = 0;
     
@@ -467,8 +470,9 @@ class MarkdownWithMath extends StatelessWidget {
         }
       }
       
-      // Add math segment
-      segments.add(_InlineMathSegment(match.group(1)!));
+      // Add math segment - check which group matched
+      final formula = match.group(1) ?? match.group(2)!;
+      segments.add(_InlineMathSegment(formula));
       lastEnd = match.end;
     }
     
