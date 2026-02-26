@@ -210,55 +210,15 @@ class MarkdownWithMath extends StatelessWidget {
   }
 
   _SpanResult? _buildInlineSpans(BuildContext context, String text, TextStyle baseStyle, {int? truncate}) {
-    final spans = <InlineSpan>[];
-    final segments = _parseInlineSegments(text);
+    // Use unified parser that handles both markdown and math together
+    final spans = _parseMarkdownInline(text, baseStyle);
     int linesUsed = 0;
-    bool truncated = false;
-
-    for (final seg in segments) {
-      if (truncated) break;
-      
-      if (seg is _TextSegment) {
-        final styledSpans = _parseMarkdownInline(seg.content, baseStyle);
-        if (truncate != null) {
-          // Count newlines
-          final newlineCount = '\n'.allMatches(seg.content).length;
-          if (linesUsed + newlineCount >= truncate) {
-            truncated = true;
-            // Truncate the text
-            final lines = seg.content.split('\n');
-            final remaining = truncate - linesUsed;
-            if (remaining > 0 && remaining <= lines.length) {
-              spans.add(TextSpan(
-                text: lines.take(remaining).join('\n'),
-                style: baseStyle,
-              ));
-            }
-            break;
-          }
-          linesUsed += newlineCount;
-        }
-        spans.addAll(styledSpans);
-      } else if (seg is _InlineMathSegment) {
-        final mathStyle = baseStyle.copyWith(
-          fontFamily: null,
-          fontSize: (baseStyle.fontSize ?? 14) * 1.1,
-        );
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Math.tex(
-              seg.formula,
-              textStyle: mathStyle,
-              mathStyle: MathStyle.text,
-            ),
-          ),
-        ));
-      }
+    
+    if (truncate != null) {
+      linesUsed = '\n'.allMatches(text).length;
     }
-
-    return spans.isEmpty ? null : _SpanResult(spans, linesUsed, truncated);
+    
+    return _SpanResult(spans, linesUsed, false);
   }
 
   /// Parse inline markdown formatting (bold, italic, code)
@@ -436,6 +396,7 @@ class MarkdownWithMath extends StatelessWidget {
         final items = <String>[];
         final isOrdered = orderedListMatch != null;
         
+        // Collect list items with their full content (including display math, empty lines)
         while (i < lines.length) {
           final currentLine = lines[i];
           final itemMatch = isOrdered
@@ -443,10 +404,28 @@ class MarkdownWithMath extends StatelessWidget {
               : RegExp(r'^(\s*)[-*]\s+(.+)$').firstMatch(currentLine);
           
           if (itemMatch != null) {
+            // Found list item - add its content
             items.add(itemMatch.group(2)!);
             i++;
-          } else if (currentLine.trim().isEmpty) {
-            i++;
+          } else if (items.isNotEmpty && (currentLine.trim().isEmpty || currentLine.trim().startsWith(r'$$'))) {
+            // Empty line or display math - this might be part of previous item
+            // Check if next non-empty line is another list item
+            int lookAhead = i + 1;
+            while (lookAhead < lines.length && lines[lookAhead].trim().isEmpty) {
+              lookAhead++;
+            }
+            if (lookAhead < lines.length) {
+              final nextItemMatch = isOrdered
+                  ? RegExp(r'^(\s*)\d+\.\s+(.+)$').firstMatch(lines[lookAhead])
+                  : RegExp(r'^(\s*)[-*]\s+(.+)$').firstMatch(lines[lookAhead]);
+              if (nextItemMatch != null) {
+                // Next non-empty line is a list item - skip empty lines between items
+                i++;
+                continue;
+              }
+            }
+            // Not followed by list item - end of list
+            break;
           } else {
             break;
           }
