@@ -196,46 +196,55 @@ Future<PersonaId?> showPersonaSelectorDialog(
   String title = 'Выберите AI',
   int? freeUsesLeft,
 }) async {
-  // If basis is disabled and was default, switch to petrovich
-  PersonaId initialPersona = defaultPersona;
-  if (freeUsesLeft != null && freeUsesLeft <= 0 && defaultPersona == PersonaId.basis) {
-    initialPersona = PersonaId.petrovich;
-  }
-  
-  PersonaId selected = initialPersona;
+  PersonaId selected = defaultPersona;
 
   return await showDialog<PersonaId>(
     context: context,
     builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: Text(title),
-        content: PersonaSelector(
-          selectedPersona: selected,
-          freeUsesLeft: freeUsesLeft,
-          onPersonaSelected: (persona) {
-            setState(() => selected = persona);
-          },
-          onDisabledPersonaTap: () {
-            ScaffoldMessenger.of(context).clearSnackBars();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('🐱 Кот Базис спит. Приходи завтра!'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+      builder: (context, setState) {
+        final isBasisDisabled = freeUsesLeft != null && freeUsesLeft <= 0;
+        final isSelectionDisabled = selected == PersonaId.basis && isBasisDisabled;
+        
+        return AlertDialog(
+          title: Text(title),
+          content: PersonaSelector(
+            selectedPersona: selected,
+            freeUsesLeft: freeUsesLeft,
+            onPersonaSelected: (persona) {
+              setState(() => selected = persona);
+            },
+            onDisabledPersonaTap: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, selected),
-            child: const Text('Выбрать'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: isSelectionDisabled
+                  ? () {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  : () => Navigator.pop(context, selected),
+              child: const Text('Выбрать'),
+            ),
+          ],
+        );
+      },
     ),
   );
 }
@@ -246,49 +255,58 @@ Future<PersonaId?> showPersonaSheet(
   PersonaId defaultPersona = PersonaId.petrovich,
   int? freeUsesLeft,
 }) async {
-  // If basis is disabled and was default, switch to petrovich
-  PersonaId initialPersona = defaultPersona;
-  if (freeUsesLeft != null && freeUsesLeft <= 0 && defaultPersona == PersonaId.basis) {
-    initialPersona = PersonaId.petrovich;
-  }
-  
-  PersonaId selected = initialPersona;
+  PersonaId selected = defaultPersona;
 
   return await showModalBottomSheet<PersonaId>(
     context: context,
     builder: (context) => StatefulBuilder(
-      builder: (context, setState) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PersonaSelector(
-              selectedPersona: selected,
-              freeUsesLeft: freeUsesLeft,
-              onPersonaSelected: (persona) {
-                setState(() => selected = persona);
-              },
-              onDisabledPersonaTap: () {
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🐱 Кот Базис спит. Приходи завтра!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context, selected),
-                child: const Text('Запросить'),
+      builder: (context, setState) {
+        final isBasisDisabled = freeUsesLeft != null && freeUsesLeft <= 0;
+        final isSelectionDisabled = selected == PersonaId.basis && isBasisDisabled;
+        
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PersonaSelector(
+                selectedPersona: selected,
+                freeUsesLeft: freeUsesLeft,
+                onPersonaSelected: (persona) {
+                  setState(() => selected = persona);
+                },
+                onDisabledPersonaTap: () {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: isSelectionDisabled
+                      ? () {
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      : () => Navigator.pop(context, selected),
+                  child: const Text('Запросить'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     ),
   );
 }
