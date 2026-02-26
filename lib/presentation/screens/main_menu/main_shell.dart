@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../providers/billing_provider.dart';
 
 /// Main shell with bottom navigation
 class MainShell extends ConsumerStatefulWidget {
@@ -14,6 +15,11 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   final List<_NavItem> _navItems = const [
     _NavItem(
@@ -60,6 +66,10 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Pre-load billing data (freeUsesLeft) when entering the app
+    // This ensures the persona selector knows if Basis is available
+    ref.watch(billingBalanceProvider);
+    
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
