@@ -99,9 +99,7 @@ class _PersonaCard extends StatelessWidget {
       color: backgroundColor,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: isDisabled
-            ? onDisabledTap
-            : onTap,
+        onTap: onTap,  // Always allow selection for visual feedback
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -142,8 +140,11 @@ class _PersonaCard extends StatelessWidget {
                 Text(
                   '💤 Сплю...',
                   style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: isSelected 
+                            ? theme.colorScheme.error 
+                            : theme.colorScheme.onSurface.withOpacity(0.5),
                         fontSize: 10,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -230,17 +231,9 @@ Future<PersonaId?> showPersonaSelectorDialog(
             ),
             FilledButton(
               onPressed: isSelectionDisabled
-                  ? () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                  ? null  // Disable button visually when disabled persona selected
                   : () => Navigator.pop(context, selected),
-              child: const Text('Выбрать'),
+              child: Text(isSelectionDisabled ? 'Выберите другого' : 'Выбрать'),
             ),
           ],
         );
@@ -286,21 +279,26 @@ Future<PersonaId?> showPersonaSheet(
                 },
               ),
               const SizedBox(height: 24),
+              // Show message when disabled persona is selected
+              if (isSelectionDisabled)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    '🐱 Кот Базис устал сегодня. Выберите другого персонажа!',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: isSelectionDisabled
-                      ? () {
-                          ScaffoldMessenger.of(context).clearSnackBars();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🐱 Кот Базис устал сегодня. Выберите другого персонажа!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
+                      ? null  // Disable button visually when disabled persona selected
                       : () => Navigator.pop(context, selected),
-                  child: const Text('Запросить'),
+                  child: Text(isSelectionDisabled ? 'Недоступно' : 'Запросить'),
                 ),
               ),
             ],
