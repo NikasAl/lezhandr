@@ -6,6 +6,7 @@ import '../../../data/models/solution.dart';
 import '../../../data/models/user.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/solutions_provider.dart';
+import '../../providers/problems_provider.dart';
 import '../../providers/artifacts_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -159,59 +160,8 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 const SizedBox(height: 16),
 
                 // Problem condition card
-                if (sol.problem != null) ...[
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.description_outlined, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Условие задачи',
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                ),
-                              ),
-                              Text(
-                                sol.problem!.displayTitle,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (sol.problem!.hasText)
-                            MarkdownWithMath(
-                              text: sol.problem!.conditionText!,
-                              textStyle: Theme.of(context).textTheme.bodyLarge,
-                            )
-                          else if (sol.problem!.hasImage)
-                            ConditionImageThumbnail(
-                              problemId: sol.problem!.id,
-                              title: 'Условие: ${sol.problem!.reference}',
-                              height: 200,
-                            )
-                          else
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  'Условие не добавлено',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                if (sol.problemId != null) ...[
+                  _ProblemConditionCard(problemId: sol.problemId!),
                   const SizedBox(height: 16),
                 ],
 
@@ -1230,6 +1180,122 @@ class _SolutionConceptsSection extends ConsumerWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Problem condition card - loads full problem data
+class _ProblemConditionCard extends ConsumerWidget {
+  final int problemId;
+
+  const _ProblemConditionCard({required this.problemId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final problem = ref.watch(problemProvider(problemId));
+
+    return problem.when(
+      data: (prob) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Условие задачи',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  Text(
+                    prob.displayTitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (prob.hasText)
+                MarkdownWithMath(
+                  text: prob.conditionText!,
+                  textStyle: Theme.of(context).textTheme.bodyLarge,
+                )
+              else if (prob.hasImage)
+                ConditionImageThumbnail(
+                  problemId: problemId,
+                  title: 'Условие: ${prob.reference}',
+                  height: 200,
+                )
+              else
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Условие не добавлено',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Условие задачи',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.description_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Условие задачи',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Ошибка загрузки условия',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
