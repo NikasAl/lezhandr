@@ -15,6 +15,7 @@ import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
 import '../../presentation/screens/billing/transactions_screen.dart';
 import '../../presentation/screens/concepts/concepts_screen.dart';
+import '../../presentation/screens/about/about_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -166,6 +167,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/concepts',
         name: 'concepts',
         builder: (context, state) => const ConceptsScreen(),
+      ),
+
+      // About screen
+      GoRoute(
+        path: '/about',
+        name: 'about',
+        builder: (context, state) {
+          final isFirstLaunch = state.uri.queryParameters['firstLaunch'] == 'true';
+          return AboutScreen(isFirstLaunch: isFirstLaunch);
+        },
       ),
     ],
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/gamification_provider.dart';
+import '../about/about_screen.dart';
 
 /// Login screen with splash-like design
 /// Main button starts account login, expandable forms for existing account
@@ -75,10 +76,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _onLoginSuccess() {
+  void _onLoginSuccess() async {
     ref.invalidate(gamificationMeProvider);
     ref.invalidate(activeSolutionsProvider);
-    context.go('/main/home');
+    
+    // Check if this is first launch (user hasn't seen welcome)
+    final hasSeenWelcome = await ref.read(hasSeenWelcomeProvider.notifier).checkSeen();
+    
+    if (!mounted) return;
+    
+    if (!hasSeenWelcome) {
+      // First launch - show about screen
+      context.go('/about?firstLaunch=true');
+    } else {
+      context.go('/main/home');
+    }
   }
 
   @override

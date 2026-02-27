@@ -335,24 +335,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               // App info
               Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'Лежандр v1.0.0',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                child: InkWell(
+                  onTap: () => context.push('/about'),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Лежандр v1.0.0',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color:
+                                    Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'MindVector Client',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color:
+                                    Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'MindVector Client',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],

@@ -223,9 +223,13 @@ class _GreetingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/images/lezhandr_icon.webp',
-                fit: BoxFit.cover,
+              child: InkWell(
+                onTap: () => context.push('/about'),
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/images/lezhandr_icon.webp',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ],
