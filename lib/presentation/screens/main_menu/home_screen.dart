@@ -338,6 +338,7 @@ class _ActiveSolutionsCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Icon(
                 Icons.inbox_outlined,
@@ -348,6 +349,7 @@ class _ActiveSolutionsCard extends StatelessWidget {
               Text(
                 'Нет активных задач',
                 style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
@@ -355,12 +357,15 @@ class _ActiveSolutionsCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onNewTask,
-                icon: const Icon(Icons.add),
-                label: const Text('Новая задача'),
+              Center(
+                child: FilledButton.icon(
+                  onPressed: onNewTask,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Новая задача'),
+                ),
               ),
             ],
           ),
