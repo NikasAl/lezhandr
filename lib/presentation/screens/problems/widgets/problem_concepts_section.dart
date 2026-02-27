@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/problem.dart';
-import '../../widgets/shared/thinking_indicator.dart';
-import '../../widgets/shared/persona_selector.dart';
-import '../../widgets/shared/markdown_with_math.dart';
+import '../../../../data/models/problem.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../widgets/shared/thinking_indicator.dart';
+import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
 
 /// Concepts section for problem detail screen
 /// Uses inline expansion design for better UX

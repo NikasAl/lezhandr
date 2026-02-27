@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/models/problem.dart';
-import '../../providers/problems_provider.dart';
+import '../../../../data/models/problem.dart';
+import '../../../providers/problems_provider.dart';
 
 /// Shows dialog for editing tags
 Future<void> showTagsEditorDialog({

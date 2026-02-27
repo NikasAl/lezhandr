@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../data/models/problem.dart';
-import '../../../data/models/solution.dart';
-import '../../providers/solutions_provider.dart';
+import '../../../../data/models/problem.dart';
+import '../../../../data/models/solution.dart';
+import '../../../providers/solutions_provider.dart';
 
 /// List of solutions for a problem
 class SolutionsList extends ConsumerWidget {

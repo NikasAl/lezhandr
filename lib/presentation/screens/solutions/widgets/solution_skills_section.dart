@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/repositories/concepts_repository.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../providers/ocr_provider.dart';
 import '../../../providers/solutions_provider.dart';
 import '../../../widgets/shared/thinking_indicator.dart';
 import '../../../widgets/shared/persona_selector.dart';

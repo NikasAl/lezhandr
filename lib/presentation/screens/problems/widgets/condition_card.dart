@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../data/models/problem.dart';
-import '../../providers/problems_provider.dart';
-import '../../providers/ocr_provider.dart';
-import '../../widgets/shared/markdown_with_math.dart';
-import '../../widgets/shared/image_viewer.dart';
-import '../../widgets/shared/thinking_indicator.dart';
-import '../../widgets/shared/persona_selector.dart';
+import '../../../../data/models/problem.dart';
+import '../../../../data/models/artifacts.dart';
+import '../../../providers/problems_provider.dart';
+import '../../../providers/ocr_provider.dart';
+import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/image_viewer.dart';
+import '../../../widgets/shared/thinking_indicator.dart';
+import '../../../widgets/shared/persona_selector.dart';
 
 /// Condition card with image/text toggle and OCR support
 class ConditionCard extends ConsumerStatefulWidget {

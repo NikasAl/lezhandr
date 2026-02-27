@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/problem.dart';
+import '../../../../data/models/problem.dart';
 
 /// Problem header with source, reference and owner info
 class ProblemHeader extends StatelessWidget {
