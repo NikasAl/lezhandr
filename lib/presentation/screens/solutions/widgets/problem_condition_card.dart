@@ -29,16 +29,19 @@ class ProblemConditionCard extends ConsumerWidget {
                 children: [
                   const Icon(Icons.description_outlined, size: 20),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Условие задачи',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
                   Text(
-                    prob.displayTitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    'Условие задачи',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      prob.displayTitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                 ],
