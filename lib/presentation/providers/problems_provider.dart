@@ -3,10 +3,23 @@ import '../../data/models/problem.dart';
 import '../../data/repositories/problems_repository.dart';
 import 'providers.dart';
 
-/// Sources provider
+/// Sources list with pagination
+final sourcesListProvider =
+    FutureProvider.family<SourceListResponse, SourcesFilter>((ref, filter) async {
+  final repo = ref.watch(problemsRepositoryProvider);
+  return await repo.getSources(
+    search: filter.search,
+    limit: filter.limit,
+    offset: filter.offset,
+    sortBy: filter.sortBy,
+    withCounts: filter.withCounts,
+  );
+});
+
+/// Legacy sources provider for backward compatibility - returns just the items list
 final sourcesProvider = FutureProvider<List<SourceModel>>((ref) async {
   final repo = ref.watch(problemsRepositoryProvider);
-  return await repo.getSources();
+  return await repo.getAllSources();
 });
 
 /// Problems list response provider with pagination and filters

@@ -6,6 +6,7 @@ import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
+import '../../widgets/shared/source_selector.dart';
 
 /// Library screen - browse sources and problems with pagination
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -148,44 +149,30 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ),
       body: Column(
         children: [
-          // Source chips
+          // Source selector
           Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: sources.when(
-              data: (data) => ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  FilterChip(
-                    label: const Text('Все'),
-                    selected: _selectedSource == null,
-                    onSelected: (_) {
-                      setState(() {
-                        _selectedSource = null;
-                        _resetPagination();
-                        ref.invalidate(problemsListProvider);
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  ...data.map((source) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(source.name),
-                          selected: _selectedSource == source.name,
-                          onSelected: (_) {
-                            setState(() {
-                              _selectedSource = source.name;
-                              _resetPagination();
-                              ref.invalidate(problemsListProvider);
-                            });
-                          },
-                        ),
-                      )),
-                ],
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const SizedBox(),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Источник:',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(width: 8),
+                SourceSelectorChip(
+                  selectedSource: _selectedSource,
+                  onSourceSelected: (source) {
+                    setState(() {
+                      _selectedSource = source;
+                      _resetPagination();
+                      ref.invalidate(problemsListProvider);
+                    });
+                  },
+                ),
+              ],
             ),
           ),
           const Divider(),

@@ -5,12 +5,14 @@ class SourceModel {
   final String name;
   final String slug;
   final String? urlTemplate;
+  final int? problemCount;
 
   SourceModel({
     required this.id,
     required this.name,
     required this.slug,
     this.urlTemplate,
+    this.problemCount,
   });
 
   factory SourceModel.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class SourceModel {
       name: json['name'] as String? ?? 'Unknown',
       slug: json['slug'] as String? ?? '',
       urlTemplate: json['url_template'] as String?,
+      problemCount: json['problem_count'] as int?,
     );
   }
 
@@ -27,7 +30,91 @@ class SourceModel {
         'name': name,
         'slug': slug,
         'url_template': urlTemplate,
+        'problem_count': problemCount,
       };
+}
+
+/// Response wrapper for paginated sources list
+class SourceListResponse {
+  final List<SourceModel> items;
+  final int total;
+  final int limit;
+  final int offset;
+
+  SourceListResponse({
+    required this.items,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+
+  factory SourceListResponse.fromJson(Map<String, dynamic> json) {
+    return SourceListResponse(
+      items: (json['items'] as List?)
+          ?.map((s) => SourceModel.fromJson(s as Map<String, dynamic>))
+          .toList() ?? [],
+      total: json['total'] as int? ?? 0,
+      limit: json['limit'] as int? ?? 20,
+      offset: json['offset'] as int? ?? 0,
+    );
+  }
+
+  /// Check if there are more items to load
+  bool get hasMore => offset + items.length < total;
+  
+  /// Current page number (1-based)
+  int get currentPage => (offset / limit).floor() + 1;
+  
+  /// Total pages count
+  int get totalPages => (total / limit).ceil();
+}
+
+/// Filter for sources query
+class SourcesFilter {
+  final String? search;
+  final int limit;
+  final int offset;
+  final String sortBy; // 'name' or 'problem_count'
+  final bool withCounts;
+
+  const SourcesFilter({
+    this.search,
+    this.limit = 20,
+    this.offset = 0,
+    this.sortBy = 'problem_count',
+    this.withCounts = true,
+  });
+
+  SourcesFilter copyWith({
+    String? search,
+    int? limit,
+    int? offset,
+    String? sortBy,
+    bool? withCounts,
+  }) {
+    return SourcesFilter(
+      search: search ?? this.search,
+      limit: limit ?? this.limit,
+      offset: offset ?? this.offset,
+      sortBy: sortBy ?? this.sortBy,
+      withCounts: withCounts ?? this.withCounts,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SourcesFilter &&
+          runtimeType == other.runtimeType &&
+          search == other.search &&
+          limit == other.limit &&
+          offset == other.offset &&
+          sortBy == other.sortBy &&
+          withCounts == other.withCounts;
+
+  @override
+  int get hashCode =>
+      search.hashCode ^ limit.hashCode ^ offset.hashCode ^ sortBy.hashCode ^ withCounts.hashCode;
 }
 
 class TagModel {

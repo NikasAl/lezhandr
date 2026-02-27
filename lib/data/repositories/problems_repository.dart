@@ -7,8 +7,34 @@ class ProblemsRepository {
 
   ProblemsRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  /// Get all sources
-  Future<List<SourceModel>> getSources() async {
+  /// Get sources with pagination and optional filters
+  Future<SourceListResponse> getSources({
+    String? search,
+    int limit = 20,
+    int offset = 0,
+    String sortBy = 'problem_count',
+    bool withCounts = true,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+      'sort_by': sortBy,
+      'with_counts': withCounts,
+    };
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    final response = await _apiClient.dio.get(
+      '/sources',
+      queryParameters: queryParams,
+    );
+
+    return SourceListResponse.fromJson(response.data);
+  }
+
+  /// Get all sources (legacy method for backward compatibility)
+  Future<List<SourceModel>> getAllSources() async {
     final response = await _apiClient.dio.get('/sources');
     return (response.data as List)
         .map((json) => SourceModel.fromJson(json as Map<String, dynamic>))
