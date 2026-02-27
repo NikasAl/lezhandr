@@ -393,22 +393,19 @@ class SourceSelectorChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       avatar: Icon(
         selectedSource == null ? Icons.select_all : Icons.folder_outlined,
-        size: 18,
+        size: 16,
       ),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            selectedSource ?? 'Все',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.arrow_drop_down, size: 18),
-        ],
+      label: Text(
+        selectedSource ?? 'Все',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelMedium,
       ),
+      suffixIcon: const Icon(Icons.arrow_drop_down, size: 16),
       onPressed: () async {
         final result = await SourceSelectorDialog.show(
           context,

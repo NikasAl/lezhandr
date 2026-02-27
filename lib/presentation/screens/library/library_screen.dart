@@ -152,16 +152,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           // Source selector
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               children: [
-                const Icon(Icons.folder_outlined, size: 20),
-                const SizedBox(width: 8),
+                const Icon(Icons.folder_outlined, size: 18),
+                const SizedBox(width: 6),
                 Text(
                   'Источник:',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 SourceSelectorChip(
                   selectedSource: _selectedSource,
                   onSourceSelected: (source) {
@@ -175,7 +175,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ],
             ),
           ),
-          const Divider(),
+          const Divider(height: 1),
 
           // Problems list with pagination
           Expanded(
