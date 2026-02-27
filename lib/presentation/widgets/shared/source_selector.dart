@@ -335,8 +335,6 @@ class _SourceSelectorDialogState extends ConsumerState<SourceSelectorDialog> {
                     ? Theme.of(context).colorScheme.onPrimaryContainer
                     : null,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -399,13 +397,20 @@ class SourceSelectorChip extends StatelessWidget {
         selectedSource == null ? Icons.select_all : Icons.folder_outlined,
         size: 16,
       ),
-      label: Text(
-        selectedSource ?? 'Все',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelMedium,
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              selectedSource ?? 'Все',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, size: 16),
+        ],
       ),
-      suffixIcon: const Icon(Icons.arrow_drop_down, size: 16),
       onPressed: () async {
         final result = await SourceSelectorDialog.show(
           context,
