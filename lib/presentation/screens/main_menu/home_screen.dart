@@ -222,11 +222,10 @@ class _GreetingCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: Center(
-                child: Text(
-                  '🧮',
-                  style: const TextStyle(fontSize: 56),
-                ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/lezhandr_icon.webp',
+                fit: BoxFit.cover,
               ),
             ),
           ],

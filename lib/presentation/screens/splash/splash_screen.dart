@@ -93,11 +93,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          '🧮',
-                          style: TextStyle(fontSize: 60),
-                        ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        'assets/images/lezhandr_icon.webp',
+                        fit: BoxFit.cover,
                       ),
                     ),
                     const SizedBox(height: 24),
