@@ -1022,19 +1022,9 @@ class _ConceptsSectionState extends State<_ConceptsSection> {
                     // Expanded details panel
                     if (isExpanded) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                             if (concept.explanation != null && concept.explanation!.isNotEmpty) ...[
                               Row(
                                 children: [
@@ -1111,7 +1101,6 @@ class _ConceptsSectionState extends State<_ConceptsSection> {
                             ],
                           ],
                         ),
-                      ),
                     ],
                     
                     // Spacing between concepts
