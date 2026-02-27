@@ -34,6 +34,8 @@ class SolutionTextSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = solution.hasImage;
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -51,7 +53,7 @@ class SolutionTextSection extends StatelessWidget {
                 const Spacer(),
                 // Action buttons for owner
                 if (isOwner) ...[
-                  // OCR button
+                  // OCR button - only enabled if solution has image
                   if (!isEditing)
                     IconButton(
                       icon: isOcrLoading
@@ -60,11 +62,18 @@ class SolutionTextSection extends StatelessWidget {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.auto_awesome),
-                      onPressed: isOcrLoading ? null : onOcr,
-                      tooltip: isOcrLoading 
-                          ? '${ocrPersona?.displayName ?? "Персонаж"} думает...'
-                          : 'OCR',
+                          : Icon(
+                              Icons.auto_awesome,
+                              color: hasImage 
+                                  ? null 
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      onPressed: (isOcrLoading || !hasImage) ? null : onOcr,
+                      tooltip: !hasImage 
+                          ? 'Сначала прикрепите фото решения'
+                          : isOcrLoading 
+                              ? '${ocrPersona?.displayName ?? "Персонаж"} думает...'
+                              : 'Распознать текст с фото',
                       iconSize: 20,
                       visualDensity: VisualDensity.compact,
                     ),
@@ -153,11 +162,18 @@ class SolutionTextSection extends StatelessWidget {
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
-                    if (solution.hasImage)
+                    if (hasImage)
                       Text(
                         'Используйте OCR для распознавания',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
+                            ),
+                      )
+                    else if (isOwner)
+                      Text(
+                        'Прикрепите фото для распознавания OCR',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                       ),
                   ],

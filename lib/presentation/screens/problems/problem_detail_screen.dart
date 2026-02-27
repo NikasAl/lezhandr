@@ -175,27 +175,36 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   }
                 },
               ),
-              if (data.hasImage)
-                ListTile(
-                  leading: isOcrLoading 
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.auto_awesome),
-                  title: const Text('Распознать текст (OCR)'),
-                  subtitle: isOcrLoading 
-                      ? Text('${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...')
-                      : const Text('Извлечь текст с фото'),
-                  enabled: !isOcrLoading,
-                  onTap: isOcrLoading
-                      ? null
-                      : () async {
-                          Navigator.pop(sheetContext);
-                          await _runOcr();
-                        },
+              // OCR - always visible but disabled if no image
+              ListTile(
+                leading: isOcrLoading 
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        Icons.auto_awesome,
+                        color: data.hasImage 
+                            ? null 
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                title: const Text('Распознать текст (OCR)'),
+                subtitle: Text(
+                  !data.hasImage 
+                      ? 'Сначала прикрепите фото условия'
+                      : isOcrLoading 
+                          ? '${ocrState.currentPersona?.displayName ?? "Персонаж"} думает...'
+                          : 'Извлечь текст с фото',
                 ),
+                enabled: data.hasImage && !isOcrLoading,
+                onTap: (!data.hasImage || isOcrLoading)
+                    ? null
+                    : () async {
+                        Navigator.pop(sheetContext);
+                        await _runOcr();
+                      },
+              ),
             ],
             if (data.hasImage)
               ListTile(
