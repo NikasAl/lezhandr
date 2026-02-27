@@ -136,7 +136,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 ],
 
                 // Concepts section
-                SolutionConceptsSection(
+                SolutionSkillsSection(
                   solutionId: widget.solutionId,
                   isLoading: conceptsState.isLoading,
                   currentPersona: conceptsState.currentPersona,
