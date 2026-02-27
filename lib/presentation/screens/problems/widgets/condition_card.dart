@@ -101,16 +101,18 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
         text: widget.problem.conditionText!,
         textStyle: Theme.of(context).textTheme.bodyLarge,
       );
-    } 
-    
+    }
+
     if (widget.problem.hasImage) {
+      // Use ConditionImageThumbnail from image_viewer.dart which properly
+      // loads images via imageProvider with authorization
       return ConditionImageThumbnail(
         problemId: widget.problem.id,
         title: 'Условие: ${widget.problem.reference}',
         height: 250,
       );
     }
-    
+
     return _buildPlaceholder(context);
   }
 
@@ -125,7 +127,7 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            widget.isOwner 
+            widget.isOwner
                 ? 'Нажмите ⋮ для добавления условия'
                 : 'Условие не добавлено',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -133,54 +135,6 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Thumbnail for condition image with tap to view
-class ConditionImageThumbnail extends StatelessWidget {
-  final int problemId;
-  final String title;
-  final double height;
-
-  const ConditionImageThumbnail({
-    super.key,
-    required this.problemId,
-    required this.title,
-    this.height = 200,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ImageViewerScreen(
-              category: 'condition',
-              entityId: problemId,
-              title: title,
-            ),
-          ),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          '/api/problems/$problemId/image',
-          height: height,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            height: height,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(
-              child: Icon(Icons.broken_image, size: 48),
-            ),
-          ),
-        ),
       ),
     );
   }
