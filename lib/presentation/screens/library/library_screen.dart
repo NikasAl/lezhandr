@@ -162,15 +162,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(width: 6),
-                SourceSelectorChip(
-                  selectedSource: _selectedSource,
-                  onSourceSelected: (source) {
-                    setState(() {
-                      _selectedSource = source;
-                      _resetPagination();
-                      ref.invalidate(problemsListProvider);
-                    });
-                  },
+                Flexible(
+                  child: SourceSelectorChip(
+                    selectedSource: _selectedSource,
+                    onSourceSelected: (source) {
+                      setState(() {
+                        _selectedSource = source;
+                        _resetPagination();
+                        ref.invalidate(problemsListProvider);
+                      });
+                    },
+                  ),
                 ),
               ],
             ),

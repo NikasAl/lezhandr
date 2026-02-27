@@ -390,36 +390,50 @@ class SourceSelectorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      avatar: Icon(
-        selectedSource == null ? Icons.select_all : Icons.folder_outlined,
-        size: 16,
-      ),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(
-              selectedSource ?? 'Все',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Material(
+      color: colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () async {
+          final result = await SourceSelectorDialog.show(
+            context,
+            selectedSource: selectedSource,
+          );
+          if (result != selectedSource) {
+            onSourceSelected(result);
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                selectedSource == null ? Icons.select_all : Icons.folder_outlined,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  selectedSource ?? 'Все',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
           ),
-          const Icon(Icons.arrow_drop_down, size: 16),
-        ],
+        ),
       ),
-      onPressed: () async {
-        final result = await SourceSelectorDialog.show(
-          context,
-          selectedSource: selectedSource,
-        );
-        if (result != selectedSource) {
-          onSourceSelected(result);
-        }
-      },
     );
   }
 }
