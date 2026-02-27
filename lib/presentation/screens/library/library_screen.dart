@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/problem.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
@@ -19,6 +20,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedSource;
   String _searchQuery = '';
+  bool _showMyOnly = false;
   
   // Accumulated problems list for infinite scroll
   List<ProblemModel> _accumulatedProblems = [];
@@ -53,10 +55,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     setState(() => _isLoadingMore = true);
     
     try {
+      final currentUser = ref.read(currentUserProvider);
+      final userId = _showMyOnly ? currentUser?.id : null;
+      
       final repo = ref.read(problemsRepositoryProvider);
       final response = await repo.getProblems(
         source: _selectedSource,
         search: _searchQuery.isEmpty ? null : _searchQuery,
+        userId: userId,
         limit: 20,
         offset: _accumulatedProblems.length,
       );
@@ -117,10 +123,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             .toSet() ??
         {};
 
+    // Get current user for "My problems" filter
+    final currentUser = ref.watch(currentUserProvider);
+    final userId = _showMyOnly ? currentUser?.id : null;
+    
     // Base filter for initial load (always offset 0)
     final baseFilter = ProblemsFilter(
       source: _selectedSource,
       search: _searchQuery.isEmpty ? null : _searchQuery,
+      userId: userId,
       limit: 20,
       offset: 0,
     );
@@ -149,12 +160,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ),
       body: Column(
         children: [
-          // Source selector
+          // Filters row
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               children: [
+                // Source selector
                 const Icon(Icons.folder_outlined, size: 18),
                 const SizedBox(width: 6),
                 Text(
@@ -174,6 +186,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     },
                   ),
                 ),
+                const SizedBox(width: 12),
+                // "My problems" filter
+                if (currentUser != null)
+                  _FilterChip(
+                    label: 'Мои',
+                    icon: Icons.person_outline,
+                    selected: _showMyOnly,
+                    onSelected: (selected) {
+                      setState(() {
+                        _showMyOnly = selected;
+                        _resetPagination();
+                        ref.invalidate(problemsListProvider);
+                      });
+                    },
+                  ),
               ],
             ),
           ),
@@ -1122,6 +1149,62 @@ class _ProblemCard extends StatelessWidget {
                   }).toList(),
                 ),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Custom filter chip for "My problems" toggle
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+
+  const _FilterChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Material(
+      color: selected 
+          ? colorScheme.primaryContainer 
+          : colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onSelected(!selected),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected 
+                    ? colorScheme.onPrimaryContainer 
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: selected 
+                      ? colorScheme.onPrimaryContainer 
+                      : colorScheme.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
             ],
           ),
         ),
