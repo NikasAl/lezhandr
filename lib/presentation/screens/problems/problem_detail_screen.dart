@@ -881,8 +881,8 @@ class _TagsEditorState extends ConsumerState<_TagsEditor> {
   }
 }
 
-/// Concepts section widget for problem detail
-class _ConceptsSection extends StatelessWidget {
+/// Concepts section widget for problem detail with inline expansion
+class _ConceptsSection extends StatefulWidget {
   final List<ProblemConceptModel>? concepts;
   final bool isLoading;
   final PersonaId? currentPersona;
@@ -895,161 +895,16 @@ class _ConceptsSection extends StatelessWidget {
     required this.onAnalyze,
   });
 
-  void _showConceptDetail(BuildContext context, ProblemConceptModel concept) {
-    final relevance = concept.relevance ?? 0.0;
-    final relevancePercent = (relevance * 100).toStringAsFixed(0);
-    final color = _getRelevanceColor(relevance);
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.school_outlined,
-                        color: color,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            concept.concept?.name ?? 'Unknown',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                'Релевантность: ',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '$relevancePercent%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: color,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (concept.explanation != null && concept.explanation!.isNotEmpty) ...[
-                        Text(
-                          'Объяснение',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        MarkdownWithMath(
-                          text: concept.explanation!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      if (concept.concept?.description != null && concept.concept!.description!.isNotEmpty) ...[
-                        Text(
-                          'Описание концепта',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.secondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        MarkdownWithMath(
-                          text: concept.concept!.description!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      if (concept.concept?.utilityDescription != null && concept.concept!.utilityDescription!.isNotEmpty) ...[
-                        Text(
-                          'Практическое применение',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        MarkdownWithMath(
-                          text: concept.concept!.utilityDescription!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  @override
+  State<_ConceptsSection> createState() => _ConceptsSectionState();
+}
+
+class _ConceptsSectionState extends State<_ConceptsSection> {
+  int? _expandedConceptIndex;
 
   @override
   Widget build(BuildContext context) {
-    final hasConcepts = concepts != null && concepts!.isNotEmpty;
+    final hasConcepts = widget.concepts != null && widget.concepts!.isNotEmpty;
     
     return Card(
       child: Padding(
@@ -1070,9 +925,9 @@ class _ConceptsSection extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                if (!isLoading)
+                if (!widget.isLoading)
                   TextButton.icon(
-                    onPressed: onAnalyze,
+                    onPressed: widget.onAnalyze,
                     icon: const Icon(Icons.psychology, size: 18),
                     label: Text(hasConcepts ? 'Обновить' : 'Анализ'),
                   ),
@@ -1081,68 +936,190 @@ class _ConceptsSection extends StatelessWidget {
             const SizedBox(height: 12),
             
             // Show thinking indicator when loading
-            if (isLoading)
-              ThinkingIndicator(persona: currentPersona ?? PersonaId.legendre)
+            if (widget.isLoading)
+              ThinkingIndicator(persona: widget.currentPersona ?? PersonaId.legendre)
             else if (hasConcepts) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: concepts!.map((concept) {
-                  final relevance = concept.relevance ?? 0.0;
-                  final relevancePercent = (relevance * 100).toStringAsFixed(0);
-                  final color = _getRelevanceColor(relevance);
-                  
-                  return GestureDetector(
-                    onTap: () => _showConceptDetail(context, concept),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: color.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.school_outlined,
-                            size: 16,
-                            color: color,
+              // List of concepts with inline expansion
+              ...widget.concepts!.asMap().entries.map((entry) {
+                final index = entry.key;
+                final concept = entry.value;
+                final isExpanded = _expandedConceptIndex == index;
+                final relevance = concept.relevance ?? 0.0;
+                final relevancePercent = (relevance * 100).toStringAsFixed(0);
+                final color = _getRelevanceColor(relevance);
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Concept chip - clickable to expand/collapse
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _expandedConceptIndex = isExpanded ? null : index;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isExpanded 
+                                ? color 
+                                : color.withOpacity(0.3),
+                            width: isExpanded ? 2 : 1,
                           ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              concept.concept?.name ?? 'Unknown',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: color,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.school_outlined,
+                              size: 18,
+                              color: color,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                concept.concept?.name ?? 'Unknown',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: color,
+                                ),
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '$relevancePercent%',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: color,
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$relevancePercent%',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Icon(
+                              isExpanded 
+                                  ? Icons.keyboard_arrow_up 
+                                  : Icons.keyboard_arrow_down,
+                              color: color,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                    
+                    // Expanded details panel
+                    if (isExpanded) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (concept.explanation != null && concept.explanation!.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.forum_outlined,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Объяснение',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              MarkdownWithMath(
+                                text: concept.explanation!,
+                                textStyle: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (concept.concept?.description != null && concept.concept!.description!.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.secondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Описание концепта',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.secondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              MarkdownWithMath(
+                                text: concept.concept!.description!,
+                                textStyle: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            if (concept.concept?.utilityDescription != null && concept.concept!.utilityDescription!.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.tips_and_updates_outlined,
+                                    size: 16,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Практическое применение',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              MarkdownWithMath(
+                                text: concept.concept!.utilityDescription!,
+                                textStyle: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    
+                    // Spacing between concepts
+                    if (index < widget.concepts!.length - 1)
+                      const SizedBox(height: 8),
+                  ],
+                );
+              }),
             ] else ...[
               Center(
                 child: Column(
