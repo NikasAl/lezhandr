@@ -35,10 +35,8 @@ class ProblemsRepository {
 
   /// Get all sources (legacy method for backward compatibility)
   Future<List<SourceModel>> getAllSources() async {
-    final response = await _apiClient.dio.get('/sources');
-    return (response.data as List)
-        .map((json) => SourceModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+    final response = await getSources(limit: 1000);
+    return response.items;
   }
 
   /// Get problems with pagination and optional filters
