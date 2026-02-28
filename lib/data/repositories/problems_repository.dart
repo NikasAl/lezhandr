@@ -34,8 +34,9 @@ class ProblemsRepository {
   }
 
   /// Get all sources (legacy method for backward compatibility)
+  /// Note: API limits limit to max 100
   Future<List<SourceModel>> getAllSources() async {
-    final response = await getSources(limit: 1000);
+    final response = await getSources(limit: 100);
     return response.items;
   }
 
