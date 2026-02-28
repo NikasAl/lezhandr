@@ -44,14 +44,14 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final filter = ConceptProgressFilter(
-        sortBy: _sortBy,
-        tierFilter: _tierFilter,
+      // Call repository directly to avoid FutureProvider.family caching issues
+      final repo = ref.read(conceptsProgressRepositoryProvider);
+      final response = await repo.getMyConceptProgress(
+        sortBy: _sortBy.value,
+        filterTier: _tierFilter,
         limit: _pageSize,
         offset: _currentPage * _pageSize,
       );
-
-      final response = await ref.read(conceptProgressListProvider(filter).future);
 
       if (mounted) {
         setState(() {
