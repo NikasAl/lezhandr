@@ -11,6 +11,7 @@ import '../../data/repositories/billing_repository.dart';
 import '../../data/repositories/uploads_repository.dart';
 import '../../data/repositories/artifacts_repository.dart';
 import '../../data/repositories/concepts_repository.dart';
+import '../../data/repositories/concepts_progress_repository.dart';
 
 // Storage providers
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
@@ -69,4 +70,8 @@ final conceptsRepositoryProvider = Provider<ConceptsRepository>((ref) {
 
 final ocrRepositoryProvider = Provider<OcrRepository>((ref) {
   return OcrRepository(apiClient: ref.watch(apiClientProvider));
+});
+
+final conceptsProgressRepositoryProvider = Provider<ConceptsProgressRepository>((ref) {
+  return ConceptsProgressRepository(apiClient: ref.watch(apiClientProvider));
 });
