@@ -23,7 +23,7 @@ class ConceptsProgressRepository {
       queryParams['sort_by'] = sortBy;
     }
     if (filterTier != null) {
-      queryParams['tier'] = filterTier.toString();
+      queryParams['min_tier'] = filterTier.toString();
     }
 
     final response = await _apiClient.dio.get(
