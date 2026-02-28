@@ -46,7 +46,10 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
       _isLoading = false;
     });
     _log('✅ State reset, calling _loadMore');
-    _loadMore();
+    // Use addPostFrameCallback to avoid calling setState during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMore();
+    });
   }
 
   Future<void> _loadMore() async {
@@ -195,8 +198,11 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
                     );
                   } else if (_hasMore && !_isLoading) {
                     // Load more trigger - only if not already loading
-                    _log('📋 Builder requesting load more at index=$index, accumulated=${_accumulatedConcepts.length}');
-                    _loadMore();
+                    // Use addPostFrameCallback to avoid setState during build
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _log('📋 Builder requesting load more at index=$index, accumulated=${_accumulatedConcepts.length}');
+                      _loadMore();
+                    });
                     return const Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(child: CircularProgressIndicator()),
