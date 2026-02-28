@@ -15,6 +15,7 @@ import '../../presentation/screens/solutions/solution_detail_screen.dart';
 import '../../presentation/screens/camera/camera_screen.dart';
 import '../../presentation/screens/billing/transactions_screen.dart';
 import '../../presentation/screens/concepts/concepts_screen.dart';
+import '../../presentation/screens/skills/skills_map_screen.dart';
 import '../../presentation/screens/about/about_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
@@ -167,6 +168,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/concepts',
         name: 'concepts',
         builder: (context, state) => const ConceptsScreen(),
+      ),
+
+      // Skills Map (My Skills)
+      GoRoute(
+        path: '/skills-map',
+        name: 'skills-map',
+        builder: (context, state) => const SkillsMapScreen(),
       ),
 
       // About screen

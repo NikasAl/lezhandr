@@ -107,9 +107,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Expanded(
                     child: _QuickActionButton(
-                      icon: Icons.bar_chart,
-                      label: 'Мой прогресс',
-                      onTap: () => context.push('/main/statistics'),
+                      icon: Icons.school_outlined,
+                      label: 'Мои навыки',
+                      onTap: () => context.push('/skills-map'),
                     ),
                   ),
                 ],
