@@ -737,9 +737,43 @@ class _ConceptDetailSheet extends ConsumerWidget {
               context.push('/solutions/${ref.id}');
             },
           )),
+          const SizedBox(height: 16),
         ],
         
-        if (detail.exposedIn.isEmpty && detail.demonstratedIn.isEmpty)
+        // Available for learning
+        if (detail.availableIn.isNotEmpty) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.school_outlined,
+                size: 18,
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Доступно для изучения (${detail.availableIn.length})',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Задачи где встречается этот концепт',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 8),
+          ...detail.availableIn.map((ref) => _AvailableProblemTile(
+            ref: ref,
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/problems/${ref.id}');
+            },
+          )),
+        ],
+        
+        if (detail.exposedIn.isEmpty && detail.demonstratedIn.isEmpty && detail.availableIn.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -854,6 +888,75 @@ class _SolutionRefTile extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
+            )
+          : null,
+      onTap: onTap,
+    );
+  }
+}
+
+/// Available problem tile - problems where concept exists but user hasn't solved
+class _AvailableProblemTile extends StatelessWidget {
+  final AvailableProblemRef ref;
+  final VoidCallback onTap;
+
+  const _AvailableProblemTile({
+    required this.ref,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            '#${ref.id}',
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onTertiaryContainer,
+            ),
+          ),
+        ),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              ref.reference,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (ref.hasConditionText)
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.description_outlined,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+      subtitle: Text(
+        ref.sourceName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: ref.relevance != null
+          ? Text(
+              '${(ref.relevance! * 100).toStringAsFixed(0)}%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             )
           : null,
       onTap: onTap,

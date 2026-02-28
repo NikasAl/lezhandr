@@ -211,16 +211,45 @@ class ConceptProblemRef {
   }
 }
 
+/// Available problem reference - problems where concept exists but user hasn't solved yet
+class AvailableProblemRef {
+  final int id;
+  final String reference;
+  final String sourceName;
+  final double? relevance;
+  final bool hasConditionText;
+
+  const AvailableProblemRef({
+    required this.id,
+    required this.reference,
+    required this.sourceName,
+    this.relevance,
+    this.hasConditionText = false,
+  });
+
+  factory AvailableProblemRef.fromJson(Map<String, dynamic> json) {
+    return AvailableProblemRef(
+      id: json['id'] as int? ?? 0,
+      reference: json['reference'] as String? ?? '',
+      sourceName: json['source_name'] as String? ?? '',
+      relevance: (json['relevance'] as num?)?.toDouble(),
+      hasConditionText: json['has_condition_text'] as bool? ?? false,
+    );
+  }
+}
+
 /// Full details about a concept including related problems and solutions
 class ConceptDetailModel {
   final ConceptModel concept;
   final List<ConceptProblemRef> exposedIn; // Problems where concept appears
   final List<ConceptProblemRef> demonstratedIn; // Solutions where concept was used
+  final List<AvailableProblemRef> availableIn; // Problems where concept exists but user hasn't solved
 
   const ConceptDetailModel({
     required this.concept,
     required this.exposedIn,
     required this.demonstratedIn,
+    this.availableIn = const [],
   });
 
   factory ConceptDetailModel.fromJson(Map<String, dynamic> json) {
@@ -232,6 +261,10 @@ class ConceptDetailModel {
           [],
       demonstratedIn: (json['demonstrated_in'] as List<dynamic>?)
               ?.map((e) => ConceptProblemRef.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      availableIn: (json['available_in'] as List<dynamic>?)
+              ?.map((e) => AvailableProblemRef.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
