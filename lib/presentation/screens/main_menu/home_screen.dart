@@ -107,17 +107,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Expanded(
                     child: _QuickActionButton(
-                      icon: Icons.play_arrow,
-                      label: 'Начать решение',
-                      onTap: () => context.push('/main/library'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.psychology,
-                      label: 'Анализ концепций',
-                      onTap: () => context.push('/concepts'),
+                      icon: Icons.bar_chart,
+                      label: 'Мой прогресс',
+                      onTap: () => context.push('/main/statistics'),
                     ),
                   ),
                 ],
