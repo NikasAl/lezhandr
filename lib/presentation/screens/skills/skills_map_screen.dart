@@ -32,16 +32,25 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
   }
 
   void _loadData() {
-    _accumulatedConcepts = [];
-    _currentPage = 0;
-    _hasMore = true;
+    print('🔄 _loadData: resetting state');
+    setState(() {
+      _accumulatedConcepts = [];
+      _currentPage = 0;
+      _hasMore = true;
+      _isLoading = false;
+    });
+    print('✅ State reset, calling _loadMore');
     _loadMore();
   }
 
   Future<void> _loadMore() async {
+    print('📍 _loadMore called: hasMore=$_hasMore, isLoading=$_isLoading, page=$_currentPage');
     if (!_hasMore || _isLoading) return;
     
     setState(() => _isLoading = true);
+    
+    final offset = _currentPage * _pageSize;
+    print('🔄 Loading concepts: offset=$offset, limit=$_pageSize, page=$_currentPage');
 
     try {
       // Call repository directly to avoid FutureProvider.family caching issues
@@ -50,8 +59,10 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
         sortBy: _sortBy.value,
         filterTier: _tierFilter,
         limit: _pageSize,
-        offset: _currentPage * _pageSize,
+        offset: offset,
       );
+
+      print('✅ Loaded ${response.items.length} concepts, total=${response.total}, offset=${response.offset}, hasMore=${response.hasMore}');
 
       if (mounted) {
         setState(() {
@@ -61,8 +72,11 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
           _currentPage++;
           _isLoading = false;
         });
+        print('📊 After load: total=$_totalConcepts, accumulated=${_accumulatedConcepts.length}, hasMore=$_hasMore');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error loading concepts: $e');
+      print('Stack: $stackTrace');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,9 +130,11 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          print('.pull-to-refresh triggered');
           ref.invalidate(conceptStatsProvider);
           ref.invalidate(conceptProgressListProvider);
           _loadData();
+          // Wait for the first page to load
           await Future.delayed(const Duration(milliseconds: 500));
         },
         child: CustomScrollView(
@@ -171,9 +187,16 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
                       concept: concept,
                       onTap: () => _showConceptDetail(context, concept),
                     );
-                  } else if (_hasMore) {
-                    // Load more trigger
+                  } else if (_hasMore && !_isLoading) {
+                    // Load more trigger - only if not already loading
+                    print('📋 Builder requesting load more at index=$index, accumulated=${_accumulatedConcepts.length}');
                     _loadMore();
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  } else if (_hasMore && _isLoading) {
+                    // Still loading, just show spinner
                     return const Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(child: CircularProgressIndicator()),
