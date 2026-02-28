@@ -1,9 +1,15 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/concept_progress.dart';
 import '../../providers/concepts_progress_provider.dart';
 import '../../providers/providers.dart';
+
+void _log(String message) {
+  developer.log(message, name: 'SkillsMap');
+  debugPrint(message);
+}
 
 /// Skills Map Screen - shows user's concept mastery progress
 class SkillsMapScreen extends ConsumerStatefulWidget {
@@ -32,25 +38,25 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
   }
 
   void _loadData() {
-    debugPrint('🔄 _loadData: resetting state');
+    _log('🔄 _loadData: resetting state');
     setState(() {
       _accumulatedConcepts = [];
       _currentPage = 0;
       _hasMore = true;
       _isLoading = false;
     });
-    debugPrint('✅ State reset, calling _loadMore');
+    _log('✅ State reset, calling _loadMore');
     _loadMore();
   }
 
   Future<void> _loadMore() async {
-    debugPrint('📍 _loadMore called: hasMore=$_hasMore, isLoading=$_isLoading, page=$_currentPage');
+    _log('📍 _loadMore called: hasMore=$_hasMore, isLoading=$_isLoading, page=$_currentPage');
     if (!_hasMore || _isLoading) return;
     
     setState(() => _isLoading = true);
     
     final offset = _currentPage * _pageSize;
-    debugPrint('🔄 Loading concepts: offset=$offset, limit=$_pageSize, page=$_currentPage');
+    _log('🔄 Loading concepts: offset=$offset, limit=$_pageSize, page=$_currentPage');
 
     try {
       // Call repository directly to avoid FutureProvider.family caching issues
@@ -62,7 +68,7 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
         offset: offset,
       );
 
-      debugPrint('✅ Loaded ${response.items.length} concepts, total=${response.total}, offset=${response.offset}, hasMore=${response.hasMore}');
+      _log('✅ Loaded ${response.items.length} concepts, total=${response.total}, offset=${response.offset}, hasMore=${response.hasMore}');
 
       if (mounted) {
         setState(() {
@@ -72,11 +78,11 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
           _currentPage++;
           _isLoading = false;
         });
-        debugPrint('📊 After load: total=$_totalConcepts, accumulated=${_accumulatedConcepts.length}, hasMore=$_hasMore');
+        _log('📊 After load: total=$_totalConcepts, accumulated=${_accumulatedConcepts.length}, hasMore=$_hasMore');
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ Error loading concepts: $e');
-      debugPrint('Stack: $stackTrace');
+      _log('❌ Error loading concepts: $e');
+      _log('Stack: $stackTrace');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +136,7 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          debugPrint('.pull-to-refresh triggered');
+          _log('.pull-to-refresh triggered');
           ref.invalidate(conceptStatsProvider);
           ref.invalidate(conceptProgressListProvider);
           _loadData();
@@ -189,7 +195,7 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
                     );
                   } else if (_hasMore && !_isLoading) {
                     // Load more trigger - only if not already loading
-                    debugPrint('📋 Builder requesting load more at index=$index, accumulated=${_accumulatedConcepts.length}');
+                    _log('📋 Builder requesting load more at index=$index, accumulated=${_accumulatedConcepts.length}');
                     _loadMore();
                     return const Padding(
                       padding: EdgeInsets.all(16),
