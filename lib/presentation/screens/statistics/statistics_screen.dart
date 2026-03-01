@@ -364,9 +364,7 @@ class _ActivityChart extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: isToday
                                     ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer,
+                                    : Theme.of(context).colorScheme.primary.withOpacity(0.55),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
