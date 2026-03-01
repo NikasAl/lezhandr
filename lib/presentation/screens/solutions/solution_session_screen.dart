@@ -439,58 +439,36 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: isWideScreen
-          ? Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    child: FilledButton.icon(
-                      onPressed: _finishSession,
-                      icon: const Icon(Icons.flag),
-                      label: const Text('Завершить сессию'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            )
-          : Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: FilledButton.icon(
-                  onPressed: _finishSession,
-                  icon: const Icon(Icons.flag),
-                  label: const Text('Завершить сессию'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
+      bottomNavigationBar: Container(
+        padding: isWideScreen
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 16)
+            : const EdgeInsets.all(16),
+        margin: isWideScreen
+            ? EdgeInsets.symmetric(
+                horizontal: (screenWidth - 900) / 2 > 0 ? (screenWidth - 900) / 2 : 0,
+              )
+            : null,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
+          ],
+        ),
+        child: SafeArea(
+          child: FilledButton.icon(
+            onPressed: _finishSession,
+            icon: const Icon(Icons.flag),
+            label: const Text('Завершить сессию'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
