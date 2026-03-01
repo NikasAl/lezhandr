@@ -270,145 +270,145 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               children: [
                 // Timer card
                 Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          _formatDuration(_elapsed),
-                          style: Theme.of(context)
-                              .textTheme
-                              .displayMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ранее: ${widget.existingMinutes.toStringAsFixed(1)} мин',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer
-                                    .withOpacity(0.7),
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Problem info with condition preview
-              // Use separate problem provider to get full problem data
-              if (data.problemId != null) ...[
-                _ProblemConditionCard(
-                  problemId: data.problemId!,
-                  problemPreview: data.problem,
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Motivation
-              if (motivation != null) ...[
-                MotivationCard(
-                  motivation: motivation,
-                  showAuthor: false,
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Existing artifacts sections
-              _EpiphaniesSection(
-                solutionId: widget.solutionId,
-                onAdd: _showEpiphanyDialog,
-              ),
-              const SizedBox(height: 8),
-              _QuestionsSection(
-                solutionId: widget.solutionId,
-                onAdd: _showQuestionDialog,
-                onQuestionTap: _showQuestionDetailDialog,
-              ),
-              const SizedBox(height: 8),
-              _HintsSection(
-                solutionId: widget.solutionId,
-                onAdd: _showHintDialog,
-                onHintTap: _showHintDetailDialog,
-              ),
-              const SizedBox(height: 16),
-
-              // Solution photo section - show existing or add new
-              if (data.hasImage) ...[
-                // Show existing solution photo
-                Card(
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.photo_camera_back, color: Colors.teal),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Фото решения',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const Spacer(),
-                            TextButton.icon(
-                              onPressed: () async {
-                                await context.push(
-                                    '/camera?category=solution&entityId=${widget.solutionId}');
-                                // Refresh solution to get updated image
-                                ref.invalidate(solutionProvider(widget.solutionId));
-                              },
-                              icon: const Icon(Icons.refresh, size: 18),
-                              label: const Text('Обновить'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SolutionImageThumbnail(
-                            solutionId: widget.solutionId,
-                            title: 'Фото решения',
-                            height: 200,
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            _formatDuration(_elapsed),
+                            style: Theme.of(context)
+                                .textTheme
+                                .displayMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimaryContainer,
+                                ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ранее: ${widget.existingMinutes.toStringAsFixed(1)} мин',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimaryContainer
+                                      .withOpacity(0.7),
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ] else ...[
-                // No solution photo yet - show add button
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
-                    title: const Text('Фото решения'),
-                    subtitle: const Text('Зафиксировать результат'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      await context.push(
-                          '/camera?category=solution&entityId=${widget.solutionId}');
-                      // Refresh solution to get updated image
-                      ref.invalidate(solutionProvider(widget.solutionId));
-                    },
+                const SizedBox(height: 16),
+
+                // Problem info with condition preview
+                // Use separate problem provider to get full problem data
+                if (data.problemId != null) ...[
+                  _ProblemConditionCard(
+                    problemId: data.problemId!,
+                    problemPreview: data.problem,
                   ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Motivation
+                if (motivation != null) ...[
+                  MotivationCard(
+                    motivation: motivation,
+                    showAuthor: false,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Existing artifacts sections
+                _EpiphaniesSection(
+                  solutionId: widget.solutionId,
+                  onAdd: _showEpiphanyDialog,
                 ),
+                const SizedBox(height: 8),
+                _QuestionsSection(
+                  solutionId: widget.solutionId,
+                  onAdd: _showQuestionDialog,
+                  onQuestionTap: _showQuestionDetailDialog,
+                ),
+                const SizedBox(height: 8),
+                _HintsSection(
+                  solutionId: widget.solutionId,
+                  onAdd: _showHintDialog,
+                  onHintTap: _showHintDetailDialog,
+                ),
+                const SizedBox(height: 16),
+
+                // Solution photo section - show existing or add new
+                if (data.hasImage) ...[
+                  // Show existing solution photo
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.photo_camera_back, color: Colors.teal),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Фото решения',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const Spacer(),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  await context.push(
+                                      '/camera?category=solution&entityId=${widget.solutionId}');
+                                  // Refresh solution to get updated image
+                                  ref.invalidate(solutionProvider(widget.solutionId));
+                                },
+                                icon: const Icon(Icons.refresh, size: 18),
+                                label: const Text('Обновить'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SolutionImageThumbnail(
+                              solutionId: widget.solutionId,
+                              title: 'Фото решения',
+                              height: 200,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // No solution photo yet - show add button
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
+                      title: const Text('Фото решения'),
+                      subtitle: const Text('Зафиксировать результат'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        await context.push(
+                            '/camera?category=solution&entityId=${widget.solutionId}');
+                        // Refresh solution to get updated image
+                        ref.invalidate(solutionProvider(widget.solutionId));
+                      },
+                    ),
+                  ),
+                ],
               ],
-            ],
-          ),
-        );
+            ),
+          );
 
           // Wrap with constraints for wide screens
           if (isWideScreen) {
