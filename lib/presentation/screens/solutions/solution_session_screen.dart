@@ -70,7 +70,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
 
   /// Show session introduction dialog
   void _showIntroDialog() {
-    showAdaptiveDialog(
+    showConstrainedDialog(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.lightbulb_outline, size: 48),

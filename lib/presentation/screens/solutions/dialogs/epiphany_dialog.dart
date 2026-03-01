@@ -14,7 +14,7 @@ Future<bool> showEpiphanyDialog({
   final controller = TextEditingController();
   int magnitude = 1;
 
-  final result = await showAdaptiveDialog<bool>(
+  final result = await showConstrainedDialog<bool>(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
@@ -94,7 +94,7 @@ Future<bool> showEpiphanyDialog({
 
   // Offer to add image
   if (epiphany?.id != null && context.mounted) {
-    final addImage = await showAdaptiveDialog<bool>(
+    final addImage = await showConstrainedDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Row(

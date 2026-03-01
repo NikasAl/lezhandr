@@ -22,7 +22,7 @@ Future<bool> showHintDialog({
   final notesController = TextEditingController();
 
   // Step 1: Get user notes
-  final confirmed = await showAdaptiveDialog<bool>(
+  final confirmed = await showConstrainedDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Row(
@@ -86,7 +86,7 @@ Future<bool> showHintDialog({
 
   // Step 3: Offer to add image
   if (context.mounted) {
-    final addImage = await showAdaptiveDialog<bool>(
+    final addImage = await showConstrainedDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Запрос создан'),

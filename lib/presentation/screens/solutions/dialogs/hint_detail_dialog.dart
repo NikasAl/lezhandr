@@ -19,7 +19,7 @@ void showHintDetailDialog({
   bool isEditing = false;
   bool isGenerating = false;
 
-  showAdaptiveDialog(
+  showConstrainedDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(

@@ -34,9 +34,9 @@ class AdaptiveLayout extends StatelessWidget {
   }
 }
 
-/// Shows an adaptive dialog with constrained width on wide screens.
+/// Shows a dialog with constrained width on wide screens.
 /// On mobile, uses standard AlertDialog behavior.
-Future<T?> showAdaptiveDialog<T>({
+Future<T?> showConstrainedDialog<T>({
   required BuildContext context,
   required Widget Function(BuildContext) builder,
   bool barrierDismissible = true,

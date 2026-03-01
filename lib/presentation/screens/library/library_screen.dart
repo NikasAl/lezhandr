@@ -400,7 +400,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final searchController = TextEditingController(text: _searchQuery);
     bool searchByReference = _searchByReference;
 
-    showAdaptiveDialog(
+    showConstrainedDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -529,7 +529,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     // Save outer context for navigation after dialog closes
     final outerContext = context;
 
-    showAdaptiveDialog(
+    showConstrainedDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -583,7 +583,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     onPressed: () {
                       // Show input for new source
                       final newSourceController = TextEditingController();
-                      showAdaptiveDialog(
+                      showConstrainedDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Новый источник'),
@@ -718,7 +718,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           _resetPagination();
 
                           // Ask if user wants to add photo - use outerContext for navigation
-                          final addPhoto = await showAdaptiveDialog<bool>(
+                          final addPhoto = await showConstrainedDialog<bool>(
                             context: outerContext,
                             builder: (ctx) => AlertDialog(
                               title: const Row(

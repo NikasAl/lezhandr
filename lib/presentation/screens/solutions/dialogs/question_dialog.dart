@@ -13,7 +13,7 @@ Future<bool> showQuestionDialog({
 }) async {
   final controller = TextEditingController();
 
-  final result = await showAdaptiveDialog<bool>(
+  final result = await showConstrainedDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Row(
@@ -69,7 +69,7 @@ Future<bool> showQuestionDialog({
 
   // Offer to add image
   if (question?.id != null && context.mounted) {
-    final addImage = await showAdaptiveDialog<bool>(
+    final addImage = await showConstrainedDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Вопрос сохранён!'),

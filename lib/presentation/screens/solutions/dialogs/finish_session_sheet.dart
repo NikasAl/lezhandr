@@ -218,7 +218,7 @@ void showFinishSessionSheet({
                           final motivationEngine = MotivationEngine();
                           final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
                           if (motivation != null && context.mounted) {
-                            await showAdaptiveDialog(
+                            await showConstrainedDialog(
                               context: context,
                               barrierDismissible: true,
                               builder: (ctx) => AlertDialog(

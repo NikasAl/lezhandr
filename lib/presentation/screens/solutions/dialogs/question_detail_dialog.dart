@@ -19,7 +19,7 @@ void showQuestionDetailDialog({
   bool isGenerating = false;
   bool hasText = answerController.text.isNotEmpty;
 
-  showAdaptiveDialog(
+  showConstrainedDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
