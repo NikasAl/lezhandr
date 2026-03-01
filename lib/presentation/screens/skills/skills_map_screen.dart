@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/models/concept_progress.dart';
 import '../../providers/concepts_progress_provider.dart';
 import '../../providers/providers.dart';
+import '../widgets/shared/adaptive_layout.dart';
 
 void _log(String message) {
   developer.log(message, name: 'SkillsMap');
@@ -137,17 +138,24 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _log('.pull-to-refresh triggered');
-          ref.invalidate(conceptStatsProvider);
-          ref.invalidate(conceptProgressListProvider);
-          _loadData();
-          // Wait for the first page to load
-          await Future.delayed(const Duration(milliseconds: 500));
-        },
-        child: CustomScrollView(
-          slivers: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 600;
+          
+          return RefreshIndicator(
+            onRefresh: () async {
+              _log('.pull-to-refresh triggered');
+              ref.invalidate(conceptStatsProvider);
+              ref.invalidate(conceptProgressListProvider);
+              _loadData();
+              // Wait for the first page to load
+              await Future.delayed(const Duration(milliseconds: 500));
+            },
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: CustomScrollView(
+                  slivers: [
             // Stats section
             SliverToBoxAdapter(
               child: statsAsync.when(
@@ -225,7 +233,11 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
               child: SizedBox(height: 80),
             ),
           ],
-        ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

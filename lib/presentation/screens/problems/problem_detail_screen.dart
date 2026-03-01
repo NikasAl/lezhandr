@@ -9,6 +9,7 @@ import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import 'widgets/widgets.dart';
 
 /// Problem detail screen
@@ -260,9 +261,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
           
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: AdaptiveLayout(
+              maxWidth: 900,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Header
                 ProblemHeader(problem: data),
                 const SizedBox(height: 16),
@@ -319,6 +322,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   currentUserId: currentUser?.id,
                 ),
               ],
+            ),
             ),
           );
         },

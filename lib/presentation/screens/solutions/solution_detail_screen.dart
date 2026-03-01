@@ -7,6 +7,7 @@ import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import 'widgets/widgets.dart';
 
 /// Solution detail screen for viewing completed or active solution
@@ -122,9 +123,11 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
           
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: AdaptiveLayout(
+              maxWidth: 900,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Status card with added_by
                 SolutionStatusCard(solution: sol, addedBy: sol.addedBy),
                 const SizedBox(height: 16),
@@ -187,6 +190,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 const SizedBox(height: 8),
                 HintsSection(solutionId: widget.solutionId),
               ],
+            ),
             ),
           );
         },

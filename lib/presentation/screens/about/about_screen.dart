@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/shared/adaptive_layout.dart';
 
 /// About screen - app description and welcome page
 /// Shows on first launch or when user taps app icon/version info
@@ -56,10 +57,12 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 controller: _scrollController,
                 child: SingleChildScrollView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                  child: AdaptiveLayout(
+                    maxWidth: 800,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                       // Hero image
                       _buildHeroImage(),
                       const SizedBox(height: 32),
@@ -143,6 +146,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                       _buildVersionInfo(context),
                       const SizedBox(height: 16),
                     ],
+                  ),
                   ),
                 ),
               ),
