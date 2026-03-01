@@ -14,7 +14,6 @@ import '../../providers/problems_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
-import '../../widgets/shared/adaptive_layout.dart';
 // Dialogs - extracted to separate files for better maintainability
 import 'dialogs/dialogs.dart';
 
@@ -68,71 +67,206 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     }
   }
 
-  /// Show session introduction dialog
+  /// Show session introduction as bottom sheet
   void _showIntroDialog() {
-    showConstrainedDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.lightbulb_outline, size: 48),
-        title: const Text('Время подумать'),
-        content: const SingleChildScrollView(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Header with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.lightbulb_outline, size: 32, color: Colors.amber),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Время подумать',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Main message
               Text(
                 'Теперь пришло время взять чистый листок бумаги и подумать над решением задачи.',
-                style: TextStyle(fontSize: 16),
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-              SizedBox(height: 16),
-              Text(
-                'Именно это время является самым ценным — происходит настоящий прогресс в знаниях и навыках.',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              const SizedBox(height: 16),
+              
+              // Highlighted quote
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.format_quote,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Именно это время является самым ценным — происходит настоящий прогресс в знаниях и навыках.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
+              
               Text(
                 'Постарайтесь решить задачу целиком самостоятельно и без подсказок — это максимально ценный опыт.',
-                style: TextStyle(fontSize: 16),
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 12),
+              
               Text(
                 'Если на это уходит много времени, можно остановить сессию и вернуться к задаче позже столько раз, сколько потребуется.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-              SizedBox(height: 16),
-              Divider(),
-              SizedBox(height: 8),
-              Text(
-                'На этой странице можно:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              const SizedBox(height: 24),
+              
+              // What you can do section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'На этой странице можно:',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureItem(Icons.help_outline, 'Отмечать свои вопросы', Colors.blue),
+                    const SizedBox(height: 8),
+                    _buildFeatureItem(Icons.lightbulb_outline, 'Фиксировать озарения', Colors.amber),
+                    const SizedBox(height: 8),
+                    _buildFeatureItem(Icons.tips_and_updates_outlined, 'Запросить подсказку', Colors.purple),
+                    const SizedBox(height: 8),
+                    _buildFeatureItem(Icons.chat_bubble_outline, 'Получить ответ на вопрос', Colors.green),
+                  ],
+                ),
               ),
-              SizedBox(height: 8),
-              Text('• Отмечать свои вопросы'),
-              Text('• Фиксировать озарения — внезапно приходящее понимание'),
-              Text('• Запросить подсказку у персонажей'),
-              Text('• Получить ответ на созданный вопрос'),
-              SizedBox(height: 16),
-              Divider(),
-              SizedBox(height: 8),
-              Text(
-                'Но не нужно спешить!',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.deepOrange),
+              const SizedBox(height: 24),
+              
+              // Warning section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.deepOrange.withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: Colors.deepOrange, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Но не нужно спешить!',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Хорошая задача решается три дня и три ночи. Частое обращение к подсказкам помешает созреванию собственной догадки и уменьшит радость открытия.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Хорошая задача решается три дня и три ночи. Частое обращение к подсказкам помешает созреванию собственной догадки и уменьшит радость открытия.',
-                style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+              const SizedBox(height: 24),
+              
+              // Action button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Понятно, начинаю!'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Понятно, начинаю!'),
-          ),
-        ],
       ),
+    );
+  }
+  
+  Widget _buildFeatureItem(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(text),
+        ),
+      ],
     );
   }
 
