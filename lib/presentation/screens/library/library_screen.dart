@@ -415,7 +415,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         searchByReference
@@ -425,11 +424,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        searchByReference
-                            ? 'Поиск по номеру/названию'
-                            : 'Поиск по тексту условия',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Expanded(
+                        child: Text(
+                          searchByReference
+                              ? 'Поиск по номеру/названию'
+                              : 'Поиск по тексту условия',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Switch(
