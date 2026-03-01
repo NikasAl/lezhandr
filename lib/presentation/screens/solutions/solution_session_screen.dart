@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/motivation/motivation_engine.dart';
 import '../../../core/motivation/motivation_models.dart';
 import '../../../data/models/artifacts.dart';
@@ -43,11 +44,95 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
   MotivationText? _cachedMotivation;
   int _lastMotivationMinute = -1;
 
+  // Session intro hint key
+  static const _sessionIntroShownKey = 'session_intro_shown';
+
   @override
   void initState() {
     super.initState();
     _startTime = DateTime.now();
     _startTimer();
+    _showIntroIfFirstTime();
+  }
+
+  /// Show intro dialog on first visit
+  Future<void> _showIntroIfFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shown = prefs.getBool(_sessionIntroShownKey) ?? false;
+    if (!shown) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showIntroDialog();
+      });
+      await prefs.setBool(_sessionIntroShownKey, true);
+    }
+  }
+
+  /// Show session introduction dialog
+  void _showIntroDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.lightbulb_outline, size: 48),
+        title: const Text('Время подумать'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Теперь пришло время взять чистый листок бумаги и подумать над решением задачи.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Именно это время является самым ценным — происходит настоящий прогресс в знаниях и навыках.',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Постарайтесь решить задачу целиком самостоятельно и без подсказок — это максимально ценный опыт.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Если на это уходит много времени, можно остановить сессию и вернуться к задаче позже столько раз, сколько потребуется.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 8),
+              Text(
+                'На этой странице можно:',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              Text('• Отмечать свои вопросы'),
+              Text('• Фиксировать озарения — внезапно приходящее понимание'),
+              Text('• Запросить подсказку у персонажей'),
+              Text('• Получить ответ на созданный вопрос'),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 8),
+              Text(
+                'Но не нужно спешить!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.deepOrange),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Хорошая задача решается три дня и три ночи. Частое обращение к подсказкам помешает созреванию собственной догадки и уменьшит радость открытия.',
+                style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Понятно, начинаю!'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startTimer() {
@@ -158,6 +243,11 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
         title: const Text('Сессия'),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Подсказка',
+            onPressed: _showIntroDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart),
             onPressed: () {
