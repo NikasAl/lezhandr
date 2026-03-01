@@ -5,6 +5,7 @@ import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/adaptive_layout.dart';
 
 /// Shows hint detail dialog with full text and edit option
 void showHintDetailDialog({
@@ -18,7 +19,7 @@ void showHintDetailDialog({
   bool isEditing = false;
   bool isGenerating = false;
 
-  showDialog(
+  showAdaptiveDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(

@@ -14,6 +14,7 @@ import '../../providers/problems_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 // Dialogs - extracted to separate files for better maintainability
 import 'dialogs/dialogs.dart';
 
@@ -69,7 +70,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
 
   /// Show session introduction dialog
   void _showIntroDialog() {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.lightbulb_outline, size: 48),
@@ -238,6 +239,10 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     // Get motivation for session (cached, changes once per minute)
     final motivation = _getMotivation();
 
+    // Adaptive layout for wide screens
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Сессия'),
@@ -257,13 +262,14 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
         ],
       ),
       body: solution.when(
-        data: (data) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Timer card
-              Card(
+        data: (data) {
+          final bodyContent = SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Timer card
+                Card(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -402,7 +408,19 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               ],
             ],
           ),
-        ),
+        );
+
+          // Wrap with constraints for wide screens
+          if (isWideScreen) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: bodyContent,
+              ),
+            );
+          }
+          return bodyContent;
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
@@ -421,29 +439,58 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+      bottomNavigationBar: isWideScreen
+          ? Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: FilledButton.icon(
+                      onPressed: _finishSession,
+                      icon: const Icon(Icons.flag),
+                      label: const Text('Завершить сессию'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: FilledButton.icon(
+                  onPressed: _finishSession,
+                  icon: const Icon(Icons.flag),
+                  label: const Text('Завершить сессию'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: FilledButton.icon(
-            onPressed: _finishSession,
-            icon: const Icon(Icons.flag),
-            label: const Text('Завершить сессию'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

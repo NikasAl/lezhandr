@@ -9,6 +9,7 @@ import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/source_selector.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/motivation/motivation_card.dart';
 
 /// Library screen - browse sources and problems with pagination
@@ -399,7 +400,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final searchController = TextEditingController(text: _searchQuery);
     bool searchByReference = _searchByReference;
 
-    showDialog(
+    showAdaptiveDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -528,7 +529,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     // Save outer context for navigation after dialog closes
     final outerContext = context;
 
-    showDialog(
+    showAdaptiveDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -582,7 +583,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     onPressed: () {
                       // Show input for new source
                       final newSourceController = TextEditingController();
-                      showDialog(
+                      showAdaptiveDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Новый источник'),
@@ -717,7 +718,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           _resetPagination();
 
                           // Ask if user wants to add photo - use outerContext for navigation
-                          final addPhoto = await showDialog<bool>(
+                          final addPhoto = await showAdaptiveDialog<bool>(
                             context: outerContext,
                             builder: (ctx) => AlertDialog(
                               title: const Row(

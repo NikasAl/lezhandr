@@ -6,6 +6,7 @@ import '../../../../core/motivation/motivation_engine.dart';
 import '../../../providers/solutions_provider.dart';
 import '../../../providers/gamification_provider.dart';
 import '../../../widgets/motivation/motivation_card.dart';
+import '../../../widgets/shared/adaptive_layout.dart';
 
 /// Shows finish session bottom sheet with options to pause or complete
 void showFinishSessionSheet({
@@ -217,7 +218,7 @@ void showFinishSessionSheet({
                           final motivationEngine = MotivationEngine();
                           final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
                           if (motivation != null && context.mounted) {
-                            await showDialog(
+                            await showAdaptiveDialog(
                               context: context,
                               barrierDismissible: true,
                               builder: (ctx) => AlertDialog(

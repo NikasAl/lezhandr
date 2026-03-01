@@ -5,6 +5,7 @@ import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/adaptive_layout.dart';
 import 'hint_detail_dialog.dart';
 
 /// Shows hint creation flow with multiple steps
@@ -21,7 +22,7 @@ Future<bool> showHintDialog({
   final notesController = TextEditingController();
 
   // Step 1: Get user notes
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showAdaptiveDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Row(
@@ -85,7 +86,7 @@ Future<bool> showHintDialog({
 
   // Step 3: Offer to add image
   if (context.mounted) {
-    final addImage = await showDialog<bool>(
+    final addImage = await showAdaptiveDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Запрос создан'),

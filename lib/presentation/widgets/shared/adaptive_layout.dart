@@ -34,6 +34,34 @@ class AdaptiveLayout extends StatelessWidget {
   }
 }
 
+/// Shows an adaptive dialog with constrained width on wide screens.
+/// On mobile, uses standard AlertDialog behavior.
+Future<T?> showAdaptiveDialog<T>({
+  required BuildContext context,
+  required Widget Function(BuildContext) builder,
+  bool barrierDismissible = true,
+  double maxWidth = 500,
+}) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isWideScreen = screenWidth >= 600;
+
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: (dialogContext) {
+      if (isWideScreen) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: builder(dialogContext),
+          ),
+        );
+      }
+      return builder(dialogContext);
+    },
+  );
+}
+
 /// Extension to easily check if screen is wide
 extension ScreenSizeExtension on BuildContext {
   bool get isWideScreen => MediaQuery.of(this).size.width >= 600;

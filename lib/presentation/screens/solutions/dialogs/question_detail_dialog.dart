@@ -5,6 +5,7 @@ import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/adaptive_layout.dart';
 
 /// Shows question detail dialog with answer and AI option
 void showQuestionDetailDialog({
@@ -18,7 +19,7 @@ void showQuestionDetailDialog({
   bool isGenerating = false;
   bool hasText = answerController.text.isNotEmpty;
 
-  showDialog(
+  showAdaptiveDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(

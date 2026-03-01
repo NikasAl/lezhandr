@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/artifacts_provider.dart';
+import '../../../widgets/shared/adaptive_layout.dart';
 
 /// Shows question creation dialog and handles the flow
 /// Returns true if question was created successfully
@@ -12,7 +13,7 @@ Future<bool> showQuestionDialog({
 }) async {
   final controller = TextEditingController();
 
-  final result = await showDialog<bool>(
+  final result = await showAdaptiveDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Row(
@@ -68,7 +69,7 @@ Future<bool> showQuestionDialog({
 
   // Offer to add image
   if (question?.id != null && context.mounted) {
-    final addImage = await showDialog<bool>(
+    final addImage = await showAdaptiveDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Вопрос сохранён!'),
