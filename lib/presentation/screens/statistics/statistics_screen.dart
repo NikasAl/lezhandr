@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/gamification_provider.dart';
 import '../../../core/utils/russian_plural.dart';
+import '../../../core/motivation/motivation_engine.dart';
+import '../widgets/motivation/motivation_card.dart';
 
 /// Statistics screen - show progress and activity
 class StatisticsScreen extends ConsumerWidget {
@@ -72,6 +74,27 @@ class StatisticsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              
+              // Streak motivation
+              if ((gamification.value?.streakCurrent ?? 0) >= 1) ...[
+                const SizedBox(height: 12),
+                Builder(
+                  builder: (context) {
+                    final motivationEngine = MotivationEngine();
+                    final streakDays = gamification.value?.streakCurrent ?? 0;
+                    final motivation = motivationEngine.getStreakText(streakDays);
+                    if (motivation != null) {
+                      return MotivationCard(
+                        motivation: motivation,
+                        showAuthor: false,
+                        animate: false,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+              
               const SizedBox(height: 24),
 
               // Activity chart

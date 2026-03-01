@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/models/problem.dart';
+import '../../../core/motivation/motivation_engine.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/source_selector.dart';
+import '../../widgets/motivation/motivation_card.dart';
 
 /// Library screen - browse sources and problems with pagination
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -264,7 +266,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 final problems = _accumulatedProblems;
                 
                 if (problems.isEmpty) {
-                  return Center(
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -280,10 +283,30 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Выберите другой источник или создайте задачу',
+                          _searchQuery.isNotEmpty
+                              ? 'По вашему запросу ничего не найдено'
+                              : 'Выберите другой источник или создайте задачу',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
+                          textAlign: TextAlign.center,
+                        ),
+                        
+                        // Show motivation when no results
+                        const SizedBox(height: 24),
+                        Builder(
+                          builder: (context) {
+                            final motivationEngine = MotivationEngine();
+                            final motivation = motivationEngine.getOnboardingText();
+                            if (motivation != null) {
+                              return MotivationCard(
+                                motivation: motivation,
+                                showAuthor: false,
+                                animate: false,
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
                         ),
                       ],
                     ),

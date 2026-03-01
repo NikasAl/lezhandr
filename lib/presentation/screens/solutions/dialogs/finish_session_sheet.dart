@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/solution.dart';
+import '../../../../core/motivation/motivation_engine.dart';
 import '../../../providers/solutions_provider.dart';
 import '../../../providers/gamification_provider.dart';
+import '../../widgets/motivation/motivation_card.dart';
 
 /// Shows finish session bottom sheet with options to pause or complete
 void showFinishSessionSheet({
@@ -210,13 +212,39 @@ void showFinishSessionSheet({
                         if (context.mounted) {
                           _refreshHomeData(ref, problemId: result?.problemId);
                           Navigator.pop(sheetContext);
-                          context.go('/main/home');
-                          if (result != null && result.xpEarned != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}'),
+                          
+                          // Show motivation dialog after completion
+                          final motivationEngine = MotivationEngine();
+                          final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
+                          if (motivation != null && context.mounted) {
+                            await showDialog(
+                              context: context,
+                              barrierDismissible: true,
+                              builder: (ctx) => AlertDialog(
+                                content: MotivationCard(
+                                  motivation: motivation,
+                                  showAuthor: false,
+                                  animate: false,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Спасибо!'),
+                                  ),
+                                ],
                               ),
                             );
+                          }
+                          
+                          if (context.mounted) {
+                            context.go('/main/home');
+                            if (result != null && result.xpEarned != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}'),
+                                ),
+                              );
+                            }
                           }
                         }
                       },
