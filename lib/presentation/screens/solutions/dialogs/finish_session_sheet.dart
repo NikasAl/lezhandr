@@ -5,7 +5,7 @@ import '../../../../data/models/solution.dart';
 import '../../../../core/motivation/motivation_engine.dart';
 import '../../../providers/solutions_provider.dart';
 import '../../../providers/gamification_provider.dart';
-import '../../widgets/motivation/motivation_card.dart';
+import '../../../widgets/motivation/motivation_card.dart';
 
 /// Shows finish session bottom sheet with options to pause or complete
 void showFinishSessionSheet({
