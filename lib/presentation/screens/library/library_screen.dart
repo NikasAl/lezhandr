@@ -427,8 +427,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       Expanded(
                         child: Text(
                           searchByReference
-                              ? 'Поиск по номеру/названию'
-                              : 'Поиск по тексту условия',
+                              ? 'По номеру/названию'
+                              : 'По тексту условия',
                           style: Theme.of(context).textTheme.bodyMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
