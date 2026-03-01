@@ -14,7 +14,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'thinking_02',
-      text: 'Математика учит не только считать, но думать. Физика — не формулы, а видение мира глазами ученого',
+      text: 'Математика учит не только считать, но думать.',
       category: MotivationCategory.thinking,
       tags: ['math', 'physics', 'vision'],
     ),
@@ -42,6 +42,12 @@ class MotivationTexts {
       category: MotivationCategory.thinking,
       tags: ['classic', 'mind', 'order'],
     ),
+    const MotivationText(
+      id: 'thinking_07',
+      text: 'Физика — не формулы, а видение устройства мира глазами ученого',
+      category: MotivationCategory.thinking,
+      tags: ['physics', 'mind', 'order'],
+    ), 
 
     // PRACTICAL - Практическая польза
     const MotivationText(
@@ -52,13 +58,13 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'practical_02',
-      text: 'Не знаешь, зачем тебе интегралы? Начни делать вещи, и они сами начнут решаться',
+      text: 'Не знаешь, зачем тебе интегралы? Начни делать вещи, и интегралы пригодятся',
       category: MotivationCategory.practical,
       tags: ['integrals', 'action', 'understanding'],
     ),
     const MotivationText(
       id: 'practical_03',
-      text: 'Каждая задача — это шаг к тому, чтобы понимать, как устроен мир вокруг тебя',
+      text: 'Каждая решенная задача — это шаг к тому, чтобы понимать, как устроен мир вокруг тебя',
       category: MotivationCategory.practical,
       tags: ['world', 'understanding', 'steps'],
     ),
@@ -84,13 +90,13 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'satisfaction_02',
-      text: 'Самый сладкий момент в учебе — это когда после долгих попыток лампочка наконец загорается над головой',
+      text: 'Лучший момент в учебе — когда после долгих попыток лампочка наконец загорается над головой',
       category: MotivationCategory.satisfaction,
       tags: ['eureka', 'success', 'effort'],
     ),
     const MotivationText(
       id: 'satisfaction_03',
-      text: 'Ты не просто решаешь задачи — ты собираешь пазл своего образования, и каждая деталь важна',
+      text: 'Решая задачи — ты собираешь пазл своего образования, где каждая деталь важна',
       category: MotivationCategory.satisfaction,
       tags: ['puzzle', 'education', 'importance'],
     ),
@@ -116,21 +122,27 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'career_03',
-      text: 'Диплом откроет двери, а умение решать сложные задачи сделает тебя незаменимым',
+      text: 'Диплом откроет двери, а умение решать сложные задачи обеспечит движение к целям',
       category: MotivationCategory.career,
       tags: ['career', 'value', 'indispensable'],
     ),
     const MotivationText(
       id: 'career_04',
-      text: 'Инженеры, учёные, программисты — все они начали с решения задач. Твой путь начинается здесь',
+      text: 'Инженеры, учёные, программисты — все они начали с решения задач. Этот путь начинается с задачников',
       category: MotivationCategory.career,
       tags: ['career', 'path', 'profession'],
+    ),
+    const MotivationText(
+      id: 'career_05',
+      text: 'Хороший специалист в любой области — это человек, который умеет решать задачи. Начни с физических',
+      category: MotivationCategory.career,
+      tags: ['specialist', 'skills', 'professional'],
     ),
 
     // PERSEVERANCE - Преодоление трудностей
     const MotivationText(
       id: 'perseverance_01',
-      text: 'Самые сильные мышцы растут от тяжелых упражнений, а умные мозги — от сложных задач',
+      text: 'Самые сильные мышцы растут от тяжелых упражнений, а способности — от сложных задач',
       category: MotivationCategory.perseverance,
       tags: ['growth', 'difficulty', 'strength'],
     ),
@@ -154,7 +166,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'perseverance_05',
-      text: 'Время, потраченное на задачи — это знания, опыт и лучшая инвестиция в будущее, которую ты можешь сделать',
+      text: 'Время, потраченное на задачи — это знания, опыт и лучшая инвестиция в будущее, которую можно сделать',
       category: MotivationCategory.perseverance,
       tags: ['time', 'investment', 'future'],
     ),
@@ -297,7 +309,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'streak_10b',
-      text: 'Две пятёрки подряд! Математики любят такие числа',
+      text: 'Дважды по пять! Прогресс неминуем',
       category: MotivationCategory.streak,
       tags: ['streak', 'numbers', 'fun'],
       condition: 'streak_10',
@@ -346,7 +358,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'streak_02c',
-      text: '30 дней — это серьёзный срок. Гордишься собой? Стоит!',
+      text: '30 дней решения задач — это уже привычка. Самая полезная',
       category: MotivationCategory.streak,
       tags: ['streak', 'pride', 'milestone'],
       condition: 'streak_30',
@@ -374,7 +386,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'streak_06',
-      text: 'Огонь в твоём стрике горит уже {days}! Не дай ему погаснуть',
+      text: 'Огонь решения задач горит уже {days}! Не дай ему погаснуть',
       category: MotivationCategory.streak,
       tags: ['fire', 'days', 'continue'],
       trigger: 'streak_active',
@@ -439,7 +451,7 @@ class MotivationTexts {
     ),
     const MotivationText(
       id: 'achievement_07',
-      text: '📚 Ты прорешал задачи из 5 разных источников! Разносторонность — сила!',
+      text: '📚 Решены задачи из 5 разных источников! Разносторонность — это сила!',
       category: MotivationCategory.achievements,
       tags: ['sources', 'diversity', 'strength'],
       condition: 'sources_5',

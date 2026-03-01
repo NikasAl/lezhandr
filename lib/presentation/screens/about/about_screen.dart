@@ -87,10 +87,11 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                       _buildSection(
                         context,
                         title: 'Философия развития',
-                        content: 'Мы верим, что способность преодолевать трудности — это главный навык, '
-                            'который можно и нужно развивать. Решение сложных задач тренирует не только '
-                            'логическое мышление, но и волю, терпение, умение не сдаваться перед лицом '
-                            'неизвестности. Каждая задача — это возможность стать лучше, сильнее, увереннее в себе.',
+                        content: 'Мы верим, что способность преодолевать трудности — развивается путем решения сложных задач. '
+                            'Её можно и нужно развивать всем кто желает улучшить свое понимание устройства Мира и достигать любых, '
+                            'поставленных перед собой целей. Решение сложных задач тренирует не только '
+                            'логическое мышление, но и волю, терпение, умение не сдаваться перед трудностями и '
+                            'неизвестностью. Каждая задача — это возможность стать лучше, ментально сильнее и увереннее в своих способностях.',
                       ),
                       const SizedBox(height: 24),
 
@@ -107,7 +108,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                         context,
                         title: 'Мотивация и поддержка',
                         content: 'Приложение не оставит вас наедине с трудностями. Персональные помощники — '
-                            'Кот Базис, Дядя Петрович и Лежандр — всегда готовы подсказать, направить и '
+                            'Кот Базис, Дворник Петрович и Адриен-Мари Лежандр — всегда готовы подсказать, направить и '
                             'поддержать. Система мотивации отслеживает ваш прогресс, напоминает о занятиях '
                             'и празднует ваши достижения. Стрики, XP, достижения — всё это превращает '
                             'учёбу в увлекательный процесс.',
@@ -176,7 +177,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Твой путь к мастерству',
+          'Ваш путь к мастерству',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,
@@ -439,8 +440,8 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Каждая решённая задача делает вас немного лучше. '
-            'Начните свой путь к мастерству уже сегодня!',
+            'Каждая решённая задача делает вас лучше. '
+            'Продолжите путь к мастерству сегодня!',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
@@ -475,7 +476,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'MindVector Client',
+            'MindVector Client \n kreagenium.ru',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

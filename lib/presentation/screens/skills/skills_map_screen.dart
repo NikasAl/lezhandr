@@ -125,7 +125,7 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Моя карта навыков'),
+        title: const Text('Карта концептов'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

@@ -351,7 +351,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'MindVector Client',
+                          'MindVector Client \n kreagenium.ru',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color:
                                     Theme.of(context).colorScheme.onSurfaceVariant,
