@@ -20,6 +20,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedSource;
   String _searchQuery = '';
+  bool _searchByReference = false; // Search mode: false = by text, true = by reference
   bool _showMyOnly = false;
   
   // Accumulated problems list for infinite scroll
@@ -61,7 +62,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final repo = ref.read(problemsRepositoryProvider);
       final response = await repo.getProblems(
         source: _selectedSource,
-        search: _searchQuery.isEmpty ? null : _searchQuery,
+        search: _searchQuery.isEmpty || _searchByReference ? null : _searchQuery,
+        reference: _searchQuery.isEmpty || !_searchByReference ? null : _searchQuery,
         userId: userId,
         limit: 20,
         offset: _accumulatedProblems.length,
@@ -130,7 +132,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     // Base filter for initial load (always offset 0)
     final baseFilter = ProblemsFilter(
       source: _selectedSource,
-      search: _searchQuery.isEmpty ? null : _searchQuery,
+      search: _searchQuery.isEmpty || _searchByReference ? null : _searchQuery,
+      reference: _searchQuery.isEmpty || !_searchByReference ? null : _searchQuery,
       userId: userId,
       limit: 20,
       offset: 0,
@@ -204,6 +207,54 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ],
             ),
           ),
+          // Active search indicator
+          if (_searchQuery.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              child: Row(
+                children: [
+                  Icon(
+                    _searchByReference ? Icons.numbers : Icons.text_fields,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _searchByReference
+                          ? 'Поиск по номеру: "$_searchQuery"'
+                          : 'Поиск по тексту: "$_searchQuery"',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _searchQuery = '';
+                        _searchByReference = false;
+                        _resetPagination();
+                        ref.invalidate(problemsListProvider);
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const Divider(height: 1),
 
           // Problems list with pagination
@@ -323,51 +374,105 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// Show search dialog
   void _showSearchDialog(BuildContext context) {
     final searchController = TextEditingController(text: _searchQuery);
-    
+    bool searchByReference = _searchByReference;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Поиск задач'),
-        content: TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            hintText: 'Введите текст для поиска...',
-            prefixIcon: Icon(Icons.search),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Поиск задач'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: searchByReference
+                      ? 'Введите номер/название...'
+                      : 'Введите текст условия...',
+                  prefixIcon: const Icon(Icons.search),
+                ),
+                autofocus: true,
+                onSubmitted: (value) {
+                  Navigator.pop(dialogContext);
+                  setState(() {
+                    _searchQuery = value;
+                    _searchByReference = searchByReference;
+                    _resetPagination();
+                    ref.invalidate(problemsListProvider);
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              // Search mode toggle
+              InkWell(
+                onTap: () {
+                  setDialogState(() {
+                    searchByReference = !searchByReference;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        searchByReference
+                            ? Icons.numbers
+                            : Icons.text_fields,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        searchByReference
+                            ? 'Поиск по номеру/названию'
+                            : 'Поиск по тексту условия',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: searchByReference,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            searchByReference = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          autofocus: true,
-          onSubmitted: (value) {
-            Navigator.pop(context);
-            setState(() {
-              _searchQuery = value;
-              _resetPagination();
-              ref.invalidate(problemsListProvider);
-            });
-          },
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                setState(() {
+                  _searchQuery = '';
+                  _searchByReference = false;
+                  _resetPagination();
+                  ref.invalidate(problemsListProvider);
+                });
+              },
+              child: const Text('Сбросить'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                setState(() {
+                  _searchQuery = searchController.text;
+                  _searchByReference = searchByReference;
+                  _resetPagination();
+                  ref.invalidate(problemsListProvider);
+                });
+              },
+              child: const Text('Найти'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _searchQuery = '';
-                _resetPagination();
-                ref.invalidate(problemsListProvider);
-              });
-            },
-            child: const Text('Сбросить'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _searchQuery = searchController.text;
-                _resetPagination();
-                ref.invalidate(problemsListProvider);
-              });
-            },
-            child: const Text('Найти'),
-          ),
-        ],
       ),
     );
   }
