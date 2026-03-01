@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../data/models/concept_progress.dart';
 import '../../providers/concepts_progress_provider.dart';
 import '../../providers/providers.dart';
-import '../widgets/shared/adaptive_layout.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 void _log(String message) {
   developer.log(message, name: 'SkillsMap');
