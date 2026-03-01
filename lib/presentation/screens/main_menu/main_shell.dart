@@ -70,6 +70,44 @@ class _MainShellState extends ConsumerState<MainShell> {
     // This ensures the persona selector knows if Basis is available
     ref.watch(billingBalanceProvider);
     
+    // Check screen width for adaptive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= 600;
+    
+    // Wide screen: side navigation rail
+    if (isWideScreen) {
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: _onTap,
+              labelType: NavigationRailLabelType.all,
+              leading: const Icon(Icons.calculate, size: 32), // App icon
+              destinations: _navItems
+                  .map((item) => NavigationRailDestination(
+                        icon: Icon(item.icon),
+                        selectedIcon: Icon(item.activeIcon),
+                        label: Text(item.label),
+                      ))
+                  .toList(),
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            // Expanded content with max width constraint
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: widget.child,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Mobile: bottom navigation
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
