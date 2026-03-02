@@ -3,6 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/artifacts_provider.dart';
 
+/// Result data from epiphany sheet
+class _EpiphanyResult {
+  final bool confirmed;
+  final String? description;
+  final int magnitude;
+
+  _EpiphanyResult({required this.confirmed, this.description, this.magnitude = 1});
+}
+
 /// Shows epiphany creation bottom sheet and handles the flow
 /// Returns true if epiphany was created successfully
 Future<bool> showEpiphanyDialog({
@@ -10,34 +19,25 @@ Future<bool> showEpiphanyDialog({
   required WidgetRef ref,
   required int solutionId,
 }) async {
-  final controller = TextEditingController();
-
-  final result = await showModalBottomSheet<bool>(
+  // Step 1: Get user input
+  final result = await showModalBottomSheet<_EpiphanyResult>(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (sheetContext) => _EpiphanySheetContent(
-      controller: controller,
-    ),
+    builder: (sheetContext) => const _EpiphanySheetContent(),
   );
 
-  // Always dispose controller after sheet is closed
-  controller.dispose();
-
-  if (result != true || controller.text.isEmpty) {
+  if (result == null || !result.confirmed || result.description == null || result.description!.isEmpty) {
     return false;
   }
-
-  // Get magnitude from the result (passed through the sheet)
-  final magnitude = result == true ? 1 : 1; // Default, actual magnitude stored in closure
 
   // Create epiphany
   final epiphany = await ref.read(epiphanyNotifierProvider.notifier).create(
     solutionId: solutionId,
-    description: controller.text,
-    magnitude: magnitude,
+    description: result.description!,
+    magnitude: result.magnitude,
   );
 
   if (!context.mounted) return false;
@@ -52,7 +52,7 @@ Future<bool> showEpiphanyDialog({
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => _SuccessSheet(
+      builder: (ctx) => const _SuccessSheet(
         title: 'Озарение сохранено!',
         subtitle: 'Добавить схему или рисунок?',
       ),
@@ -66,18 +66,41 @@ Future<bool> showEpiphanyDialog({
   return epiphany?.id != null;
 }
 
-/// Epiphany sheet content as StatefulWidget to properly manage state
+/// Epiphany sheet content - manages its own controller
 class _EpiphanySheetContent extends StatefulWidget {
-  final TextEditingController controller;
-
-  const _EpiphanySheetContent({required this.controller});
+  const _EpiphanySheetContent();
 
   @override
   State<_EpiphanySheetContent> createState() => _EpiphanySheetContentState();
 }
 
 class _EpiphanySheetContentState extends State<_EpiphanySheetContent> {
+  late final TextEditingController _controller;
   int _magnitude = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(_EpiphanyResult(
+      confirmed: true,
+      description: _controller.text,
+      magnitude: _magnitude,
+    ));
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop(_EpiphanyResult(confirmed: false));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +153,7 @@ class _EpiphanySheetContentState extends State<_EpiphanySheetContent> {
 
             // Description input
             TextField(
-              controller: widget.controller,
+              controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'Опишите ваше озарение',
                 hintText: 'Что вдруг стало понятным?',
@@ -172,7 +195,7 @@ class _EpiphanySheetContentState extends State<_EpiphanySheetContent> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: _cancel,
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -180,7 +203,7 @@ class _EpiphanySheetContentState extends State<_EpiphanySheetContent> {
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    onPressed: _submit,
                     icon: const Icon(Icons.save),
                     label: const Text('Сохранить'),
                   ),
@@ -194,7 +217,7 @@ class _EpiphanySheetContentState extends State<_EpiphanySheetContent> {
   }
 }
 
-/// Simple success sheet without StatefulBuilder
+/// Simple success sheet without state
 class _SuccessSheet extends StatelessWidget {
   final String title;
   final String subtitle;

@@ -7,6 +7,14 @@ import '../../../providers/billing_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import 'hint_detail_dialog.dart';
 
+/// Result data from hint sheet
+class _HintResult {
+  final bool confirmed;
+  final String? userNotes;
+
+  _HintResult({required this.confirmed, this.userNotes});
+}
+
 /// Shows hint creation flow with multiple steps as bottom sheets
 /// 1. Get user notes
 /// 2. Create draft
@@ -18,31 +26,24 @@ Future<bool> showHintDialog({
   required WidgetRef ref,
   required int solutionId,
 }) async {
-  final notesController = TextEditingController();
-
   // Step 1: Get user notes
-  final confirmed = await showModalBottomSheet<bool>(
+  final result = await showModalBottomSheet<_HintResult>(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (sheetContext) => _HintSheetContent(
-      controller: notesController,
-    ),
+    builder: (sheetContext) => const _HintSheetContent(),
   );
 
-  // Always dispose controller after sheet is closed
-  notesController.dispose();
-
-  if (confirmed != true) {
+  if (result == null || !result.confirmed || result.userNotes == null) {
     return false;
   }
 
   // Step 2: Create hint draft
   final hint = await ref.read(hintNotifierProvider.notifier).createDraft(
     solutionId: solutionId,
-    userNotes: notesController.text,
+    userNotes: result.userNotes!,
   );
 
   // Refresh list
@@ -64,7 +65,7 @@ Future<bool> showHintDialog({
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => _SuccessSheet(
+      builder: (ctx) => const _SuccessSheet(
         title: 'Запрос создан',
         subtitle: 'Добавить фото контекста?',
       ),
@@ -91,7 +92,7 @@ Future<bool> showHintDialog({
 
     if (persona != null) {
       // Step 5: Generate hint
-      final result = await ref.read(hintNotifierProvider.notifier).generate(
+      final genResult = await ref.read(hintNotifierProvider.notifier).generate(
         hintId: hint.id!,
         persona: persona,
       );
@@ -105,9 +106,9 @@ Future<bool> showHintDialog({
         showHintDetailDialog(
           context: context,
           ref: ref,
-          hint: result ?? hint,
+          hint: genResult ?? hint,
           solutionId: solutionId,
-          isRegenerating: result == null || !result.hasHint,
+          isRegenerating: genResult == null || !genResult.hasHint,
         );
       }
     }
@@ -116,17 +117,40 @@ Future<bool> showHintDialog({
   return true;
 }
 
-/// Hint sheet content as StatefulWidget to properly manage state
+/// Hint sheet content - manages its own controller
 class _HintSheetContent extends StatefulWidget {
-  final TextEditingController controller;
-
-  const _HintSheetContent({required this.controller});
+  const _HintSheetContent();
 
   @override
   State<_HintSheetContent> createState() => _HintSheetContentState();
 }
 
 class _HintSheetContentState extends State<_HintSheetContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(_HintResult(
+      confirmed: true,
+      userNotes: _controller.text,
+    ));
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop(_HintResult(confirmed: false));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -178,7 +202,7 @@ class _HintSheetContentState extends State<_HintSheetContent> {
 
             // Notes input
             TextField(
-              controller: widget.controller,
+              controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'В чём проблема?',
                 hintText: 'Опишите, что не получается...',
@@ -194,7 +218,7 @@ class _HintSheetContentState extends State<_HintSheetContent> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: _cancel,
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -202,7 +226,7 @@ class _HintSheetContentState extends State<_HintSheetContent> {
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    onPressed: _submit,
                     icon: const Icon(Icons.arrow_forward),
                     label: const Text('Далее'),
                   ),
@@ -216,7 +240,7 @@ class _HintSheetContentState extends State<_HintSheetContent> {
   }
 }
 
-/// Simple success sheet without StatefulBuilder
+/// Simple success sheet without state
 class _SuccessSheet extends StatelessWidget {
   final String title;
   final String subtitle;

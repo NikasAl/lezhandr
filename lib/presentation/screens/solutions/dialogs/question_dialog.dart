@@ -3,6 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/artifacts_provider.dart';
 
+/// Result data from question sheet
+class _QuestionResult {
+  final bool confirmed;
+  final String? body;
+
+  _QuestionResult({required this.confirmed, this.body});
+}
+
 /// Shows question creation bottom sheet and handles the flow
 /// Returns true if question was created successfully
 Future<bool> showQuestionDialog({
@@ -10,30 +18,24 @@ Future<bool> showQuestionDialog({
   required WidgetRef ref,
   required int solutionId,
 }) async {
-  final controller = TextEditingController();
-
-  final result = await showModalBottomSheet<bool>(
+  // Step 1: Get user input
+  final result = await showModalBottomSheet<_QuestionResult>(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (sheetContext) => _QuestionSheetContent(
-      controller: controller,
-    ),
+    builder: (sheetContext) => const _QuestionSheetContent(),
   );
 
-  // Always dispose controller after sheet is closed
-  controller.dispose();
-
-  if (result != true || controller.text.isEmpty) {
+  if (result == null || !result.confirmed || result.body == null || result.body!.isEmpty) {
     return false;
   }
 
   // Create question
   final question = await ref.read(questionNotifierProvider.notifier).create(
     solutionId: solutionId,
-    body: controller.text,
+    body: result.body!,
   );
 
   if (!context.mounted) return false;
@@ -48,7 +50,7 @@ Future<bool> showQuestionDialog({
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => _SuccessSheet(
+      builder: (ctx) => const _SuccessSheet(
         title: 'Вопрос сохранён!',
         subtitle: 'Добавить фото контекста?',
       ),
@@ -62,17 +64,40 @@ Future<bool> showQuestionDialog({
   return question?.id != null;
 }
 
-/// Question sheet content as StatefulWidget to properly manage state
+/// Question sheet content - manages its own controller
 class _QuestionSheetContent extends StatefulWidget {
-  final TextEditingController controller;
-
-  const _QuestionSheetContent({required this.controller});
+  const _QuestionSheetContent();
 
   @override
   State<_QuestionSheetContent> createState() => _QuestionSheetContentState();
 }
 
 class _QuestionSheetContentState extends State<_QuestionSheetContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(_QuestionResult(
+      confirmed: true,
+      body: _controller.text,
+    ));
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop(_QuestionResult(confirmed: false));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -124,7 +149,7 @@ class _QuestionSheetContentState extends State<_QuestionSheetContent> {
 
             // Question input
             TextField(
-              controller: widget.controller,
+              controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'Ваш вопрос',
                 hintText: 'Введите ваш вопрос...',
@@ -140,7 +165,7 @@ class _QuestionSheetContentState extends State<_QuestionSheetContent> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: _cancel,
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -148,7 +173,7 @@ class _QuestionSheetContentState extends State<_QuestionSheetContent> {
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    onPressed: _submit,
                     icon: const Icon(Icons.save),
                     label: const Text('Сохранить'),
                   ),
@@ -162,7 +187,7 @@ class _QuestionSheetContentState extends State<_QuestionSheetContent> {
   }
 }
 
-/// Simple success sheet without StatefulBuilder
+/// Simple success sheet without state
 class _SuccessSheet extends StatelessWidget {
   final String title;
   final String subtitle;
