@@ -24,99 +24,17 @@ Future<bool> showHintDialog({
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.tips_and_updates_outlined, color: Colors.purple, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Запросить подсказку',
-                    style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            
-            // Notes input
-            TextField(
-              controller: notesController,
-              decoration: const InputDecoration(
-                labelText: 'В чём проблема?',
-                hintText: 'Опишите, что не получается...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              autofocus: true,
-            ),
-            const SizedBox(height: 24),
-            
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(false),
-                    child: const Text('Отмена'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(sheetContext).pop(true),
-                    icon: const Icon(Icons.arrow_forward),
-                    label: const Text('Далее'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    builder: (sheetContext) => _HintSheetContent(
+      controller: notesController,
     ),
   );
 
   // Always dispose controller after sheet is closed
   notesController.dispose();
-  
+
   if (confirmed != true) {
     return false;
   }
@@ -143,73 +61,12 @@ Future<bool> showHintDialog({
   if (context.mounted) {
     final addImage = await showModalBottomSheet<bool>(
       context: context,
-      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Success icon
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check, color: Colors.green, size: 32),
-            ),
-            const SizedBox(height: 16),
-            
-            Text(
-              'Запрос создан',
-              style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Добавить фото контекста?',
-              style: Theme.of(ctx).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 24),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Нет'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Добавить фото'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      builder: (ctx) => _SuccessSheet(
+        title: 'Запрос создан',
+        subtitle: 'Добавить фото контекста?',
       ),
     );
 
@@ -223,7 +80,7 @@ Future<bool> showHintDialog({
     final billing = ref.read(billingBalanceProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    
+
     final persona = await showPersonaSheet(
       context,
       ref,
@@ -257,4 +114,183 @@ Future<bool> showHintDialog({
   }
 
   return true;
+}
+
+/// Hint sheet content as StatefulWidget to properly manage state
+class _HintSheetContent extends StatefulWidget {
+  final TextEditingController controller;
+
+  const _HintSheetContent({required this.controller});
+
+  @override
+  State<_HintSheetContent> createState() => _HintSheetContentState();
+}
+
+class _HintSheetContentState extends State<_HintSheetContent> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.tips_and_updates_outlined, color: Colors.purple, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Запросить подсказку',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Notes input
+            TextField(
+              controller: widget.controller,
+              decoration: const InputDecoration(
+                labelText: 'В чём проблема?',
+                hintText: 'Опишите, что не получается...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              autofocus: true,
+            ),
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Отмена'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('Далее'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Simple success sheet without StatefulBuilder
+class _SuccessSheet extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SuccessSheet({
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Success icon
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check, color: Colors.green, size: 32),
+          ),
+          const SizedBox(height: 16),
+
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Нет'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Добавить фото'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
