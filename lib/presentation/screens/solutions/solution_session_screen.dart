@@ -936,8 +936,9 @@ class _QuestionTile extends StatelessWidget {
         size: 20,
         color: question.hasAnswer ? Colors.green : Colors.grey,
       ),
-      title: Text(
-        question.body ?? '',
+      title: MarkdownWithMath(
+        text: question.body ?? '',
+        textStyle: Theme.of(context).textTheme.bodyMedium,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
