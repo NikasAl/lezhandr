@@ -21,13 +21,14 @@ void showQuestionDetailDialog({
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (sheetContext) => StatefulBuilder(
-      builder: (context, setSheetState) => Padding(
+      builder: (stateContext, setSheetState) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -67,7 +68,7 @@ void showQuestionDetailDialog({
                   Expanded(
                     child: Text(
                       'Вопрос',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -81,12 +82,12 @@ void showQuestionDetailDialog({
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color: Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: MarkdownWithMath(
                   text: question.body ?? '',
-                  textStyle: Theme.of(context).textTheme.bodyLarge,
+                  textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
                 ),
               ),
               const SizedBox(height: 20),
@@ -97,12 +98,12 @@ void showQuestionDetailDialog({
                   Icon(
                     Icons.reply,
                     size: 20,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(sheetContext).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Ответ',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -122,7 +123,7 @@ void showQuestionDetailDialog({
                   ),
                   child: MarkdownWithMath(
                     text: question.answer!,
-                    textStyle: Theme.of(context).textTheme.bodyMedium,
+                    textStyle: Theme.of(sheetContext).textTheme.bodyMedium,
                   ),
                 )
               else
@@ -166,7 +167,7 @@ void showQuestionDetailDialog({
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(sheetContext),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
                       child: const Text('Закрыть'),
                     ),
                   ),
@@ -184,7 +185,7 @@ void showQuestionDetailDialog({
                                 final freeUsesLeft = billing.value?.freeUsesLeft;
                                 final balance = billing.value?.balance;
                                 final persona = await showPersonaSheet(
-                                  context,
+                                  sheetContext,
                                   ref,
                                   defaultPersona: PersonaId.basis,
                                   freeUsesLeft: freeUsesLeft,
@@ -197,14 +198,14 @@ void showQuestionDetailDialog({
                                         questionId: question.id!,
                                         persona: persona,
                                       );
-                                  if (result != null && context.mounted) {
-                                    Navigator.pop(sheetContext);
+                                  if (result != null && sheetContext.mounted) {
+                                    Navigator.of(sheetContext).pop();
                                     ref.invalidate(questionsProvider(solutionId));
                                     // Show the generated answer
                                     onQuestionUpdated(result);
                                   }
                                 }
-                                if (context.mounted) {
+                                if (sheetContext.mounted) {
                                   setSheetState(() => isGenerating = false);
                                 }
                               },
@@ -231,10 +232,10 @@ void showQuestionDetailDialog({
                       final success = await ref
                           .read(questionNotifierProvider.notifier)
                           .answer(question.id!, answerController.text);
-                      if (success && context.mounted) {
-                        Navigator.pop(sheetContext);
+                      if (success && sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
                         ref.invalidate(questionsProvider(solutionId));
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
                           const SnackBar(content: Text('Ответ сохранён')),
                         );
                       }

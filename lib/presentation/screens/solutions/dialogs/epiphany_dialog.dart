@@ -16,11 +16,12 @@ Future<bool> showEpiphanyDialog({
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (sheetContext) => StatefulBuilder(
-      builder: (context, setState) => Padding(
+      builder: (stateContext, setState) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
@@ -111,7 +112,7 @@ Future<bool> showEpiphanyDialog({
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(sheetContext, false),
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
                       child: const Text('Отмена'),
                     ),
                   ),
@@ -119,7 +120,7 @@ Future<bool> showEpiphanyDialog({
                   Expanded(
                     flex: 2,
                     child: FilledButton.icon(
-                      onPressed: () => Navigator.pop(sheetContext, true),
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
                       icon: const Icon(Icons.save),
                       label: const Text('Сохранить'),
                     ),
@@ -133,8 +134,14 @@ Future<bool> showEpiphanyDialog({
     ),
   );
 
-  if (result != true || controller.text.isEmpty) {
-    controller.dispose();
+  // Always dispose controller after sheet is closed
+  controller.dispose();
+
+  if (result != true) {
+    return false;
+  }
+  
+  if (controller.text.isEmpty) {
     return false;
   }
 
@@ -145,8 +152,6 @@ Future<bool> showEpiphanyDialog({
     magnitude: magnitude,
   );
 
-  controller.dispose();
-
   if (!context.mounted) return false;
 
   // Refresh list
@@ -156,6 +161,7 @@ Future<bool> showEpiphanyDialog({
   if (epiphany?.id != null && context.mounted) {
     final addImage = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -205,7 +211,7 @@ Future<bool> showEpiphanyDialog({
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.of(context).pop(false),
                     child: const Text('Нет'),
                   ),
                 ),
@@ -213,7 +219,7 @@ Future<bool> showEpiphanyDialog({
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => Navigator.of(context).pop(true),
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Добавить фото'),
                   ),

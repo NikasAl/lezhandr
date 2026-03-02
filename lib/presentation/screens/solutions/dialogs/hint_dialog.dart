@@ -24,6 +24,7 @@ Future<bool> showHintDialog({
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -92,7 +93,7 @@ Future<bool> showHintDialog({
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(sheetContext, false),
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -100,7 +101,7 @@ Future<bool> showHintDialog({
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, true),
+                    onPressed: () => Navigator.of(sheetContext).pop(true),
                     icon: const Icon(Icons.arrow_forward),
                     label: const Text('Далее'),
                   ),
@@ -113,8 +114,10 @@ Future<bool> showHintDialog({
     ),
   );
 
+  // Always dispose controller after sheet is closed
+  notesController.dispose();
+  
   if (confirmed != true) {
-    notesController.dispose();
     return false;
   }
 
@@ -123,8 +126,6 @@ Future<bool> showHintDialog({
     solutionId: solutionId,
     userNotes: notesController.text,
   );
-
-  notesController.dispose();
 
   // Refresh list
   ref.invalidate(hintsProvider(solutionId));
@@ -142,6 +143,7 @@ Future<bool> showHintDialog({
   if (context.mounted) {
     final addImage = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -191,7 +193,7 @@ Future<bool> showHintDialog({
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx, false),
+                    onPressed: () => Navigator.of(ctx).pop(false),
                     child: const Text('Нет'),
                   ),
                 ),
@@ -199,7 +201,7 @@ Future<bool> showHintDialog({
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(ctx, true),
+                    onPressed: () => Navigator.of(ctx).pop(true),
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Добавить фото'),
                   ),

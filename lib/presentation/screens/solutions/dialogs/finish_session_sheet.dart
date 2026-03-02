@@ -25,10 +25,11 @@ void showFinishSessionSheet({
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     builder: (sheetContext) => StatefulBuilder(
-      builder: (context, setModalState) => Padding(
+      builder: (stateContext, setModalState) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -49,20 +50,20 @@ void showFinishSessionSheet({
               const SizedBox(height: 24),
               Text(
                 'Завершение сессии',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(sheetContext).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
                 'Время сессии: ${formatDuration(elapsed)}',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: Theme.of(sheetContext).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                     ),
               ),
               if (existingMinutes > 0)
                 Text(
                   'Ранее: ${existingMinutes.toStringAsFixed(0)} мин',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                       ),
                 ),
               const SizedBox(height: 24),
@@ -84,14 +85,14 @@ void showFinishSessionSheet({
                                 duration: elapsed.inMinutes.toDouble(),
                               ),
                             );
-                        if (context.mounted) {
+                        if (sheetContext.mounted) {
                           // Get problemId from solution for cache invalidation
                           final solutionAsync = ref.read(solutionProvider(solutionId));
                           final problemId = solutionAsync.valueOrNull?.problemId;
                           _refreshHomeData(ref, problemId: problemId);
-                          Navigator.pop(sheetContext);
+                          Navigator.of(sheetContext).pop();
                           context.go('/main/home');
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(sheetContext).showSnackBar(
                             const SnackBar(
                               content: Text('Сессия сохранена. Задача осталась активной.'),
                             ),
@@ -210,16 +211,16 @@ void showFinishSessionSheet({
                               notes: notesController.text,
                             );
 
-                        if (context.mounted) {
+                        if (sheetContext.mounted) {
                           _refreshHomeData(ref, problemId: result?.problemId);
-                          Navigator.pop(sheetContext);
+                          Navigator.of(sheetContext).pop();
                           
                           // Show motivation dialog after completion
                           final motivationEngine = MotivationEngine();
                           final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
-                          if (motivation != null && context.mounted) {
+                          if (motivation != null && sheetContext.mounted) {
                             await showConstrainedDialog(
-                              context: context,
+                              context: sheetContext,
                               barrierDismissible: true,
                               builder: (ctx) => AlertDialog(
                                 content: MotivationCard(
@@ -229,7 +230,7 @@ void showFinishSessionSheet({
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
+                                    onPressed: () => Navigator.of(ctx).pop(),
                                     child: const Text('Спасибо!'),
                                   ),
                                 ],
@@ -237,10 +238,10 @@ void showFinishSessionSheet({
                             );
                           }
                           
-                          if (context.mounted) {
+                          if (sheetContext.mounted) {
                             context.go('/main/home');
                             if (result != null && result.xpEarned != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(sheetContext).showSnackBar(
                                 SnackBar(
                                   content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}'),
                                 ),

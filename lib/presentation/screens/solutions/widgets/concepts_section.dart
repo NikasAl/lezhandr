@@ -27,14 +27,15 @@ class SolutionConceptsSection extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
+      builder: (sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
         maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
+        builder: (dragContext, scrollController) => Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: Theme.of(dragContext).scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -45,7 +46,7 @@ class SolutionConceptsSection extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: Theme.of(dragContext).colorScheme.onSurfaceVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -57,12 +58,12 @@ class SolutionConceptsSection extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        color: Theme.of(dragContext).colorScheme.secondaryContainer,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.school,
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        color: Theme.of(dragContext).colorScheme.onSecondaryContainer,
                         size: 24,
                       ),
                     ),
@@ -70,7 +71,7 @@ class SolutionConceptsSection extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         concept.concept?.name ?? 'Unknown',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(dragContext).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -90,30 +91,30 @@ class SolutionConceptsSection extends ConsumerWidget {
                       if (concept.usageContext != null && concept.usageContext!.isNotEmpty) ...[
                         Text(
                           'Контекст использования',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.secondary,
+                          style: Theme.of(dragContext).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(dragContext).colorScheme.secondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
                         MarkdownWithMath(
                           text: concept.usageContext!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                          textStyle: Theme.of(dragContext).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 20),
                       ],
                       if (concept.concept?.description != null && concept.concept!.description!.isNotEmpty) ...[
                         Text(
                           'Описание навыка',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
+                          style: Theme.of(dragContext).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(dragContext).colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
                         MarkdownWithMath(
                           text: concept.concept!.description!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                          textStyle: Theme.of(dragContext).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 20),
                       ],
@@ -128,7 +129,7 @@ class SolutionConceptsSection extends ConsumerWidget {
                         const SizedBox(height: 8),
                         MarkdownWithMath(
                           text: concept.concept!.utilityDescription!,
-                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                          textStyle: Theme.of(dragContext).textTheme.bodyLarge,
                         ),
                       ],
                     ],

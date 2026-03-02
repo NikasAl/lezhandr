@@ -21,13 +21,14 @@ void showHintDetailDialog({
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (sheetContext) => StatefulBuilder(
-      builder: (context, setSheetState) => Padding(
+      builder: (stateContext, setSheetState) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -67,14 +68,14 @@ void showHintDetailDialog({
                   Expanded(
                     child: Text(
                       'Подсказка',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(sheetContext),
+                    onPressed: () => Navigator.of(sheetContext).pop(),
                   ),
                 ],
               ),
@@ -92,8 +93,8 @@ void showHintDetailDialog({
                     const SizedBox(width: 8),
                     Text(
                       'Ваши заметки',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      style: Theme.of(sheetContext).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -103,7 +104,7 @@ void showHintDetailDialog({
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(hint.userNotes!),
@@ -123,8 +124,8 @@ void showHintDetailDialog({
                     const SizedBox(width: 8),
                     Text(
                       'AI: ${hint.aiModel}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                      style: Theme.of(sheetContext).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(sheetContext).colorScheme.primary,
                       ),
                     ),
                   ],
@@ -166,7 +167,7 @@ void showHintDetailDialog({
                         ),
                         child: MarkdownWithMath(
                           text: hint.hintText!,
-                          textStyle: Theme.of(context).textTheme.bodyMedium,
+                          textStyle: Theme.of(sheetContext).textTheme.bodyMedium,
                         ),
                       ),
               ] else ...[
@@ -197,8 +198,8 @@ void showHintDetailDialog({
                       const SizedBox(height: 8),
                       Text(
                         'Попробуйте выбрать другую AI-персону или пополните баланс',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -224,32 +225,32 @@ void showHintDetailDialog({
                               final freeUsesLeft = billing.value?.freeUsesLeft;
                               final balance = billing.value?.balance;
                               final persona = await showPersonaSheet(
-                                context,
+                                sheetContext,
                                 ref,
                                 defaultPersona: PersonaId.basis,
                                 freeUsesLeft: freeUsesLeft,
                                 balance: balance,
                               );
-                              if (persona != null && context.mounted) {
+                              if (persona != null && sheetContext.mounted) {
                                 final result = await ref
                                     .read(hintNotifierProvider.notifier)
                                     .generate(
                                       hintId: hint.id!,
                                       persona: persona,
                                     );
-                                if (context.mounted) {
-                                  Navigator.pop(sheetContext);
+                                if (sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
                                   ref.invalidate(hintsProvider(solutionId));
                                   if (result != null && result.hasHint) {
                                     showHintDetailDialog(
-                                      context: context,
+                                      context: sheetContext,
                                       ref: ref,
                                       hint: result,
                                       solutionId: solutionId,
                                     );
                                   } else {
                                     showHintDetailDialog(
-                                      context: context,
+                                      context: sheetContext,
                                       ref: ref,
                                       hint: hint,
                                       solutionId: solutionId,
@@ -293,10 +294,10 @@ void showHintDetailDialog({
                       final success = await ref
                           .read(hintNotifierProvider.notifier)
                           .updateText(hint.id!, editController.text);
-                      if (success && context.mounted) {
-                        Navigator.pop(sheetContext);
+                      if (success && sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
                         ref.invalidate(hintsProvider(solutionId));
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
                           const SnackBar(content: Text('Подсказка обновлена')),
                         );
                       }

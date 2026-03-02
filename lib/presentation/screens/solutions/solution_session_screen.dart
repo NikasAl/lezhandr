@@ -72,10 +72,11 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -110,7 +111,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                   Expanded(
                     child: Text(
                       'Время подумать',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -122,7 +123,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               // Main message
               Text(
                 'Теперь пришло время взять чистый листок бумаги и подумать над решением задачи.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: Theme.of(sheetContext).textTheme.bodyLarge,
               ),
               const SizedBox(height: 16),
               
@@ -130,24 +131,24 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+                  color: Theme.of(sheetContext).colorScheme.primaryContainer.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    color: Theme.of(sheetContext).colorScheme.primary.withOpacity(0.2),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.format_quote,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: Theme.of(sheetContext).colorScheme.primary,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Именно это время является самым ценным — происходит настоящий прогресс в знаниях и навыках.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                           fontStyle: FontStyle.italic,
                         ),
@@ -160,14 +161,14 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               
               Text(
                 'Постарайтесь решить задачу целиком самостоятельно и без подсказок — это максимально ценный опыт.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: Theme.of(sheetContext).textTheme.bodyLarge,
               ),
               const SizedBox(height: 12),
               
               Text(
                 'Если на это уходит много времени, можно остановить сессию и вернуться к задаче позже столько раз, сколько потребуется.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 24),
@@ -176,7 +177,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color: Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -184,7 +185,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                   children: [
                     Text(
                       'На этой странице можно:',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -220,7 +221,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Но не нужно спешить!',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Colors.deepOrange,
                           ),
@@ -230,7 +231,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Хорошая задача решается три дня и три ночи. Частое обращение к подсказкам помешает созреванию собственной догадки и уменьшит радость открытия.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -243,7 +244,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.of(sheetContext).pop(),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Понятно, начинаю!'),
                   style: FilledButton.styleFrom(

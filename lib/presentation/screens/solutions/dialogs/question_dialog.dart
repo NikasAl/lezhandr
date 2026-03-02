@@ -15,6 +15,7 @@ Future<bool> showQuestionDialog({
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -83,7 +84,7 @@ Future<bool> showQuestionDialog({
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(sheetContext, false),
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
                     child: const Text('Отмена'),
                   ),
                 ),
@@ -91,7 +92,7 @@ Future<bool> showQuestionDialog({
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, true),
+                    onPressed: () => Navigator.of(sheetContext).pop(true),
                     icon: const Icon(Icons.save),
                     label: const Text('Сохранить'),
                   ),
@@ -104,8 +105,10 @@ Future<bool> showQuestionDialog({
     ),
   );
 
+  // Always dispose controller after sheet is closed
+  controller.dispose();
+
   if (result != true || controller.text.isEmpty) {
-    controller.dispose();
     return false;
   }
 
@@ -114,8 +117,6 @@ Future<bool> showQuestionDialog({
     solutionId: solutionId,
     body: controller.text,
   );
-
-  controller.dispose();
 
   if (!context.mounted) return false;
 
@@ -126,6 +127,7 @@ Future<bool> showQuestionDialog({
   if (question?.id != null && context.mounted) {
     final addImage = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -175,7 +177,7 @@ Future<bool> showQuestionDialog({
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.of(context).pop(false),
                     child: const Text('Нет'),
                   ),
                 ),
@@ -183,7 +185,7 @@ Future<bool> showQuestionDialog({
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => Navigator.of(context).pop(true),
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Добавить фото'),
                   ),
