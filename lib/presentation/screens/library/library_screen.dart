@@ -40,6 +40,157 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     _scrollController.dispose();
     super.dispose();
   }
+
+  /// Show help dialog as bottom sheet
+  void _showHelpDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Header with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.library_books_outlined, size: 32, color: Colors.teal),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Библиотека задач',
+                      style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Main description
+              Text(
+                'На этой странице собраны задачи из разных источников для вашего обучения.',
+                style: Theme.of(sheetContext).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 20),
+
+              // Features section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Возможности:',
+                      style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHelpItem(Icons.folder_outlined, 'Выбрать источник задач', Colors.teal),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.local_offer_outlined, 'Задать теги для классификации', Colors.orange),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.search, 'Найти по содержанию или номеру', Colors.blue),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.add_task, 'Добавить новые задачи', Colors.green),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.camera_alt_outlined, 'Сфотографировать условие', Colors.purple),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.functions, 'Перевести в LaTeX для анализа', Colors.indigo),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Tip section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.blue.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: Colors.blue[700], size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Нажмите на задачу, чтобы посмотреть условие и начать решение.',
+                        style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Понятно!'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(text),
+        ),
+      ],
+    );
+  }
   
   void _resetPagination() {
     _accumulatedProblems = [];
@@ -158,6 +309,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       appBar: AppBar(
         title: const Text('Библиотека'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Подсказка',
+            onPressed: _showHelpDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => _showSearchDialog(context),
