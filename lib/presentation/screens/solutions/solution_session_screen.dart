@@ -699,6 +699,7 @@ class _EpiphanyTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       leading: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -710,25 +711,15 @@ class _EpiphanyTile extends ConsumerWidget {
       title: MarkdownWithMath(
         text: epiphany.description ?? '',
         textStyle: Theme.of(context).textTheme.bodyMedium,
-        maxLines: 2,
+        maxLines: 4,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.camera_alt_outlined, size: 20),
-            tooltip: 'Добавить фото',
-            onPressed: () {
-              context.push('/camera?category=epiphany&entityId=${epiphany.id}');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, size: 20),
-            tooltip: 'Опции',
-            onPressed: () => _showOptionsSheet(context, ref),
-          ),
-        ],
+      trailing: IconButton(
+        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+        tooltip: 'Добавить фото',
+        onPressed: () {
+          context.push('/camera?category=epiphany&entityId=${epiphany.id}');
+        },
       ),
       onTap: () => _showOptionsSheet(context, ref),
     );
@@ -788,11 +779,9 @@ class _EpiphanyOptionsSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  epiphany.description ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                MarkdownWithMath(
+                  text: epiphany.description ?? '',
+                  textStyle: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
@@ -941,6 +930,7 @@ class _QuestionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       leading: Icon(
         question.hasAnswer ? Icons.check_circle : Icons.help,
         size: 20,
@@ -1062,6 +1052,7 @@ class _HintTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       leading: Icon(
         hint.hasHint ? Icons.check_circle : Icons.warning_amber,
         size: 20,
