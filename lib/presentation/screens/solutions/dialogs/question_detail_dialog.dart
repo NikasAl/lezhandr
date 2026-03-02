@@ -75,7 +75,7 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
             ),
             const SizedBox(height: 24),
 
-            // Header
+            // Header with edit button
             Row(
               children: [
                 Container(
@@ -100,42 +100,34 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: 'Редактировать вопрос',
+                  onPressed: () => _editQuestion(context),
+                ),
+                IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // Question text with edit button
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: MarkdownWithMath(
-                      text: widget.question.body ?? '',
-                      textStyle: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  tooltip: 'Редактировать вопрос',
-                  onPressed: () => _editQuestion(context),
-                ),
-              ],
+            // Question text - full width
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: MarkdownWithMath(
+                text: widget.question.body ?? '',
+                textStyle: Theme.of(context).textTheme.bodyLarge,
+              ),
             ),
             const SizedBox(height: 20),
 
-            // Answer section header
+            // Answer section header with edit button
             Row(
               children: [
                 Icon(
@@ -144,43 +136,38 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Ответ',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Current answer with edit button or placeholder
-            if (widget.question.hasAnswer)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: MarkdownWithMath(
-                        text: widget.question.answer!,
-                        textStyle: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Ответ',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ),
+                if (widget.question.hasAnswer)
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     tooltip: 'Редактировать ответ',
                     onPressed: () => _editAnswer(context),
                   ),
-                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Current answer or placeholder - full width
+            if (widget.question.hasAnswer)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: MarkdownWithMath(
+                  text: widget.question.answer!,
+                  textStyle: Theme.of(context).textTheme.bodyMedium,
+                ),
               )
             else
               Container(
