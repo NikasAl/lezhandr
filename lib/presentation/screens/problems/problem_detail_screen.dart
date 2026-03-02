@@ -32,6 +32,161 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     super.dispose();
   }
 
+  /// Show help dialog as bottom sheet
+  void _showHelpDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Header with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.assignment_outlined, size: 32, color: Colors.indigo),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Экран задачи',
+                      style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Main description
+              Text(
+                'Здесь вы можете изучить условие задачи и подготовиться к её решению.',
+                style: Theme.of(sheetContext).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 20),
+
+              // Features section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Возможности:',
+                      style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHelpItem(Icons.description_outlined, 'Просмотреть условие задачи', Colors.indigo),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.edit_outlined, 'Редактировать текст условия', Colors.blue),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.camera_alt_outlined, 'Загрузить фото условия', Colors.teal),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.auto_awesome, 'Распознать текст с фото (OCR)', Colors.purple),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.psychology_outlined, 'Анализ концепций для решения', Colors.orange),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.local_offer_outlined, 'Управлять тегами задачи', Colors.amber),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.history, 'Просмотреть историю решений', Colors.green),
+                    const SizedBox(height: 8),
+                    _buildHelpItem(Icons.play_arrow, 'Начать новую сессию решения', Colors.red),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Tip section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: Colors.orange[700], size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Анализ концепций поможет понять, какие знания понадобятся для решения задачи.',
+                        style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Понятно!'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(text),
+        ),
+      ],
+    );
+  }
+
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
     final persona = await showPersonaSheet(
@@ -244,6 +399,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
       appBar: AppBar(
         title: const Text('Задача'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Подсказка',
+            onPressed: _showHelpDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
