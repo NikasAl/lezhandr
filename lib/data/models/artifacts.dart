@@ -121,6 +121,22 @@ class EpiphanyCreate {
       };
 }
 
+/// Epiphany update request
+class EpiphanyUpdate {
+  final String? description;
+  final int? magnitude;
+
+  EpiphanyUpdate({
+    this.description,
+    this.magnitude,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'description': description,
+        'magnitude': magnitude,
+      };
+}
+
 /// Question model
 class QuestionModel {
   final int? id;

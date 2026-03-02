@@ -44,6 +44,40 @@ class EpiphanyNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+
+  Future<EpiphanyModel?> update({
+    required int epiphanyId,
+    String? description,
+    int? magnitude,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.updateEpiphany(
+        epiphanyId,
+        EpiphanyUpdate(
+          description: description,
+          magnitude: magnitude,
+        ),
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  Future<bool> delete(int epiphanyId) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.deleteEpiphany(epiphanyId);
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }
 
 // ============ QUESTIONS ============

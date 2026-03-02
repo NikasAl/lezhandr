@@ -16,6 +16,7 @@ import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
 // Dialogs - extracted to separate files for better maintainability
 import 'dialogs/dialogs.dart';
+import 'dialogs/epiphany_edit_dialog.dart';
 
 /// Solution session screen - interactive solving session
 class SolutionSessionScreen extends ConsumerStatefulWidget {
@@ -671,7 +672,7 @@ class _EpiphaniesSection extends ConsumerWidget {
   }
 }
 
-class _EpiphanyTile extends StatelessWidget {
+class _EpiphanyTile extends ConsumerWidget {
   final EpiphanyModel epiphany;
   final int solutionId;
 
@@ -680,8 +681,22 @@ class _EpiphanyTile extends StatelessWidget {
     required this.solutionId,
   });
 
+  void _showOptionsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _EpiphanyOptionsSheet(
+        epiphany: epiphany,
+        solutionId: solutionId,
+        ref: ref,
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       dense: true,
       leading: Row(
@@ -698,12 +713,148 @@ class _EpiphanyTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.camera_alt_outlined, size: 20),
-        tooltip: 'Добавить фото',
-        onPressed: () {
-          context.push('/camera?category=epiphany&entityId=${epiphany.id}');
-        },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.camera_alt_outlined, size: 20),
+            tooltip: 'Добавить фото',
+            onPressed: () {
+              context.push('/camera?category=epiphany&entityId=${epiphany.id}');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, size: 20),
+            tooltip: 'Опции',
+            onPressed: () => _showOptionsSheet(context, ref),
+          ),
+        ],
+      ),
+      onTap: () => _showOptionsSheet(context, ref),
+    );
+  }
+}
+
+/// Options sheet for epiphany (edit, delete)
+class _EpiphanyOptionsSheet extends StatelessWidget {
+  final EpiphanyModel epiphany;
+  final int solutionId;
+  final WidgetRef ref;
+
+  const _EpiphanyOptionsSheet({
+    required this.epiphany,
+    required this.solutionId,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Epiphany preview
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ...List.generate(
+                      epiphany.magnitude ?? 1,
+                      (i) => const Icon(Icons.star, size: 16, color: Colors.amber),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  epiphany.description ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Options
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+            ),
+            title: const Text('Редактировать'),
+            subtitle: const Text('Изменить текст и силу озарения'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              Navigator.of(context).pop();
+              final success = await showEpiphanyEditDialog(
+                context: context,
+                ref: ref,
+                epiphany: epiphany,
+                solutionId: solutionId,
+              );
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Озарение обновлено')),
+                );
+              }
+            },
+          ),
+          ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+            ),
+            title: const Text('Удалить'),
+            subtitle: const Text('Это действие нельзя отменить'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              Navigator.of(context).pop();
+              final success = await showEpiphanyDeleteDialog(
+                context: context,
+                ref: ref,
+                epiphany: epiphany,
+                solutionId: solutionId,
+              );
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Озарение удалено')),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }

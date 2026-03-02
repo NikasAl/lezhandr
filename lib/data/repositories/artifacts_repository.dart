@@ -38,6 +38,32 @@ class ArtifactsRepository {
     return [];
   }
 
+  /// Update epiphany
+  Future<EpiphanyModel?> updateEpiphany(
+    int epiphanyId,
+    EpiphanyUpdate update,
+  ) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '/epiphanies/$epiphanyId',
+        data: update.toJson(),
+      );
+      if (response.statusCode == 200) {
+        return EpiphanyModel.fromJson(response.data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Delete epiphany
+  Future<bool> deleteEpiphany(int epiphanyId) async {
+    try {
+      final response = await _apiClient.dio.delete('/epiphanies/$epiphanyId');
+      return response.statusCode == 204;
+    } catch (_) {}
+    return false;
+  }
+
   // ============ QUESTIONS ============
 
   /// Create question
