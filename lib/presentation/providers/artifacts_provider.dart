@@ -139,6 +139,25 @@ class QuestionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<QuestionModel?> update({
+    required int questionId,
+    String? body,
+    String? answer,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.updateQuestion(
+        questionId,
+        QuestionUpdate(body: body, answer: answer),
+      );
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
   Future<QuestionModel?> generateAnswer({
     required int questionId,
     PersonaId persona = PersonaId.basis,

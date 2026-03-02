@@ -203,11 +203,15 @@ class QuestionCreate {
 
 /// Question update request
 class QuestionUpdate {
+  final String? body;
   final String? answer;
 
-  QuestionUpdate({this.answer});
+  QuestionUpdate({this.body, this.answer});
 
-  Map<String, dynamic> toJson() => {'answer': answer};
+  Map<String, dynamic> toJson() => {
+    if (body != null) 'body': body,
+    if (answer != null) 'answer': answer,
+  };
 }
 
 /// Hint model

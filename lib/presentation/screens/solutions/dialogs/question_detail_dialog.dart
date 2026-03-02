@@ -17,6 +17,7 @@ void showQuestionDetailDialog({
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    enableDrag: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -47,22 +48,7 @@ class _QuestionDetailSheet extends StatefulWidget {
 }
 
 class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
-  late TextEditingController _answerController;
   bool _isGenerating = false;
-  bool _hasText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _answerController = TextEditingController(text: widget.question.answer ?? '');
-    _hasText = _answerController.text.isNotEmpty;
-  }
-
-  @override
-  void dispose() {
-    _answerController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,26 +99,43 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                     ),
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Question text
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: MarkdownWithMath(
-                text: widget.question.body ?? '',
-                textStyle: Theme.of(context).textTheme.bodyLarge,
-              ),
+            // Question text with edit button
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: MarkdownWithMath(
+                      text: widget.question.body ?? '',
+                      textStyle: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: 'Редактировать вопрос',
+                  onPressed: () => _editQuestion(context),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 
-            // Answer section
+            // Answer section header
             Row(
               children: [
                 Icon(
@@ -151,20 +154,33 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Current answer or placeholder
+            // Current answer with edit button or placeholder
             if (widget.question.hasAnswer)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: MarkdownWithMath(
-                  text: widget.question.answer!,
-                  textStyle: Theme.of(context).textTheme.bodyMedium,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: MarkdownWithMath(
+                        text: widget.question.answer!,
+                        textStyle: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    tooltip: 'Редактировать ответ',
+                    onPressed: () => _editAnswer(context),
+                  ),
+                ],
               )
             else
               Container(
@@ -178,27 +194,259 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                   children: [
                     Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
                     const SizedBox(width: 8),
-                    Text(
-                      'Ответа пока нет',
-                      style: TextStyle(color: Colors.orange[700]),
+                    Expanded(
+                      child: Text(
+                        'Ответа пока нет',
+                        style: TextStyle(color: Colors.orange[700]),
+                      ),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Добавить'),
+                      onPressed: () => _editAnswer(context),
                     ),
                   ],
                 ),
               ),
+            const SizedBox(height: 24),
+
+            // AI button
+            if (widget.question.id != null)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isGenerating
+                      ? null
+                      : () async {
+                          setState(() => _isGenerating = true);
+                          final billing = widget.ref.read(billingBalanceProvider);
+                          final freeUsesLeft = billing.value?.freeUsesLeft;
+                          final balance = billing.value?.balance;
+                          final persona = await showPersonaSheet(
+                            context,
+                            widget.ref,
+                            defaultPersona: PersonaId.basis,
+                            freeUsesLeft: freeUsesLeft,
+                            balance: balance,
+                          );
+                          if (persona != null && widget.question.id != null) {
+                            final result = await widget.ref
+                                .read(questionNotifierProvider.notifier)
+                                .generateAnswer(
+                                  questionId: widget.question.id!,
+                                  persona: persona,
+                                );
+                            if (result != null && mounted) {
+                              Navigator.of(context).pop();
+                              widget.ref.invalidate(questionsProvider(widget.solutionId));
+                              // Show the generated answer
+                              widget.onQuestionUpdated(result);
+                            }
+                          }
+                          if (mounted) {
+                            setState(() => _isGenerating = false);
+                          }
+                        },
+                  icon: _isGenerating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                  label: Text(_isGenerating ? 'Генерация...' : 'Спросить AI'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show dialog to edit question body
+  Future<void> _editQuestion(BuildContext context) async {
+    final result = await showModalBottomSheet<_EditResult>(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _EditFieldSheet(
+        title: 'Редактировать вопрос',
+        initialValue: widget.question.body ?? '',
+        maxLength: 500,
+      ),
+    );
+
+    if (result != null && result.confirmed && widget.question.id != null) {
+      final updated = await widget.ref
+          .read(questionNotifierProvider.notifier)
+          .update(
+            questionId: widget.question.id!,
+            body: result.value,
+          );
+      if (updated != null && mounted) {
+        widget.ref.invalidate(questionsProvider(widget.solutionId));
+        widget.onQuestionUpdated(updated);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Вопрос обновлён')),
+          );
+        }
+      }
+    }
+  }
+
+  /// Show dialog to edit answer
+  Future<void> _editAnswer(BuildContext context) async {
+    final result = await showModalBottomSheet<_EditResult>(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _EditFieldSheet(
+        title: 'Редактировать ответ',
+        initialValue: widget.question.answer ?? '',
+        maxLength: 2000,
+      ),
+    );
+
+    if (result != null && result.confirmed && widget.question.id != null) {
+      final updated = await widget.ref
+          .read(questionNotifierProvider.notifier)
+          .update(
+            questionId: widget.question.id!,
+            answer: result.value,
+          );
+      if (updated != null && mounted) {
+        widget.ref.invalidate(questionsProvider(widget.solutionId));
+        widget.onQuestionUpdated(updated);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ответ обновлён')),
+          );
+        }
+      }
+    }
+  }
+}
+
+/// Result from edit dialog
+class _EditResult {
+  final bool confirmed;
+  final String value;
+
+  _EditResult({required this.confirmed, required this.value});
+}
+
+/// Edit field bottom sheet
+class _EditFieldSheet extends StatefulWidget {
+  final String title;
+  final String initialValue;
+  final int? maxLength;
+
+  const _EditFieldSheet({
+    required this.title,
+    required this.initialValue,
+    this.maxLength,
+  });
+
+  @override
+  State<_EditFieldSheet> createState() => _EditFieldSheetState();
+}
+
+class _EditFieldSheetState extends State<_EditFieldSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(_EditResult(confirmed: true, value: _controller.text));
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop(_EditResult(confirmed: false, value: ''));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_outlined, color: Colors.blue, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _cancel,
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
-            // Manual answer input
+            // Text field
             TextField(
-              controller: _answerController,
-              decoration: const InputDecoration(
-                labelText: 'Ваш ответ',
-                hintText: 'Введите ответ вручную...',
-                border: OutlineInputBorder(),
+              controller: _controller,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                counterText: widget.maxLength != null
+                    ? '${_controller.text.length}/${widget.maxLength}'
+                    : null,
               ),
-              maxLines: 3,
-              onChanged: (value) {
-                setState(() => _hasText = value.isNotEmpty);
-              },
+              maxLines: 5,
+              maxLength: widget.maxLength,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
 
@@ -207,84 +455,21 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Закрыть'),
+                    onPressed: _cancel,
+                    child: const Text('Отмена'),
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // AI button
-                if (!widget.question.hasAnswer || _hasText)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isGenerating
-                          ? null
-                          : () async {
-                              setState(() => _isGenerating = true);
-                              final billing = widget.ref.read(billingBalanceProvider);
-                              final freeUsesLeft = billing.value?.freeUsesLeft;
-                              final balance = billing.value?.balance;
-                              final persona = await showPersonaSheet(
-                                context,
-                                widget.ref,
-                                defaultPersona: PersonaId.basis,
-                                freeUsesLeft: freeUsesLeft,
-                                balance: balance,
-                              );
-                              if (persona != null && widget.question.id != null) {
-                                final result = await widget.ref
-                                    .read(questionNotifierProvider.notifier)
-                                    .generateAnswer(
-                                      questionId: widget.question.id!,
-                                      persona: persona,
-                                    );
-                                if (result != null && mounted) {
-                                  Navigator.of(context).pop();
-                                  widget.ref.invalidate(questionsProvider(widget.solutionId));
-                                  // Show the generated answer
-                                  widget.onQuestionUpdated(result);
-                                }
-                              }
-                              if (mounted) {
-                                setState(() => _isGenerating = false);
-                              }
-                            },
-                      icon: _isGenerating
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.auto_awesome),
-                      label: Text(_isGenerating ? 'Генерация...' : 'Спросить AI'),
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: _submit,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Сохранить'),
                   ),
+                ),
               ],
             ),
-
-            // Save button
-            if (_hasText) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    final success = await widget.ref
-                        .read(questionNotifierProvider.notifier)
-                        .answer(widget.question.id!, _answerController.text);
-                    if (success && mounted) {
-                      Navigator.of(context).pop();
-                      widget.ref.invalidate(questionsProvider(widget.solutionId));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ответ сохранён')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.save),
-                  label: const Text('Сохранить ответ'),
-                ),
-              ),
-            ],
           ],
         ),
       ),

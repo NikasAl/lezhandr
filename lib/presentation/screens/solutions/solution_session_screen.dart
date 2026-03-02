@@ -952,18 +952,12 @@ class _QuestionTile extends StatelessWidget {
               ),
             )
           : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.camera_alt_outlined, size: 20),
-            tooltip: 'Добавить фото',
-            onPressed: () {
-              context.push('/camera?category=question&entityId=${question.id}');
-            },
-          ),
-          const Icon(Icons.chevron_right, size: 20),
-        ],
+      trailing: IconButton(
+        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+        tooltip: 'Добавить фото',
+        onPressed: () {
+          context.push('/camera?category=question&entityId=${question.id}');
+        },
       ),
       onTap: onTap,
     );
