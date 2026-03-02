@@ -167,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         // Tagline
         Text(
-          'Твой спутник в мире математики',
+          'Ваш спутник в мире задач',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
