@@ -2,7 +2,157 @@
 
 ## История изменений (Changelog)
 
-### Версия 0.4.1 (Текущая)
+### Версия 0.5.0 (Текущая)
+
+#### Новые функции
+
+##### ✨ Диалоги помощи для всех экранов
+**Функция:** Добавлены информационные диалоги с описанием возможностей каждого экрана.
+
+**Реализовано:**
+1. Кнопка `?` в AppBar экранов: Библиотека, Задача, Решение, Сессия
+2. Bottom sheet с описанием функций и советами
+3. Закрытие свайпом вниз
+4. Единый стиль оформления с иконками
+
+**Изменённые файлы:**
+- `lib/presentation/screens/library/library_screen.dart`
+- `lib/presentation/screens/problems/problem_detail_screen.dart`
+- `lib/presentation/screens/solutions/solution_detail_screen.dart`
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+
+---
+
+##### ✨ Редактирование и удаление озарений
+**Функция:** Пользователь может редактировать и удалять озарения после создания.
+
+**Реализовано:**
+1. Меню опций при нажатии на озарение (просмотр, редактирование, удаление)
+2. Диалог редактирования текста и силы озарения (1-3 звезды)
+3. Подтверждение удаления
+4. API методы `updateEpiphany` и `deleteEpiphany`
+
+**Изменённые файлы:**
+- `lib/data/models/artifacts.dart` — добавлен `EpiphanyUpdate`
+- `lib/data/repositories/artifacts_repository.dart`
+- `lib/presentation/providers/artifacts_provider.dart`
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+- `lib/presentation/screens/solutions/dialogs/epiphany_edit_dialog.dart` (новый)
+
+---
+
+##### ✨ Адаптивный layout для широких экранов
+**Функция:** Интерфейс адаптируется для планшетов, десктопов и веба.
+
+**Реализовано:**
+1. Ограничение максимальной ширины контента (900px)
+2. Центрирование контента на широких экранах
+3. Адаптация bottom navigation bar
+4. Адаптивные диалоги и bottom sheets
+
+**Изменённые файлы:**
+- `lib/presentation/widgets/shared/adaptive_layout.dart` (новый)
+- `lib/presentation/screens/library/library_screen.dart`
+- `lib/presentation/screens/problems/problem_detail_screen.dart`
+- `lib/presentation/screens/solutions/solution_detail_screen.dart`
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+
+---
+
+#### Улучшения UI
+
+##### ✨ Конвертация диалогов в bottom sheets
+**Изменено:** Все основные диалоги переписаны с `AlertDialog` на `showModalBottomSheet`.
+
+**Преимущества:**
+1. Закрытие свайпом вниз (`enableDrag: true`)
+2. Больше места для контента
+3. Единообразный UI с drag handle
+4. Лучшая адаптация под клавиатуру
+
+**Затронутые диалоги:**
+- Создание задачи (Библиотека)
+- Редактирование тегов
+- Ввод озарения, вопроса, подсказки (Сессия)
+- Детали вопроса и подсказки
+- Редактирование озарения
+
+---
+
+##### ✨ Улучшения карточек на экране Сессия
+**Изменено:**
+
+1. **Карточка Озарения:**
+   - До 4 строк текста (было 2)
+   - Убрана иконка меню — открывается по нажатию на текст
+   - Уменьшены отступы слева/справа
+   - Markdown с формулами в деталях
+
+2. **Карточка Вопроса:**
+   - Убрана иконка `>` для большей ширины текста
+   - Текст вопроса обёрнут в `MarkdownWithMath`
+   - Кнопки редактирования в заголовках секций
+   - Закрытие свайпом вниз
+
+3. **Все карточки:**
+   - Уменьшен `contentPadding` для лучшего использования ширины
+
+**Изменённые файлы:**
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+- `lib/presentation/screens/solutions/dialogs/question_detail_dialog.dart`
+- `lib/presentation/screens/solutions/dialogs/epiphany_edit_dialog.dart`
+
+---
+
+##### ✨ Улучшения заголовка задачи
+**Изменено:** Реструктурирован layout заголовка для лучшего использования пространства.
+
+**Новая структура:**
+```
+[Источник] [Номер задачи]
+[👤 Пользователь]
+```
+
+**Особенности:**
+- Источник может занимать несколько строк
+- Номер задачи справа в той же строке (если вмещается)
+- Пользователь отдельной строкой ниже
+
+**Изменённые файлы:**
+- `lib/presentation/screens/problems/widgets/problem_header.dart`
+
+---
+
+#### Исправления ошибок
+
+##### 1. Ошибка закрытия bottom sheet на Android
+**Проблема:** `_dependents.isEmpty` assertion error при закрытии диалогов на Android.
+
+**Причина:** `TextEditingController` создавался вне виджета и уничтожался до завершения анимации закрытия.
+
+**Решение:**
+1. Контроллеры создаются в `initState()` и уничтожаются в `dispose()`
+2. Диалоги вынесены в отдельные `StatefulWidget` классы
+3. Данные возвращаются через result-объекты
+
+**Изменённые файлы:**
+- `lib/presentation/screens/solutions/dialogs/epiphany_dialog.dart`
+- `lib/presentation/screens/solutions/dialogs/question_dialog.dart`
+- `lib/presentation/screens/solutions/dialogs/hint_dialog.dart`
+
+---
+
+##### 2. SnackBar всплывал над кнопками на широких экранах
+**Проблема:** `SnackBar` отображался над bottom bar вместо того чтобы быть внутри него.
+
+**Решение:** Заменён `Center` на `margin` для позиционирования `bottomNavigationBar`.
+
+**Изменённые файлы:**
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+
+---
+
+### Версия 0.4.1
 
 #### Рефакторинг
 
