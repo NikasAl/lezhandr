@@ -12,61 +12,65 @@ class ProblemHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
+        // First row: source + reference number
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Source name - can wrap to multiple lines
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  problem.sourceName,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
             ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              problem.sourceName,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+            const SizedBox(width: 8),
+            // Reference number - stays on right
+            Text(
+              problem.reference,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
             ),
-          ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        
+        // Second row: user info (if exists)
+        if (problem.addedBy != null) ...[
+          const SizedBox(height: 4),
+          Row(
             children: [
+              Icon(
+                Icons.person_outline,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
               Text(
-                problem.reference,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                problem.addedBy!.displayName,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (problem.addedBy != null) ...[
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      size: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      problem.addedBy!.displayName,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
-        ),
+        ],
       ],
     );
   }
