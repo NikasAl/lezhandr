@@ -30,7 +30,7 @@ class ProblemHeader extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
               overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+              maxLines: 2,
             ),
           ),
         ),
