@@ -82,7 +82,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      'Экран решения',
+                      'Страница решения',
                       style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -120,13 +120,13 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                     const SizedBox(height: 8),
                     _buildHelpItem(Icons.description_outlined, 'Условие задачи', Colors.indigo),
                     const SizedBox(height: 8),
-                    _buildHelpItem(Icons.psychology_outlined, 'Анализ использованных навыков', Colors.orange),
+                    _buildHelpItem(Icons.psychology_outlined, 'Анализ примененных навыков', Colors.orange),
                     const SizedBox(height: 8),
                     _buildHelpItem(Icons.edit_outlined, 'Написать или отредактировать текст решения', Colors.blue),
                     const SizedBox(height: 8),
                     _buildHelpItem(Icons.camera_alt_outlined, 'Загрузить фото решения', Colors.teal),
                     const SizedBox(height: 8),
-                    _buildHelpItem(Icons.auto_awesome, 'Распознать текст с фото (OCR)', Colors.purple),
+                    _buildHelpItem(Icons.auto_awesome, 'Распознать текст решения из фото (OCR). Совет: вызывайте более мощных персонажей для распознавания рукописного текста - это даст более хороший результат.', Colors.purple),
                     const SizedBox(height: 8),
                     _buildHelpItem(Icons.lightbulb_outline, 'Просмотреть зафиксированные озарения', Colors.amber),
                     const SizedBox(height: 8),

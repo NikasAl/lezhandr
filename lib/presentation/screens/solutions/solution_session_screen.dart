@@ -221,7 +221,7 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
                         Icon(Icons.warning_amber, color: Colors.deepOrange, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          'Но не нужно спешить!',
+                          'Не спешите!',
                           style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Colors.deepOrange,

@@ -96,7 +96,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
               // Main description
               Text(
-                'На этой странице собраны задачи из разных источников для вашего обучения.',
+                'На этой странице для вас собраны задачи из разных источников.',
                 style: Theme.of(sheetContext).textTheme.bodyLarge,
               ),
               const SizedBox(height: 20),

@@ -75,7 +75,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      'Экран задачи',
+                      'Страница задачи',
                       style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -145,7 +145,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Анализ концепций поможет понять, какие знания понадобятся для решения задачи.',
+                        'Анализ концепций поможет понять, какие знания понадобятся для решения задачи. Осторожно, Спойлер! - изучение конепций перед решением задачи может раскрыть идею задачи раньше, чем вы сами догадаетесь об этом.',
                         style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                           color: Colors.orange[700],
                         ),
