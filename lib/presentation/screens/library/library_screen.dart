@@ -661,9 +661,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   /// Show dialog to create a new problem
   void _showCreateProblemDialog(BuildContext context, List<SourceModel> existingSources) {
-    final refController = TextEditingController();
-    final conditionController = TextEditingController();
-    
     // Remove duplicate sources by name
     final uniqueSources = <String, SourceModel>{};
     for (final s in existingSources) {
@@ -679,269 +676,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       selectedSource = null;
     }
     
-    List<String> selectedTags = [];
-    bool isLoading = false;
-    
-    // Save outer context for navigation after dialog closes
-    final outerContext = context;
-
-    showConstrainedDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.add_task),
-              SizedBox(width: 8),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text('Новая задача'),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Source selection
-                  Text(
-                    'Источник',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedSource,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Выберите или введите новый',
-                    ),
-                    items: sourceNames.map((name) => DropdownMenuItem(
-                      value: name,
-                      child: Text(
-                        name,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    )).toList(),
-                    onChanged: (value) {
-                      setDialogState(() => selectedSource = value);
-                    },
-                  ),
-                  // Custom source input hint
-                  TextButton.icon(
-                    onPressed: () {
-                      // Show input for new source
-                      final newSourceController = TextEditingController();
-                      showConstrainedDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Новый источник'),
-                          content: TextField(
-                            controller: newSourceController,
-                            decoration: const InputDecoration(
-                              labelText: 'Название источника',
-                              hintText: 'Например: Книга "Алгебра 10 класс"',
-                            ),
-                            autofocus: true,
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Отмена'),
-                            ),
-                            FilledButton(
-                              onPressed: () {
-                                final newName = newSourceController.text.trim();
-                                if (newName.isNotEmpty) {
-                                  setDialogState(() {
-                                    // Add to list if not exists
-                                    if (!sourceNames.contains(newName)) {
-                                      sourceNames.add(newName);
-                                      sourceNames.sort();
-                                    }
-                                    selectedSource = newName;
-                                  });
-                                  Navigator.pop(ctx);
-                                }
-                              },
-                              child: const Text('Добавить'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Новый источник'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Reference (number/name)
-                  Text(
-                    'Номер/Название',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: refController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Например: 1.23 или Задача №5',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Tags
-                  Text(
-                    'Теги',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  _TagsSelector(
-                    selectedTags: selectedTags,
-                    onTagsChanged: (tags) {
-                      setDialogState(() => selectedTags = tags);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Condition text
-                  Text(
-                    'Условие (опционально)',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: conditionController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Текст условия задачи...',
-                    ),
-                    maxLines: 4,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Отмена'),
-            ),
-            FilledButton.icon(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (refController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Введите номер/название задачи')),
-                        );
-                        return;
-                      }
-                      if (selectedSource == null || selectedSource!.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Выберите или создайте источник')),
-                        );
-                        return;
-                      }
-
-                      setDialogState(() => isLoading = true);
-
-                      try {
-                        final repo = ref.read(problemsRepositoryProvider);
-                        final problem = await repo.createProblem(
-                          ProblemCreate(
-                            reference: refController.text,
-                            sourceName: selectedSource!,
-                            tags: selectedTags,
-                            conditionText: conditionController.text.isEmpty
-                                ? null
-                                : conditionController.text,
-                          ),
-                        );
-
-                        if (dialogContext.mounted) {
-                          Navigator.pop(dialogContext);
-
-                          // Refresh problems list
-                          ref.invalidate(problemsListProvider);
-                          _resetPagination();
-
-                          // Ask if user wants to add photo - use outerContext for navigation
-                          final addPhoto = await showConstrainedDialog<bool>(
-                            context: outerContext,
-                            builder: (ctx) => AlertDialog(
-                              title: const Row(
-                                children: [
-                                  Icon(Icons.check_circle, color: Colors.green),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerLeft,
-                                      child: Text('Задача создана!'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              content: Text('ID: ${problem.id}\n\nДобавить фото условия?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Позже'),
-                                ),
-                                FilledButton.icon(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  icon: const Icon(Icons.camera_alt),
-                                  label: const Text('Добавить фото'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          // Use outerContext for navigation after dialogs are closed
-                          if (addPhoto == true && outerContext.mounted) {
-                            await outerContext.push('/camera?category=condition&entityId=${problem.id}');
-                            // Refresh after returning from camera
-                            ref.invalidate(problemsListProvider);
-                            _resetPagination();
-                          } else if (outerContext.mounted) {
-                            // Navigate to problem detail
-                            await outerContext.push('/problems/${problem.id}');
-                            // Refresh after returning from problem detail
-                            ref.invalidate(problemsListProvider);
-                            _resetPagination();
-                          }
-                        }
-                      } catch (e) {
-                        if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Ошибка: $e')),
-                          );
-                        }
-                      } finally {
-                        if (dialogContext.mounted) {
-                          setDialogState(() => isLoading = false);
-                        }
-                      }
-                    },
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: Text(isLoading ? 'Создание...' : 'Создать'),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      enableDrag: true,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => _CreateProblemSheet(
+        sourceNames: sourceNames,
+        selectedSource: selectedSource,
+        ref: ref,
+        onCreated: () {
+          ref.invalidate(problemsListProvider);
+          _resetPagination();
+        },
       ),
     );
   }
@@ -1495,6 +1245,488 @@ class _FilterChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Create problem bottom sheet
+class _CreateProblemSheet extends ConsumerStatefulWidget {
+  final List<String> sourceNames;
+  final String? selectedSource;
+  final WidgetRef ref;
+  final VoidCallback onCreated;
+
+  const _CreateProblemSheet({
+    required this.sourceNames,
+    required this.selectedSource,
+    required this.ref,
+    required this.onCreated,
+  });
+
+  @override
+  ConsumerState<_CreateProblemSheet> createState() => _CreateProblemSheetState();
+}
+
+class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
+  late final TextEditingController _refController;
+  late final TextEditingController _conditionController;
+  late List<String> _sourceNames;
+  String? _selectedSource;
+  List<String> _selectedTags = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refController = TextEditingController();
+    _conditionController = TextEditingController();
+    _sourceNames = List.from(widget.sourceNames);
+    _selectedSource = widget.selectedSource;
+  }
+
+  @override
+  void dispose() {
+    _refController.dispose();
+    _conditionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createProblem() async {
+    if (_refController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите номер/название задачи')),
+      );
+      return;
+    }
+    if (_selectedSource == null || _selectedSource!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выберите или создайте источник')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final repo = widget.ref.read(problemsRepositoryProvider);
+      final problem = await repo.createProblem(
+        ProblemCreate(
+          reference: _refController.text,
+          sourceName: _selectedSource!,
+          tags: _selectedTags,
+          conditionText: _conditionController.text.isEmpty
+              ? null
+              : _conditionController.text,
+        ),
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onCreated();
+
+        // Ask if user wants to add photo
+        final addPhoto = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          useRootNavigator: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (ctx) => _ConfirmPhotoSheet(problemId: problem.id!),
+        );
+
+        if (addPhoto == true && mounted) {
+          await context.push('/camera?category=condition&entityId=${problem.id}');
+          widget.onCreated();
+        } else if (mounted) {
+          await context.push('/problems/${problem.id}');
+          widget.onCreated();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _showNewSourceSheet() async {
+    final newSourceController = TextEditingController();
+    
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _NewSourceSheet(controller: newSourceController),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        if (!_sourceNames.contains(result)) {
+          _sourceNames.add(result);
+          _sourceNames.sort();
+        }
+        _selectedSource = result;
+      });
+    }
+    newSourceController.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.add_task, color: Colors.green, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Новая задача',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Source selection
+            Text(
+              'Источник',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedSource,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Выберите или введите новый',
+              ),
+              items: _sourceNames.map((name) => DropdownMenuItem(
+                value: name,
+                child: Text(
+                  name,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              )).toList(),
+              onChanged: (value) {
+                setState(() => _selectedSource = value);
+              },
+            ),
+            // Custom source input hint
+            TextButton.icon(
+              onPressed: _showNewSourceSheet,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Новый источник'),
+            ),
+            const SizedBox(height: 16),
+
+            // Reference (number/name)
+            Text(
+              'Номер/Название',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _refController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Например: 1.23 или Задача №5',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Tags
+            Text(
+              'Теги',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 8),
+            _TagsSelector(
+              selectedTags: _selectedTags,
+              onTagsChanged: (tags) {
+                setState(() => _selectedTags = tags);
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Condition text
+            Text(
+              'Условие (опционально)',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _conditionController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Текст условия задачи...',
+              ),
+              maxLines: 4,
+            ),
+            const SizedBox(height: 24),
+
+            // Create button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _isLoading ? null : _createProblem,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(_isLoading ? 'Создание...' : 'Создать'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// New source bottom sheet
+class _NewSourceSheet extends StatefulWidget {
+  final TextEditingController controller;
+
+  const _NewSourceSheet({required this.controller});
+
+  @override
+  State<_NewSourceSheet> createState() => _NewSourceSheetState();
+}
+
+class _NewSourceSheetState extends State<_NewSourceSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.folder_outlined, color: Colors.teal, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Новый источник',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Source name input
+            TextField(
+              controller: widget.controller,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Название источника',
+                hintText: 'Например: Книга "Алгебра 10 класс"',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Отмена'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final name = widget.controller.text.trim();
+                      if (name.isNotEmpty) {
+                        Navigator.of(context).pop(name);
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Добавить'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirm photo bottom sheet
+class _ConfirmPhotoSheet extends StatelessWidget {
+  final int problemId;
+
+  const _ConfirmPhotoSheet({required this.problemId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Задача создана!',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Text(
+            'ID: $problemId',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Добавить фото условия?',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 24),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Позже'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Добавить фото'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
