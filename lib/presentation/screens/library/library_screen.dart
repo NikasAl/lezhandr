@@ -667,12 +667,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       uniqueSources.putIfAbsent(s.name, () => s);
     }
     
-    // Create mutable list of source names
-    final sourceNames = <String>[...uniqueSources.keys]..sort();
+    // Create sorted list of SourceModel
+    final sourceList = uniqueSources.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     
     // Ensure selectedSource exists in the list, otherwise null
     String? selectedSource = _selectedSource;
-    if (selectedSource != null && !sourceNames.contains(selectedSource)) {
+    if (selectedSource != null && !uniqueSources.containsKey(selectedSource)) {
       selectedSource = null;
     }
     
@@ -685,7 +686,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => _CreateProblemSheet(
-        sourceNames: sourceNames,
+        sources: sourceList,
         selectedSource: selectedSource,
         ref: ref,
         onCreated: () {
@@ -1252,13 +1253,13 @@ class _FilterChip extends StatelessWidget {
 
 /// Create problem bottom sheet
 class _CreateProblemSheet extends ConsumerStatefulWidget {
-  final List<String> sourceNames;
+  final List<SourceModel> sources;
   final String? selectedSource;
   final WidgetRef ref;
   final VoidCallback onCreated;
 
   const _CreateProblemSheet({
-    required this.sourceNames,
+    required this.sources,
     required this.selectedSource,
     required this.ref,
     required this.onCreated,
@@ -1271,8 +1272,8 @@ class _CreateProblemSheet extends ConsumerStatefulWidget {
 class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
   late final TextEditingController _refController;
   late final TextEditingController _conditionController;
-  late List<String> _sourceNames;
-  String? _selectedSource;
+  late List<SourceModel> _sources;
+  String? _selectedSourceName;
   List<String> _selectedTags = [];
   bool _isLoading = false;
 
@@ -1281,8 +1282,8 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
     super.initState();
     _refController = TextEditingController();
     _conditionController = TextEditingController();
-    _sourceNames = List.from(widget.sourceNames);
-    _selectedSource = widget.selectedSource;
+    _sources = List.from(widget.sources);
+    _selectedSourceName = widget.selectedSource;
   }
 
   @override
@@ -1299,7 +1300,7 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
       );
       return;
     }
-    if (_selectedSource == null || _selectedSource!.isEmpty) {
+    if (_selectedSourceName == null || _selectedSourceName!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Выберите или создайте источник')),
       );
@@ -1313,7 +1314,7 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
       final problem = await repo.createProblem(
         ProblemCreate(
           reference: _refController.text,
-          sourceName: _selectedSource!,
+          sourceName: _selectedSourceName!,
           tags: _selectedTags,
           conditionText: _conditionController.text.isEmpty
               ? null
@@ -1372,11 +1373,17 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
 
     if (result != null && result.isNotEmpty) {
       setState(() {
-        if (!_sourceNames.contains(result)) {
-          _sourceNames.add(result);
-          _sourceNames.sort();
+        final existingNames = _sources.map((s) => s.name).toSet();
+        if (!existingNames.contains(result)) {
+          // Add as pending source (will be created on server with pending status)
+          _sources.add(SourceModel(
+            name: result,
+            slug: result.toLowerCase().replaceAll(' ', '-'),
+            moderationStatus: 'pending',
+          ));
+          _sources.sort((a, b) => a.name.compareTo(b.name));
         }
-        _selectedSource = result;
+        _selectedSourceName = result;
       });
     }
     newSourceController.dispose();
@@ -1442,22 +1449,51 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedSource,
+              value: _selectedSourceName,
               isExpanded: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Выберите или введите новый',
               ),
-              items: _sourceNames.map((name) => DropdownMenuItem(
-                value: name,
-                child: Text(
-                  name,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              )).toList(),
+              items: _sources.map((source) {
+                final isPending = source.isPending;
+                return DropdownMenuItem(
+                  value: source.name,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          source.name,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      if (isPending) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'на модерации',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
               onChanged: (value) {
-                setState(() => _selectedSource = value);
+                setState(() => _selectedSourceName = value);
               },
             ),
             // Custom source input hint
