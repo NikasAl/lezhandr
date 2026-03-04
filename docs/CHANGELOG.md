@@ -4,6 +4,30 @@
 
 ### Версия 0.5.1 (Текущая)
 
+#### Рефакторинг
+
+##### 🔧 Разбивка library_screen.dart на модульные виджеты
+**Проблема:** Файл `library_screen.dart` вырос до 1781 строки, что затрудняло поддержку и расширение.
+
+**Решение:** Экран разделён на независимые виджеты:
+```
+library_screen.dart           → 723 строки (основной экран)
+widgets/
+├── load_more_card.dart       → 46 строк (карточка "Загрузить ещё")
+├── filter_chip.dart          → 58 строк (чип фильтра "Мои")
+├── safe_math_preview.dart    → 33 строки (предпросмотр с LaTeX)
+├── problem_card.dart         → 281 строка (карточка задачи)
+├── tags_selector.dart        → 151 строка (селектор тегов)
+├── create_problem_sheet.dart → 512 строк (диалоги создания)
+└── widgets.dart              → barrel export
+```
+
+**Изменённые файлы:**
+- `lib/presentation/screens/library/library_screen.dart`
+- `lib/presentation/screens/library/widgets/` (новые файлы)
+
+---
+
 #### Новые функции
 
 ##### ✨ Модерация источников и тегов
