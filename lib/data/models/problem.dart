@@ -6,6 +6,8 @@ class SourceModel {
   final String slug;
   final String? urlTemplate;
   final int? problemCount;
+  final int? addedBy;
+  final String moderationStatus;
 
   SourceModel({
     required this.id,
@@ -13,6 +15,8 @@ class SourceModel {
     required this.slug,
     this.urlTemplate,
     this.problemCount,
+    this.addedBy,
+    this.moderationStatus = 'approved',
   });
 
   factory SourceModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,8 @@ class SourceModel {
       slug: json['slug'] as String? ?? '',
       urlTemplate: json['url_template'] as String?,
       problemCount: json['problem_count'] as int?,
+      addedBy: json['added_by'] as int?,
+      moderationStatus: json['moderation_status'] as String? ?? 'approved',
     );
   }
 
@@ -31,6 +37,33 @@ class SourceModel {
         'slug': slug,
         'url_template': urlTemplate,
         'problem_count': problemCount,
+        'added_by': addedBy,
+        'moderation_status': moderationStatus,
+      };
+
+  /// Check if source is pending moderation
+  bool get isPending => moderationStatus == 'pending';
+  
+  /// Check if source is approved
+  bool get isApproved => moderationStatus == 'approved';
+  
+  /// Check if source is rejected
+  bool get isRejected => moderationStatus == 'rejected';
+}
+
+/// Source update request (owner can edit pending sources)
+class SourceUpdate {
+  final String? name;
+  final String? urlTemplate;
+
+  SourceUpdate({
+    this.name,
+    this.urlTemplate,
+  });
+
+  Map<String, dynamic> toJson() => {
+        if (name != null) 'name': name,
+        if (urlTemplate != null) 'url_template': urlTemplate,
       };
 }
 
@@ -121,11 +154,15 @@ class TagModel {
   final int id;
   final String name;
   final String slug;
+  final int? addedBy;
+  final String moderationStatus;
 
   TagModel({
     required this.id,
     required this.name,
     required this.slug,
+    this.addedBy,
+    this.moderationStatus = 'approved',
   });
 
   factory TagModel.fromJson(Map<String, dynamic> json) {
@@ -133,6 +170,8 @@ class TagModel {
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
+      addedBy: json['added_by'] as int?,
+      moderationStatus: json['moderation_status'] as String? ?? 'approved',
     );
   }
 
@@ -140,6 +179,28 @@ class TagModel {
         'id': id,
         'name': name,
         'slug': slug,
+        'added_by': addedBy,
+        'moderation_status': moderationStatus,
+      };
+
+  /// Check if tag is pending moderation
+  bool get isPending => moderationStatus == 'pending';
+  
+  /// Check if tag is approved
+  bool get isApproved => moderationStatus == 'approved';
+  
+  /// Check if tag is rejected
+  bool get isRejected => moderationStatus == 'rejected';
+}
+
+/// Tag update request (owner can edit pending tags)
+class TagUpdate {
+  final String? name;
+
+  TagUpdate({this.name});
+
+  Map<String, dynamic> toJson() => {
+        if (name != null) 'name': name,
       };
 }
 

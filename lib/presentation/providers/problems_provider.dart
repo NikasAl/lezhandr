@@ -113,6 +113,32 @@ class ProblemNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+
+  /// Update source (owner can edit pending sources only)
+  Future<SourceModel?> updateSource(int sourceId, SourceUpdate update) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.updateSource(sourceId, update);
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+
+  /// Update tag (owner can edit pending tags only)
+  Future<TagModel?> updateTag(int tagId, TagUpdate update) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await _repo.updateTag(tagId, update);
+      state = const AsyncValue.data(null);
+      return result;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
 }
 
 /// Problems filter with pagination support

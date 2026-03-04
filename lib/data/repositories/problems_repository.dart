@@ -117,4 +117,30 @@ class ProblemsRepository {
         .map((json) => TagModel.fromJson(json as Map<String, dynamic>))
         .toList();
   }
+
+  /// Update source (owner can edit pending sources only)
+  Future<SourceModel?> updateSource(int sourceId, SourceUpdate update) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '/sources/$sourceId',
+        data: update.toJson(),
+      );
+      return SourceModel.fromJson(response.data);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Update tag (owner can edit pending tags only)
+  Future<TagModel?> updateTag(int tagId, TagUpdate update) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '/tags/$tagId',
+        data: update.toJson(),
+      );
+      return TagModel.fromJson(response.data);
+    } catch (e) {
+      return null;
+    }
+  }
 }

@@ -200,9 +200,35 @@ class _TagsEditorSheetState extends ConsumerState<_TagsEditorSheet> {
                         itemCount: availableTags.length,
                         itemBuilder: (context, index) {
                           final tag = availableTags[index];
+                          final isPending = tag.isPending;
+                          
                           return ListTile(
                             dense: true,
-                            title: Text(tag.name),
+                            title: Row(
+                              children: [
+                                Expanded(child: Text(tag.name)),
+                                if (isPending) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'на модерации',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.orange[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                             trailing: const Icon(Icons.add, size: 18),
                             onTap: () => _addTag(tag.name),
                           );
