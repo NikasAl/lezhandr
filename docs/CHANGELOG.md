@@ -2,7 +2,61 @@
 
 ## История изменений (Changelog)
 
-### Версия 0.5.0 (Текущая)
+### Версия 0.5.1 (Текущая)
+
+#### Новые функции
+
+##### ✨ Модерация источников и тегов
+**Функция:** Пользователи могут создавать собственные источники и теги с модерацией.
+
+**Реализовано:**
+1. Поля `added_by` и `moderation_status` в моделях Source и Tag
+2. Статусы: `pending` (на модерации), `approved` (одобрено), `rejected` (отклонено)
+3. Отображение статуса модерации в селекторах источников и тегов
+4. API методы `updateSource` и `updateTag` для редактирования владельцем
+5. Pending-элементы видны только их автору
+
+**Изменённые файлы:**
+- `lib/data/models/problem.dart` — SourceModel, TagModel с новыми полями
+- `lib/data/repositories/problems_repository.dart` — updateSource, updateTag
+- `lib/presentation/providers/problems_provider.dart` — notifier methods
+- `lib/presentation/screens/library/library_screen.dart` — UI статусов
+
+---
+
+#### Исправления ошибок
+
+##### 1. Диалог добавления фото не открывался после создания задачи
+**Проблема:** После создания задачи диалог предложения добавить фото закрывался, но камера не открывалась.
+
+**Причина:** `Navigator.of(context).pop()` делал контекст недействительным, и последующий `showModalBottomSheet` не мог быть показан.
+
+**Решение:**
+1. `_CreateProblemSheet` теперь возвращает созданную задачу через `Navigator.pop(problem)`
+2. Родительский виджет обрабатывает результат и показывает диалог фото
+3. Контекст остаётся валидным на протяжении всего процесса
+
+**Изменённые файлы:**
+- `lib/presentation/screens/library/library_screen.dart`
+
+---
+
+##### 2. TextEditingController использовался после dispose
+**Проблема:** `A TextEditingController was used after being disposed` при создании нового источника.
+
+**Причина:** Контроллер создавался снаружи виджета, передавался в него, а затем уничтожался `dispose()` до завершения анимации закрытия bottom sheet.
+
+**Решение:**
+1. Контроллер создаётся внутри `_NewSourceSheetState`
+2. `dispose()` вызывается автоматически при уничтожении виджета
+3. Убран внешний параметр `controller`
+
+**Изменённые файлы:**
+- `lib/presentation/screens/library/library_screen.dart`
+
+---
+
+### Версия 0.5.0
 
 #### Новые функции
 
