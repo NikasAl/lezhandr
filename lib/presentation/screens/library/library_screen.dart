@@ -1362,8 +1362,6 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
   }
 
   Future<void> _showNewSourceSheet() async {
-    final newSourceController = TextEditingController();
-    
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -1371,7 +1369,7 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => _NewSourceSheet(controller: newSourceController),
+      builder: (ctx) => const _NewSourceSheet(),
     );
 
     if (result != null && result.isNotEmpty) {
@@ -1389,7 +1387,6 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
         _selectedSourceName = result;
       });
     }
-    newSourceController.dispose();
   }
 
   @override
@@ -1576,15 +1573,21 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
 
 /// New source bottom sheet
 class _NewSourceSheet extends StatefulWidget {
-  final TextEditingController controller;
-
-  const _NewSourceSheet({required this.controller});
+  const _NewSourceSheet();
 
   @override
   State<_NewSourceSheet> createState() => _NewSourceSheetState();
 }
 
 class _NewSourceSheetState extends State<_NewSourceSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1640,13 +1643,19 @@ class _NewSourceSheetState extends State<_NewSourceSheet> {
 
             // Source name input
             TextField(
-              controller: widget.controller,
+              controller: _controller,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Название источника',
                 hintText: 'Например: Книга "Алгебра 10 класс"',
               ),
               autofocus: true,
+              onSubmitted: (value) {
+                final name = value.trim();
+                if (name.isNotEmpty) {
+                  Navigator.of(context).pop(name);
+                }
+              },
             ),
             const SizedBox(height: 24),
 
@@ -1664,7 +1673,7 @@ class _NewSourceSheetState extends State<_NewSourceSheet> {
                   flex: 2,
                   child: FilledButton.icon(
                     onPressed: () {
-                      final name = widget.controller.text.trim();
+                      final name = _controller.text.trim();
                       if (name.isNotEmpty) {
                         Navigator.of(context).pop(name);
                       }
