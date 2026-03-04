@@ -7,10 +7,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
-import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/source_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/motivation/motivation_card.dart';
+import 'widgets/widgets.dart';
 
 /// Library screen - browse sources and problems with pagination
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -25,13 +25,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _searchQuery = '';
   bool _searchByReference = false; // Search mode: false = by text, true = by reference
   bool _showMyOnly = false;
-  
+
   // Accumulated problems list for infinite scroll
   List<ProblemModel> _accumulatedProblems = [];
   int _totalProblems = 0;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  
+
   // Scroll controller to preserve scroll position
   final ScrollController _scrollController = ScrollController(keepScrollOffset: true);
 
@@ -191,7 +191,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ],
     );
   }
-  
+
   void _resetPagination() {
     _accumulatedProblems = [];
     _totalProblems = 0;
@@ -206,13 +206,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// Load more problems
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    
+
     setState(() => _isLoadingMore = true);
-    
+
     try {
       final currentUser = ref.read(currentUserProvider);
       final userId = _showMyOnly ? currentUser?.id : null;
-      
+
       final repo = ref.read(problemsRepositoryProvider);
       final response = await repo.getProblems(
         source: _selectedSource,
@@ -222,7 +222,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         limit: 20,
         offset: _accumulatedProblems.length,
       );
-      
+
       if (mounted) {
         setState(() {
           // Avoid duplicates
@@ -249,10 +249,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     try {
       // Invalidate the single problem provider to get fresh data
       ref.invalidate(problemProvider(problemId));
-      
+
       // Fetch updated problem
       final updatedProblem = await ref.read(problemProvider(problemId).future);
-      
+
       if (mounted && updatedProblem != null) {
         setState(() {
           // Find and replace the problem in the accumulated list
@@ -282,7 +282,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     // Get current user for "My problems" filter
     final currentUser = ref.watch(currentUserProvider);
     final userId = _showMyOnly ? currentUser?.id : null;
-    
+
     // Base filter for initial load (always offset 0)
     final baseFilter = ProblemsFilter(
       source: _selectedSource,
@@ -351,7 +351,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 const SizedBox(width: 12),
                 // "My problems" filter
                 if (currentUser != null)
-                  _FilterChip(
+                  LibraryFilterChip(
                     label: 'Мои',
                     icon: Icons.person_outline,
                     selected: _showMyOnly,
@@ -421,7 +421,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             child: problemsListAsync.when(
               data: (response) {
                 final problems = _accumulatedProblems;
-                
+
                 if (problems.isEmpty) {
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
@@ -448,7 +448,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        
+
                         // Show motivation when no results
                         const SizedBox(height: 24),
                         Builder(
@@ -484,7 +484,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ),
                       ),
                     ),
-                    
+
                     // Problems list
                     Expanded(
                       child: ListView.builder(
@@ -494,17 +494,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         itemBuilder: (context, index) {
                           // Load more button
                           if (index == problems.length && _hasMore) {
-                            return _LoadMoreCard(
+                            return LoadMoreCard(
                               isLoading: _isLoadingMore,
                               onLoadMore: _loadMore,
                               remainingCount: _totalProblems - problems.length,
                             );
                           }
-                          
+
                           final problem = problems[index];
                           final isActive = activeProblemIds.contains(problem.id);
 
-                          return _ProblemCard(
+                          return ProblemCard(
                             problem: problem,
                             isActive: isActive,
                             onTap: () async {
@@ -666,17 +666,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     for (final s in existingSources) {
       uniqueSources.putIfAbsent(s.name, () => s);
     }
-    
+
     // Create sorted list of SourceModel
     final sourceList = uniqueSources.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
-    
+
     // Ensure selectedSource exists in the list, otherwise null
     String? selectedSource = _selectedSource;
     if (selectedSource != null && !uniqueSources.containsKey(selectedSource)) {
       selectedSource = null;
     }
-    
+
     final problem = await showModalBottomSheet<ProblemModel>(
       context: context,
       isScrollControlled: true,
@@ -685,7 +685,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => _CreateProblemSheet(
+      builder: (sheetContext) => CreateProblemSheet(
         sources: sourceList,
         selectedSource: selectedSource,
         ref: ref,
@@ -706,7 +706,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (ctx) => _ConfirmPhotoSheet(problemId: problem.id!),
+        builder: (ctx) => ConfirmPhotoSheet(problemId: problem.id!),
       );
 
       if (addPhoto == true && mounted) {
@@ -719,1063 +719,5 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         _resetPagination();
       }
     }
-  }
-}
-
-/// Load more card widget
-class _LoadMoreCard extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onLoadMore;
-  final int remainingCount;
-
-  const _LoadMoreCard({
-    required this.isLoading,
-    required this.onLoadMore,
-    required this.remainingCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: isLoading ? null : onLoadMore,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: isLoading
-                ? const CircularProgressIndicator()
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.expand_more),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Загрузить ещё ($remainingCount осталось)',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Widget for selecting tags
-class _TagsSelector extends ConsumerStatefulWidget {
-  final List<String> selectedTags;
-  final ValueChanged<List<String>> onTagsChanged;
-
-  const _TagsSelector({
-    required this.selectedTags,
-    required this.onTagsChanged,
-  });
-
-  @override
-  ConsumerState<_TagsSelector> createState() => _TagsSelectorState();
-}
-
-class _TagsSelectorState extends ConsumerState<_TagsSelector> {
-  final _tagController = TextEditingController();
-  bool _showSuggestions = false;
-
-  @override
-  void dispose() {
-    _tagController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tagsAsync = _tagController.text.isNotEmpty
-        ? ref.watch(tagsProvider(_tagController.text))
-        : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Selected tags chips
-        if (widget.selectedTags.isNotEmpty) ...[
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: widget.selectedTags.map((tag) => Chip(
-              label: Text(tag, style: const TextStyle(fontSize: 12)),
-              deleteIcon: const Icon(Icons.close, size: 16),
-              onDeleted: () {
-                final newTags = List<String>.from(widget.selectedTags)..remove(tag);
-                widget.onTagsChanged(newTags);
-              },
-              visualDensity: VisualDensity.compact,
-            )).toList(),
-          ),
-          const SizedBox(height: 8),
-        ],
-
-        // Tag input
-        TextField(
-          controller: _tagController,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            hintText: 'Поиск или создание тега',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                if (_tagController.text.isNotEmpty) {
-                  final newTag = _tagController.text.trim();
-                  if (!widget.selectedTags.contains(newTag)) {
-                    widget.onTagsChanged([...widget.selectedTags, newTag]);
-                  }
-                  _tagController.clear();
-                  setState(() => _showSuggestions = false);
-                }
-              },
-            ),
-          ),
-          onChanged: (value) {
-            setState(() => _showSuggestions = value.isNotEmpty);
-          },
-          onSubmitted: (value) {
-            if (value.isNotEmpty) {
-              final newTag = value.trim();
-              if (!widget.selectedTags.contains(newTag)) {
-                widget.onTagsChanged([...widget.selectedTags, newTag]);
-              }
-              _tagController.clear();
-              setState(() => _showSuggestions = false);
-            }
-          },
-        ),
-
-        // Tag suggestions
-        if (_showSuggestions && tagsAsync != null)
-          Container(
-            constraints: const BoxConstraints(maxHeight: 150),
-            child: tagsAsync.when(
-              data: (tags) {
-                // Filter out already selected tags
-                final availableTags = tags
-                    .where((t) => !widget.selectedTags.contains(t.name))
-                    .take(5)
-                    .toList();
-
-                if (availableTags.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(
-                      'Нет предложений. Нажмите + для создания.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  );
-                }
-
-                return Card(
-                  margin: const EdgeInsets.only(top: 4),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: availableTags.length,
-                    itemBuilder: (context, index) {
-                      final tag = availableTags[index];
-                      return ListTile(
-                        dense: true,
-                        title: Text(tag.name),
-                        trailing: const Icon(Icons.add, size: 18),
-                        onTap: () {
-                          widget.onTagsChanged([...widget.selectedTags, tag.name]);
-                          _tagController.clear();
-                          setState(() => _showSuggestions = false);
-                        },
-                      );
-                    },
-                  ),
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.all(8),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              error: (_, __) => const SizedBox(),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Safe math preview widget with error handling for LaTeX rendering
-class _SafeMathPreview extends StatelessWidget {
-  final String text;
-  final TextStyle? style;
-
-  const _SafeMathPreview({
-    required this.text,
-    this.style,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Try to render with LaTeX, fall back to plain text on error
-    try {
-      return MarkdownWithMath(
-        text: text,
-        textStyle: style,
-        // No maxLines - let content take as much space as needed
-      );
-    } catch (e) {
-      // Fallback: show plain text without $ symbols
-      return Text(
-        text.replaceAll(RegExp(r'\$+'), ''),  // Remove $ symbols
-        style: style,
-        // No maxLines - let content take as much space as needed
-      );
-    }
-  }
-}
-
-class _ProblemCard extends StatelessWidget {
-  final ProblemModel problem;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ProblemCard({
-    required this.problem,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  /// Get preview text from condition, respecting LaTeX formulas
-  /// Returns full text without truncation - card height adjusts automatically
-  String? get _previewText {
-    if (problem.conditionText == null || problem.conditionText!.isEmpty) {
-      return null;
-    }
-    return problem.conditionText!;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final previewText = _previewText;
-    final hasPreview = previewText != null || problem.hasImage;
-    final addedBy = problem.addedBy;
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row with icon, title and status
-              Row(
-                children: [
-                  // Status icon
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? Colors.green.withOpacity(0.1)
-                          : Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        problem.hasText ? Icons.description : Icons.image,
-                        size: 20,
-                        color: isActive
-                            ? Colors.green
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Title and source
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                problem.reference,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isActive) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'Активно',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                problem.sourceName,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            // Show added_by user
-                            if (addedBy != null) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                '•',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.person_outline,
-                                size: 12,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 2),
-                              Flexible(
-                                child: Text(
-                                  addedBy.displayName,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, size: 20),
-                ],
-              ),
-              
-              // Preview section (text with LaTeX or image indicator)
-              if (hasPreview) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: previewText != null
-                      ? _SafeMathPreview(
-                          text: previewText,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.5,
-                          ),
-                        )
-                      : Row(
-                          children: [
-                            Icon(
-                              Icons.photo_camera_outlined,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Есть фото условия',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ],
-              
-              // Tags row
-              if (problem.tags.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: problem.tags.take(3).map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        tag.name,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimaryContainer,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-              
-              // Concepts row (if any)
-              if (problem.concepts != null && problem.concepts!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: problem.concepts!.take(3).map((concept) {
-                    final conceptName = concept.concept?.name;
-                    if (conceptName == null) return const SizedBox.shrink();
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .secondaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 10,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSecondaryContainer,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              conceptName,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSecondaryContainer,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Custom filter chip for "My problems" toggle
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final ValueChanged<bool> onSelected;
-
-  const _FilterChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    return Material(
-      color: selected 
-          ? colorScheme.primaryContainer 
-          : colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onSelected(!selected),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: selected 
-                    ? colorScheme.onPrimaryContainer 
-                    : colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: selected 
-                      ? colorScheme.onPrimaryContainer 
-                      : colorScheme.onSurfaceVariant,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Create problem bottom sheet
-class _CreateProblemSheet extends ConsumerStatefulWidget {
-  final List<SourceModel> sources;
-  final String? selectedSource;
-  final WidgetRef ref;
-
-  const _CreateProblemSheet({
-    required this.sources,
-    required this.selectedSource,
-    required this.ref,
-  });
-
-  @override
-  ConsumerState<_CreateProblemSheet> createState() => _CreateProblemSheetState();
-}
-
-class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
-  late final TextEditingController _refController;
-  late final TextEditingController _conditionController;
-  late List<SourceModel> _sources;
-  String? _selectedSourceName;
-  List<String> _selectedTags = [];
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _refController = TextEditingController();
-    _conditionController = TextEditingController();
-    _sources = List.from(widget.sources);
-    _selectedSourceName = widget.selectedSource;
-  }
-
-  @override
-  void dispose() {
-    _refController.dispose();
-    _conditionController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _createProblem() async {
-    if (_refController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите номер/название задачи')),
-      );
-      return;
-    }
-    if (_selectedSourceName == null || _selectedSourceName!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите или создайте источник')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final repo = widget.ref.read(problemsRepositoryProvider);
-      final problem = await repo.createProblem(
-        ProblemCreate(
-          reference: _refController.text,
-          sourceName: _selectedSourceName!,
-          tags: _selectedTags,
-          conditionText: _conditionController.text.isEmpty
-              ? null
-              : _conditionController.text,
-        ),
-      );
-
-      if (mounted) {
-        // Return the created problem to the parent
-        Navigator.of(context).pop(problem);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _showNewSourceSheet() async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => const _NewSourceSheet(),
-    );
-
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        final existingNames = _sources.map((s) => s.name).toSet();
-        if (!existingNames.contains(result)) {
-          // Add as pending source (will be created on server with pending status)
-          _sources.add(SourceModel(
-            name: result,
-            slug: result.toLowerCase().replaceAll(' ', '-'),
-            moderationStatus: 'pending',
-          ));
-          _sources.sort((a, b) => a.name.compareTo(b.name));
-        }
-        _selectedSourceName = result;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.add_task, color: Colors.green, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Новая задача',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Source selection
-            Text(
-              'Источник',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedSourceName,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Выберите или введите новый',
-              ),
-              items: _sources.map((source) {
-                final isPending = source.isPending;
-                return DropdownMenuItem(
-                  value: source.name,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          source.name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      if (isPending) ...[
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'на модерации',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.orange[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedSourceName = value);
-              },
-            ),
-            // Custom source input hint
-            TextButton.icon(
-              onPressed: _showNewSourceSheet,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Новый источник'),
-            ),
-            const SizedBox(height: 16),
-
-            // Reference (number/name)
-            Text(
-              'Номер/Название',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _refController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Например: 1.23 или Задача №5',
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Tags
-            Text(
-              'Теги',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: 8),
-            _TagsSelector(
-              selectedTags: _selectedTags,
-              onTagsChanged: (tags) {
-                setState(() => _selectedTags = tags);
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Condition text
-            Text(
-              'Условие (опционально)',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _conditionController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Текст условия задачи...',
-              ),
-              maxLines: 4,
-            ),
-            const SizedBox(height: 24),
-
-            // Create button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _isLoading ? null : _createProblem,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save),
-                label: Text(_isLoading ? 'Создание...' : 'Создать'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// New source bottom sheet
-class _NewSourceSheet extends StatefulWidget {
-  const _NewSourceSheet();
-
-  @override
-  State<_NewSourceSheet> createState() => _NewSourceSheetState();
-}
-
-class _NewSourceSheetState extends State<_NewSourceSheet> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.folder_outlined, color: Colors.teal, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Новый источник',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Source name input
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Название источника',
-                hintText: 'Например: Книга "Алгебра 10 класс"',
-              ),
-              autofocus: true,
-              onSubmitted: (value) {
-                final name = value.trim();
-                if (name.isNotEmpty) {
-                  Navigator.of(context).pop(name);
-                }
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Отмена'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      final name = _controller.text.trim();
-                      if (name.isNotEmpty) {
-                        Navigator.of(context).pop(name);
-                      }
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Добавить'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Confirm photo bottom sheet
-class _ConfirmPhotoSheet extends StatelessWidget {
-  final int problemId;
-
-  const _ConfirmPhotoSheet({required this.problemId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Задача создана!',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          Text(
-            'ID: $problemId',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Добавить фото условия?',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Позже'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Добавить фото'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
