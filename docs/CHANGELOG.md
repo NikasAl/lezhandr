@@ -4,6 +4,26 @@
 
 ### Версия 0.5.1 (Текущая)
 
+#### Новые функции
+
+##### ✨ Поддержка статуса модерации для задач и решений
+**Функция:** Задачи и решения теперь имеют статус модерации (pending/approved/rejected).
+
+**Реализовано:**
+1. Поле `moderationStatus` в ProblemModel и SolutionModel
+2. Геттеры `isPending`, `isApproved`, `isRejected` для удобной проверки статуса
+3. Бейджи статуса в карточках задач: "на модерации" (оранжевый) или "отклонено" (красный)
+4. Бейдж статуса в карточке решения
+5. Pending-задачи видны только их автору, работают как обычные
+
+**Изменённые файлы:**
+- `lib/data/models/problem.dart`
+- `lib/data/models/solution.dart`
+- `lib/presentation/screens/library/widgets/problem_card.dart`
+- `lib/presentation/screens/solutions/widgets/status_card.dart`
+
+---
+
 #### Рефакторинг
 
 ##### 🔧 Разбивка library_screen.dart на модульные виджеты
