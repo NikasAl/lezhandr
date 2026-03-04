@@ -18,6 +18,7 @@ class SolutionModel {
   final DateTime? createdAt;
   final ProblemModel? problem;
   final UserPublicProfile? addedBy;
+  final String moderationStatus;
 
   SolutionModel({
     required this.id,
@@ -34,6 +35,7 @@ class SolutionModel {
     this.createdAt,
     this.problem,
     this.addedBy,
+    this.moderationStatus = 'approved',
   });
 
   factory SolutionModel.fromJson(Map<String, dynamic> json) {
@@ -84,6 +86,7 @@ class SolutionModel {
       createdAt: createdAt,
       problem: problem,
       addedBy: addedBy,
+      moderationStatus: json['moderation_status'] as String? ?? 'approved',
     );
   }
 
@@ -101,6 +104,7 @@ class SolutionModel {
         'total_minutes': totalMinutes,
         'created_at': createdAt?.toIso8601String(),
         'added_by': addedBy?.toJson(),
+        'moderation_status': moderationStatus,
       };
 
   bool get hasText => solutionText != null && solutionText!.isNotEmpty;
@@ -121,6 +125,15 @@ class SolutionModel {
         return 'Отложено';
     }
   }
+
+  /// Check if solution is pending moderation
+  bool get isPending => moderationStatus == 'pending';
+  
+  /// Check if solution is approved
+  bool get isApproved => moderationStatus == 'approved';
+  
+  /// Check if solution is rejected
+  bool get isRejected => moderationStatus == 'rejected';
 }
 
 /// Response wrapper for paginated solutions list

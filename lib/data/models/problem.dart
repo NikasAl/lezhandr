@@ -215,6 +215,7 @@ class ProblemModel {
   final List<TagModel> tags;
   final List<ProblemConceptModel>? concepts;
   final UserPublicProfile? addedBy;
+  final String moderationStatus;
 
   ProblemModel({
     required this.id,
@@ -227,6 +228,7 @@ class ProblemModel {
     this.tags = const [],
     this.concepts,
     this.addedBy,
+    this.moderationStatus = 'approved',
   });
 
   factory ProblemModel.fromJson(Map<String, dynamic> json) {
@@ -272,6 +274,7 @@ class ProblemModel {
       tags: tags,
       concepts: concepts,
       addedBy: addedBy,
+      moderationStatus: json['moderation_status'] as String? ?? 'approved',
     );
   }
 
@@ -285,6 +288,7 @@ class ProblemModel {
         'source': source?.toJson(),
         'tags': tags.map((t) => t.toJson()).toList(),
         'added_by': addedBy?.toJson(),
+        'moderation_status': moderationStatus,
       };
 
   bool get hasText => conditionText != null && conditionText!.isNotEmpty;
@@ -296,6 +300,15 @@ class ProblemModel {
       : reference;
   
   String get sourceName => source?.name ?? 'Unknown';
+
+  /// Check if problem is pending moderation
+  bool get isPending => moderationStatus == 'pending';
+  
+  /// Check if problem is approved
+  bool get isApproved => moderationStatus == 'approved';
+  
+  /// Check if problem is rejected
+  bool get isRejected => moderationStatus == 'rejected';
 }
 
 /// Response wrapper for paginated problems list
