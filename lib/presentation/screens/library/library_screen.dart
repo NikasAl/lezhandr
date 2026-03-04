@@ -660,7 +660,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   /// Show dialog to create a new problem
-  void _showCreateProblemDialog(BuildContext context, List<SourceModel> existingSources) {
+  Future<void> _showCreateProblemDialog(BuildContext context, List<SourceModel> existingSources) async {
     // Remove duplicate sources by name
     final uniqueSources = <String, SourceModel>{};
     for (final s in existingSources) {
@@ -677,7 +677,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       selectedSource = null;
     }
     
-    showModalBottomSheet(
+    final problem = await showModalBottomSheet<ProblemModel>(
       context: context,
       isScrollControlled: true,
       enableDrag: true,
@@ -689,12 +689,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         sources: sourceList,
         selectedSource: selectedSource,
         ref: ref,
-        onCreated: () {
-          ref.invalidate(problemsListProvider);
-          _resetPagination();
-        },
       ),
     );
+
+    // Handle result after sheet is closed
+    if (problem != null && mounted) {
+      // Refresh the list
+      ref.invalidate(problemsListProvider);
+      _resetPagination();
+
+      // Ask if user wants to add photo
+      final addPhoto = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        useRootNavigator: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => _ConfirmPhotoSheet(problemId: problem.id!),
+      );
+
+      if (addPhoto == true && mounted) {
+        await context.push('/camera?category=condition&entityId=${problem.id}');
+        ref.invalidate(problemsListProvider);
+        _resetPagination();
+      } else if (mounted) {
+        await context.push('/problems/${problem.id}');
+        ref.invalidate(problemsListProvider);
+        _resetPagination();
+      }
+    }
   }
 }
 
@@ -1256,13 +1280,11 @@ class _CreateProblemSheet extends ConsumerStatefulWidget {
   final List<SourceModel> sources;
   final String? selectedSource;
   final WidgetRef ref;
-  final VoidCallback onCreated;
 
   const _CreateProblemSheet({
     required this.sources,
     required this.selectedSource,
     required this.ref,
-    required this.onCreated,
   });
 
   @override
@@ -1323,27 +1345,8 @@ class _CreateProblemSheetState extends ConsumerState<_CreateProblemSheet> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop();
-        widget.onCreated();
-
-        // Ask if user wants to add photo
-        final addPhoto = await showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true,
-          useRootNavigator: true,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (ctx) => _ConfirmPhotoSheet(problemId: problem.id!),
-        );
-
-        if (addPhoto == true && mounted) {
-          await context.push('/camera?category=condition&entityId=${problem.id}');
-          widget.onCreated();
-        } else if (mounted) {
-          await context.push('/problems/${problem.id}');
-          widget.onCreated();
-        }
+        // Return the created problem to the parent
+        Navigator.of(context).pop(problem);
       }
     } catch (e) {
       if (mounted) {
