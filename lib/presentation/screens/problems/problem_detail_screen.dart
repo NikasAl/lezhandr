@@ -24,11 +24,9 @@ class ProblemDetailScreen extends ConsumerStatefulWidget {
 
 class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   bool _isLoading = false;
-  final _conditionController = TextEditingController();
 
   @override
   void dispose() {
-    _conditionController.dispose();
     super.dispose();
   }
 
@@ -250,52 +248,109 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   }
 
   void _showEditConditionDialog(String currentText) {
-    _conditionController.text = currentText;
+    final controller = TextEditingController(text: currentText);
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.edit),
-            SizedBox(width: 8),
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text('Редактировать условие'),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: TextField(
-            controller: _conditionController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: r'Текст условия (поддержка LaTeX: $...$ или $$...$$)',
-            ),
-            maxLines: 10,
-            autofocus: true,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Отмена'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _saveConditionText(_conditionController.text);
-            },
-            icon: const Icon(Icons.save, size: 18),
-            label: const Text('Сохранить'),
-          ),
-        ],
+      isScrollControlled: true,
+      enableDrag: true,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-    );
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.edit, color: Colors.blue, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Редактировать условие',
+                      style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Text field
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: r'Текст условия (поддержка LaTeX: $...$ или $$...$$)',
+                ),
+                maxLines: 10,
+                autofocus: true,
+              ),
+              const SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('Отмена'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        _saveConditionText(controller.text);
+                      },
+                      icon: const Icon(Icons.save, size: 18),
+                      label: const Text('Сохранить'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((_) {
+      controller.dispose();
+    });
   }
 
   void _showConditionActions(ProblemModel data, bool isOwner) {
