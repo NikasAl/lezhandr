@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/problem.dart';
+import '../../../../data/models/problem.dart';
 import 'safe_math_preview.dart';
 
 /// Problem card widget for displaying in the library list

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/models/problem.dart';
-import '../../../repositories/problems_repository.dart';
+import '../../../../data/models/problem.dart';
+import '../../../../data/repositories/problems_repository.dart';
 import '../../../../presentation/providers/problems_provider.dart';
+import '../../../providers/providers.dart';
 import 'tags_selector.dart';
 
 /// Create problem bottom sheet
