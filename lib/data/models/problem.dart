@@ -1,7 +1,7 @@
 import 'user.dart';
 
 class SourceModel {
-  final int id;
+  final int? id;
   final String name;
   final String slug;
   final String? urlTemplate;
@@ -10,7 +10,7 @@ class SourceModel {
   final String moderationStatus;
 
   SourceModel({
-    required this.id,
+    this.id,
     required this.name,
     required this.slug,
     this.urlTemplate,
@@ -21,7 +21,7 @@ class SourceModel {
 
   factory SourceModel.fromJson(Map<String, dynamic> json) {
     return SourceModel(
-      id: json['id'] as int? ?? 0,
+      id: json['id'] as int?,
       name: json['name'] as String? ?? 'Unknown',
       slug: json['slug'] as String? ?? '',
       urlTemplate: json['url_template'] as String?,
