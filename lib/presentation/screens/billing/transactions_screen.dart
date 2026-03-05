@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/billing.dart';
 import '../../providers/billing_provider.dart';
+import '../../widgets/shared/error_display.dart';
 
 /// Transactions screen - list of all transactions (income/expense)
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -185,23 +186,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 }
                 return const Center(child: CircularProgressIndicator());
               },
-              error: (error, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Ошибка загрузки: $error'),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () {
-                        ref.invalidate(transactionsListProvider);
-                        _resetPagination();
-                      },
-                      child: const Text('Повторить'),
-                    ),
-                  ],
-                ),
+              error: (error, _) => ErrorDisplay(
+                error: error,
+                onRetry: () {
+                  ref.invalidate(transactionsListProvider);
+                  _resetPagination();
+                },
               ),
             ),
           ),

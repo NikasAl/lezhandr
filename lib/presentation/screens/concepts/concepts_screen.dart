@@ -11,6 +11,7 @@ import '../../../data/repositories/solutions_repository.dart';
 import '../../providers/providers.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/markdown_with_math.dart';
+import '../../widgets/shared/error_display.dart';
 
 /// Analysis mode enum
 enum AnalysisMode { problem, solution }
@@ -357,20 +358,9 @@ class _ProblemAnalysisTabState extends ConsumerState<_ProblemAnalysisTab> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Ошибка: $error'),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => ref.invalidate(problemsForConceptsProvider),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
+      error: (error, _) => ErrorDisplay(
+        error: error,
+        onRetry: () => ref.invalidate(problemsForConceptsProvider),
       ),
     );
   }
@@ -963,27 +953,21 @@ class _SolutionAnalysisTabState extends ConsumerState<_SolutionAnalysisTab> {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Center(child: Text('Ошибка загрузки решений')),
+                error: (error, _) => ErrorDisplay(
+                  error: error,
+                  onRetry: () => ref.invalidate(solutionsForProblemProvider(
+                    widget.analysisState.selectedProblem?.id ?? 0,
+                  )),
+                ),
               ),
             ),
           ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Ошибка: $error'),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => ref.invalidate(problemsForConceptsProvider),
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
+      error: (error, _) => ErrorDisplay(
+        error: error,
+        onRetry: () => ref.invalidate(problemsForConceptsProvider),
       ),
     );
   }

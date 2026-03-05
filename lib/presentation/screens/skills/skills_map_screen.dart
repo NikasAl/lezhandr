@@ -6,6 +6,7 @@ import '../../../data/models/concept_progress.dart';
 import '../../providers/concepts_progress_provider.dart';
 import '../../providers/providers.dart';
 import '../../widgets/shared/adaptive_layout.dart';
+import '../../widgets/shared/error_display.dart';
 
 void _log(String message) {
   developer.log(message, name: 'SkillsMap');
@@ -166,7 +167,10 @@ class _SkillsMapScreenState extends ConsumerState<SkillsMapScreen> {
                 ),
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Ошибка загрузки статистики: $e'),
+                  child: InlineError(
+                    error: e,
+                    onRetry: () => ref.invalidate(conceptStatsProvider),
+                  ),
                 ),
               ),
             ),
@@ -683,8 +687,9 @@ class _ConceptDetailSheet extends ConsumerWidget {
             child: detailAsync.when(
               data: (detail) => _buildDetailContent(context, detail),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Text('Ошибка: $e'),
+              error: (e, _) => ErrorDisplay(
+                error: e,
+                onRetry: () => ref.invalidate(conceptDetailProvider(conceptId)),
               ),
             ),
           ),

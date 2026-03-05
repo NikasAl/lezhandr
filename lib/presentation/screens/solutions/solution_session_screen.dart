@@ -14,6 +14,7 @@ import '../../providers/problems_provider.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
+import '../../widgets/shared/error_display.dart';
 // Dialogs - extracted to separate files for better maintainability
 import 'dialogs/dialogs.dart';
 import 'dialogs/epiphany_edit_dialog.dart';
@@ -558,21 +559,9 @@ class _SolutionSessionScreenState extends ConsumerState<SolutionSessionScreen> {
           return bodyContent;
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Ошибка: $error'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () =>
-                    ref.invalidate(solutionProvider(widget.solutionId)),
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
+        error: (error, _) => ErrorDisplay(
+          error: error,
+          onRetry: () => ref.invalidate(solutionProvider(widget.solutionId)),
         ),
       ),
       bottomNavigationBar: Container(

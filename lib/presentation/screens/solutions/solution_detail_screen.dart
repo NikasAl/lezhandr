@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
+import '../../widgets/shared/error_display.dart';
 import 'widgets/widgets.dart';
 
 /// Solution detail screen for viewing completed or active solution
@@ -359,21 +360,9 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Ошибка: $error'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () =>
-                    ref.invalidate(solutionProvider(widget.solutionId)),
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
+        error: (error, _) => ErrorDisplay(
+          error: error,
+          onRetry: () => ref.invalidate(solutionProvider(widget.solutionId)),
         ),
       ),
     );
