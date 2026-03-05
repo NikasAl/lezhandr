@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/utils/clipboard_image.dart';
 import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/problems_provider.dart';
@@ -52,6 +53,32 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
     if (image != null) {
       await _processImage(image.path);
+    }
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    if (!isClipboardImageSupported) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Вставка из буфера не поддерживается')),
+        );
+      }
+      return;
+    }
+
+    final result = await getImageFromClipboard();
+
+    if (!mounted) return;
+
+    if (result.isSuccess && result.filePath != null) {
+      await _processImage(result.filePath!);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error ?? 'Не удалось получить изображение'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
@@ -284,6 +311,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   }
 
   Widget _buildCaptureOptions() {
+    final showClipboard = isClipboardImageSupported;
+    
     return Column(
       children: [
         Expanded(
@@ -319,25 +348,62 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               top: BorderSide(color: Colors.grey[800]!),
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildOptionButton(
-                  icon: Icons.photo_library,
-                  label: 'Галерея',
-                  onTap: _pickFromGallery,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildOptionButton(
-                  icon: Icons.camera_alt,
-                  label: 'Камера',
-                  onTap: _takePicture,
-                  isPrimary: true,
-                ),
-              ),
-            ],
+          child: showClipboard
+              ? _buildThreeButtonLayout()
+              : _buildTwoButtonLayout(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTwoButtonLayout() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildOptionButton(
+            icon: Icons.photo_library,
+            label: 'Галерея',
+            onTap: _pickFromGallery,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildOptionButton(
+            icon: Icons.camera_alt,
+            label: 'Камера',
+            onTap: _takePicture,
+            isPrimary: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThreeButtonLayout() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildOptionButton(
+            icon: Icons.photo_library,
+            label: 'Галерея',
+            onTap: _pickFromGallery,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildOptionButton(
+            icon: Icons.paste,
+            label: 'Буфер',
+            onTap: _pasteFromClipboard,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildOptionButton(
+            icon: Icons.camera_alt,
+            label: 'Камера',
+            onTap: _takePicture,
+            isPrimary: true,
           ),
         ),
       ],
