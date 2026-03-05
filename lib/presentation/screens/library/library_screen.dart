@@ -9,6 +9,7 @@ import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/source_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
+import '../../widgets/shared/error_display.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import 'widgets/widgets.dart';
 
@@ -520,24 +521,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Ошибка загрузки: $error'),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () {
-                        ref.invalidate(sourcesProvider);
-                        ref.invalidate(problemsListProvider);
-                        _resetPagination();
-                      },
-                      child: const Text('Повторить'),
-                    ),
-                  ],
-                ),
+              error: (error, _) => ErrorDisplay(
+                error: error,
+                onRetry: () {
+                  ref.invalidate(sourcesProvider);
+                  ref.invalidate(problemsListProvider);
+                  _resetPagination();
+                },
               ),
             ),
           ),
