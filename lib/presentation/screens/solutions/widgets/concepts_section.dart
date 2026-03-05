@@ -7,6 +7,7 @@ import '../../../providers/ocr_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 import '../../../widgets/shared/thinking_indicator.dart';
+import '../../../widgets/shared/error_display.dart';
 
 /// Solution concepts section widget
 class SolutionConceptsSection extends ConsumerWidget {
@@ -234,9 +235,9 @@ class SolutionConceptsSection extends ConsumerWidget {
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                error: (error, _) => Text(
-                  'Ошибка загрузки навыков: $error',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                error: (error, _) => InlineError(
+                  error: error,
+                  onRetry: () => ref.invalidate(solutionConceptsProvider(solutionId)),
                 ),
               ),
           ],

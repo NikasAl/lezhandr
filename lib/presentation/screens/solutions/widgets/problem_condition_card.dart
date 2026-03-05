@@ -4,6 +4,7 @@ import '../../../../data/models/artifacts.dart';
 import '../../../providers/problems_provider.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 import '../../../widgets/shared/image_viewer.dart';
+import '../../../widgets/shared/error_display.dart';
 
 /// Problem condition card - loads full problem data
 class ProblemConditionCard extends ConsumerWidget {
@@ -96,7 +97,7 @@ class ProblemConditionCard extends ConsumerWidget {
           ),
         ),
       ),
-      error: (_, __) => Card(
+      error: (error, _) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -113,11 +114,9 @@ class ProblemConditionCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                'Ошибка загрузки условия',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+              InlineError(
+                error: error,
+                onRetry: () => ref.invalidate(problemProvider(problemId)),
               ),
             ],
           ),

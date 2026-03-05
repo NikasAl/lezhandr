@@ -7,6 +7,7 @@ import '../../../providers/solutions_provider.dart';
 import '../../../widgets/shared/thinking_indicator.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
+import '../../../widgets/shared/error_display.dart';
 
 /// Skills section for solution detail screen
 /// Uses inline expansion design consistent with problem concepts
@@ -59,9 +60,9 @@ class _SolutionSkillsSectionState extends ConsumerState<SolutionSkillsSection> {
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                error: (error, _) => Text(
-                  'Ошибка загрузки навыков: $error',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                error: (error, _) => InlineError(
+                  error: error,
+                  onRetry: () => ref.invalidate(solutionConceptsProvider(widget.solutionId)),
                 ),
               ),
           ],

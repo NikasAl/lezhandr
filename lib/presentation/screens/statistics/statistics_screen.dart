@@ -4,6 +4,7 @@ import '../../providers/gamification_provider.dart';
 import '../../../core/utils/russian_plural.dart';
 import '../../../core/motivation/motivation_engine.dart';
 import '../../widgets/motivation/motivation_card.dart';
+import '../../widgets/shared/error_display.dart';
 
 /// Statistics screen - show progress and activity
 class StatisticsScreen extends ConsumerWidget {
@@ -89,9 +90,14 @@ class StatisticsScreen extends ConsumerWidget {
                   height: 200,
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (_, __) => const SizedBox(
+                error: (error, _) => SizedBox(
                   height: 200,
-                  child: Center(child: Text('Ошибка загрузки')),
+                  child: Center(
+                    child: InlineError(
+                      error: error,
+                      onRetry: () => ref.invalidate(activityProvider),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
