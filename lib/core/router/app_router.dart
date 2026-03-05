@@ -17,6 +17,7 @@ import '../../presentation/screens/billing/transactions_screen.dart';
 import '../../presentation/screens/concepts/concepts_screen.dart';
 import '../../presentation/screens/skills/skills_map_screen.dart';
 import '../../presentation/screens/about/about_screen.dart';
+import '../../presentation/screens/legal/privacy_policy_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -185,6 +186,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           final isFirstLaunch = state.uri.queryParameters['firstLaunch'] == 'true';
           return AboutScreen(isFirstLaunch: isFirstLaunch);
         },
+      ),
+
+      // Privacy Policy
+      GoRoute(
+        path: '/privacy',
+        name: 'privacy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
       ),
     ],
 

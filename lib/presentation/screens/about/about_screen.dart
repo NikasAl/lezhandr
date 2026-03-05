@@ -485,6 +485,12 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => context.push('/privacy'),
+            icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+            label: const Text('Политика конфиденциальности'),
+          ),
         ],
       ),
     );
