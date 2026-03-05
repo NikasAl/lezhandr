@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -59,87 +60,105 @@ Future<ClipboardImageResult> getImageFromClipboard() async {
 
     final reader = await clipboard.read();
 
-    // Try different image formats
-    final formats = reader.availableFormats;
+    // List of image formats to try (in order of preference)
+    final imageFormats = <(DataFormat<DataReader>, String)>[
+      (Formats.png, 'png'),
+      (Formats.jpeg, 'jpg'),
+      (Formats.webp, 'webp'),
+      (Formats.gif, 'gif'),
+      (Formats.bmp, 'bmp'),
+    ];
 
-    // Check for PNG
-    if (formats.contains(Formats.png)) {
-      final pngData = await reader.readFile(Formats.png);
-      if (pngData != null) {
-        return await _saveClipboardImage(pngData, 'png');
-      }
-    }
-
-    // Check for JPEG
-    if (formats.contains(Formats.jpeg)) {
-      final jpegData = await reader.readFile(Formats.jpeg);
-      if (jpegData != null) {
-        return await _saveClipboardImage(jpegData, 'jpg');
-      }
-    }
-
-    // Check for GIF
-    if (formats.contains(Formats.gif)) {
-      final gifData = await reader.readFile(Formats.gif);
-      if (gifData != null) {
-        return await _saveClipboardImage(gifData, 'gif');
-      }
-    }
-
-    // Check for BMP
-    if (formats.contains(Formats.bmp)) {
-      final bmpData = await reader.readFile(Formats.bmp);
-      if (bmpData != null) {
-        return await _saveClipboardImage(bmpData, 'bmp');
-      }
-    }
-
-    // Check for WebP
-    if (formats.contains(Formats.webp)) {
-      final webpData = await reader.readFile(Formats.webp);
-      if (webpData != null) {
-        return await _saveClipboardImage(webpData, 'webp');
+    for (final (format, ext) in imageFormats) {
+      if (reader.canProvideValue(format)) {
+        final result = await _tryReadFormat(reader, format, ext);
+        if (result != null) {
+          return result;
+        }
       }
     }
 
     // No image format found
     return const ClipboardImageResult.error(
-      'В буфере обмена нет изображения',
+      'В буфере обмена нет изображения.\n\n'
+      'Поддерживаемые форматы: PNG, JPEG, WebP, GIF, BMP.\n\n'
+      'Совет: Скопируйте изображение (скриншот или Ctrl+C на картинке в браузере).',
     );
   } catch (e) {
     return ClipboardImageResult.error('Ошибка чтения буфера: $e');
   }
 }
 
-/// Save clipboard image data to temp file and return result
-Future<ClipboardImageResult> _saveClipboardImage(
-  DataReader fileReader,
+/// Try to read a specific format from clipboard
+Future<ClipboardImageResult?> _tryReadFormat(
+  ClipboardReader reader,
+  DataFormat<DataReader> format,
   String extension,
 ) async {
   try {
-    // Read the image data
-    final bytes = await fileReader.readAll();
-
-    if (bytes == null || bytes.isEmpty) {
-      return const ClipboardImageResult.error(
-        'Не удалось прочитать данные изображения',
-      );
-    }
+    // Get the data reader for this format
+    final dataReader = await reader.readValue(format);
+    if (dataReader == null) return null;
 
     // Create temp file
     final tempDir = await getTemporaryDirectory();
     final fileName = 'clipboard_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final file = File('${tempDir.path}/$fileName');
 
-    await file.writeAsBytes(bytes);
+    // Use a completer to handle async file writing
+    final completer = Completer<ClipboardImageResult?>();
+    
+    // Try to read the file data
+    // Note: super_clipboard API uses getFile for binary data
+    dataReader.getFile(
+      format,
+      (Stream<List<int>> stream) async {
+        try {
+          // Write the binary stream to file
+          final sink = file.openWrite();
+          await sink.addStream(stream);
+          await sink.close();
 
-    return ClipboardImageResult.success(
-      bytes: bytes,
-      filePath: file.path,
-      format: extension,
+          // Verify file was written
+          if (await file.exists()) {
+            final bytes = await file.readAsBytes();
+            if (bytes.isNotEmpty) {
+              if (!completer.isCompleted) {
+                completer.complete(ClipboardImageResult.success(
+                  bytes: bytes,
+                  filePath: file.path,
+                  format: extension,
+                ));
+              }
+              return true;
+            }
+          }
+          if (!completer.isCompleted) {
+            completer.complete(null);
+          }
+          return false;
+        } catch (e) {
+          if (!completer.isCompleted) {
+            completer.complete(null);
+          }
+          return false;
+        }
+      },
+      onError: (String error) {
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+        return false;
+      },
+    );
+
+    // Wait for the result with a timeout
+    return await completer.future.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
     );
   } catch (e) {
-    return ClipboardImageResult.error('Ошибка сохранения изображения: $e');
+    return null;
   }
 }
 
@@ -152,13 +171,12 @@ Future<bool> clipboardContainsImage() async {
     if (clipboard == null) return false;
 
     final reader = await clipboard.read();
-    final formats = reader.availableFormats;
 
-    return formats.contains(Formats.png) ||
-        formats.contains(Formats.jpeg) ||
-        formats.contains(Formats.gif) ||
-        formats.contains(Formats.bmp) ||
-        formats.contains(Formats.webp);
+    return reader.canProvideValue(Formats.png) ||
+        reader.canProvideValue(Formats.jpeg) ||
+        reader.canProvideValue(Formats.gif) ||
+        reader.canProvideValue(Formats.webp) ||
+        reader.canProvideValue(Formats.bmp);
   } catch (_) {
     return false;
   }
