@@ -211,37 +211,52 @@ void showFinishSessionSheet({
                               notes: notesController.text,
                             );
 
-                        if (sheetContext.mounted) {
-                          _refreshHomeData(ref, problemId: result?.problemId);
-                          Navigator.of(sheetContext).pop();
-                          
-                          // Show motivation dialog after completion
-                          final motivationEngine = MotivationEngine();
-                          final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
-                          if (motivation != null && sheetContext.mounted) {
-                            await showConstrainedDialog(
-                              context: sheetContext,
-                              barrierDismissible: true,
-                              builder: (ctx) => AlertDialog(
-                                content: MotivationCard(
-                                  motivation: motivation,
-                                  showAuthor: false,
-                                  animate: false,
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Спасибо!'),
-                                  ),
-                                ],
+                        if (!sheetContext.mounted) return;
+                        
+                        _refreshHomeData(ref, problemId: result?.problemId);
+                        
+                        // Close the bottom sheet first
+                        Navigator.of(sheetContext).pop();
+                        
+                        // Show motivation dialog after completion
+                        final motivationEngine = MotivationEngine();
+                        final motivation = motivationEngine.getCompletionText(difficulty: difficulty);
+                        
+                        if (motivation != null && context.mounted) {
+                          await showConstrainedDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (ctx) => AlertDialog(
+                              content: MotivationCard(
+                                motivation: motivation,
+                                showAuthor: false,
+                                animate: false,
                               ),
-                            );
-                          }
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Спасибо!'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        // Close the session screen and navigate to home
+                        if (context.mounted) {
+                          // Pop the session screen from navigation stack
+                          Navigator.of(context).pop();
                           
-                          if (sheetContext.mounted) {
+                          // Small delay to let navigation complete
+                          await Future.delayed(const Duration(milliseconds: 100));
+                          
+                          // Navigate to home
+                          if (context.mounted) {
                             context.go('/main/home');
+                            
+                            // Show XP earned message
                             if (result != null && result.xpEarned != null) {
-                              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('🏆 Задача выполнена! XP: ${result.xpEarned}'),
                                 ),
