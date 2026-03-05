@@ -61,7 +61,7 @@ Future<ClipboardImageResult> getImageFromClipboard() async {
     final reader = await clipboard.read();
 
     // List of image formats to try (in order of preference)
-    final imageFormats = <(DataFormat<DataReader>, String)>[
+    final imageFormats = <(FileFormat, String)>[
       (Formats.png, 'png'),
       (Formats.jpeg, 'jpg'),
       (Formats.webp, 'webp'),
@@ -70,8 +70,8 @@ Future<ClipboardImageResult> getImageFromClipboard() async {
     ];
 
     for (final (format, ext) in imageFormats) {
-      if (reader.canProvideValue(format)) {
-        final result = await _tryReadFormat(reader, format, ext);
+      if (reader.canProvide(format)) {
+        final result = await _tryReadFileFormat(reader, format, ext);
         if (result != null) {
           return result;
         }
@@ -89,77 +89,59 @@ Future<ClipboardImageResult> getImageFromClipboard() async {
   }
 }
 
-/// Try to read a specific format from clipboard
-Future<ClipboardImageResult?> _tryReadFormat(
+/// Try to read a specific file format from clipboard
+Future<ClipboardImageResult?> _tryReadFileFormat(
   ClipboardReader reader,
-  DataFormat<DataReader> format,
+  FileFormat format,
   String extension,
 ) async {
-  try {
-    // Get the data reader for this format
-    final dataReader = await reader.readValue(format);
-    if (dataReader == null) return null;
-
-    // Create temp file
-    final tempDir = await getTemporaryDirectory();
-    final fileName = 'clipboard_${DateTime.now().millisecondsSinceEpoch}.$extension';
-    final file = File('${tempDir.path}/$fileName');
-
-    // Use a completer to handle async file writing
-    final completer = Completer<ClipboardImageResult?>();
-    
-    // Try to read the file data
-    // Note: super_clipboard API uses getFile for binary data
-    dataReader.getFile(
-      format,
-      (Stream<List<int>> stream) async {
-        try {
-          // Write the binary stream to file
-          final sink = file.openWrite();
-          await sink.addStream(stream);
-          await sink.close();
-
-          // Verify file was written
-          if (await file.exists()) {
-            final bytes = await file.readAsBytes();
-            if (bytes.isNotEmpty) {
-              if (!completer.isCompleted) {
-                completer.complete(ClipboardImageResult.success(
-                  bytes: bytes,
-                  filePath: file.path,
-                  format: extension,
-                ));
-              }
-              return true;
-            }
+  final completer = Completer<ClipboardImageResult?>();
+  
+  reader.getFile(
+    format,
+    (DataReaderFile file) async {
+      try {
+        // Read all file data
+        final bytes = await file.readAll();
+        
+        if (bytes.isNotEmpty) {
+          // Create temp file
+          final tempDir = await getTemporaryDirectory();
+          final fileName = 'clipboard_${DateTime.now().millisecondsSinceEpoch}.$extension';
+          final outputFile = File('${tempDir.path}/$fileName');
+          
+          await outputFile.writeAsBytes(bytes);
+          
+          if (!completer.isCompleted) {
+            completer.complete(ClipboardImageResult.success(
+              bytes: bytes,
+              filePath: outputFile.path,
+              format: extension,
+            ));
           }
+        } else {
           if (!completer.isCompleted) {
             completer.complete(null);
           }
-          return false;
-        } catch (e) {
-          if (!completer.isCompleted) {
-            completer.complete(null);
-          }
-          return false;
         }
-      },
-      onError: (String error) {
+      } catch (e) {
         if (!completer.isCompleted) {
           completer.complete(null);
         }
-        return false;
-      },
-    );
+      }
+    },
+    onError: (error) {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    },
+  );
 
-    // Wait for the result with a timeout
-    return await completer.future.timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => null,
-    );
-  } catch (e) {
-    return null;
-  }
+  // Wait for the result with a timeout
+  return completer.future.timeout(
+    const Duration(seconds: 10),
+    onTimeout: () => null,
+  );
 }
 
 /// Check if clipboard contains an image without reading it
@@ -172,11 +154,11 @@ Future<bool> clipboardContainsImage() async {
 
     final reader = await clipboard.read();
 
-    return reader.canProvideValue(Formats.png) ||
-        reader.canProvideValue(Formats.jpeg) ||
-        reader.canProvideValue(Formats.gif) ||
-        reader.canProvideValue(Formats.webp) ||
-        reader.canProvideValue(Formats.bmp);
+    return reader.canProvide(Formats.png) ||
+        reader.canProvide(Formats.jpeg) ||
+        reader.canProvide(Formats.gif) ||
+        reader.canProvide(Formats.webp) ||
+        reader.canProvide(Formats.bmp);
   } catch (_) {
     return false;
   }
