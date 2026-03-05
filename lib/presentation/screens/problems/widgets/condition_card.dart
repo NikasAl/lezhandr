@@ -14,6 +14,7 @@ import '../../../widgets/shared/persona_selector.dart';
 class ConditionCard extends ConsumerStatefulWidget {
   final ProblemModel problem;
   final bool isOwner;
+  final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onOcr;
 
@@ -21,6 +22,7 @@ class ConditionCard extends ConsumerStatefulWidget {
     super.key,
     required this.problem,
     required this.isOwner,
+    this.canEdit = true,
     required this.onEdit,
     required this.onOcr,
   });
@@ -51,7 +53,7 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                // Owner-only buttons
+                // Owner-only buttons (OCR only if can edit)
                 if (widget.isOwner) ...[
                   if (widget.problem.hasImage)
                     ocrState.isLoading
@@ -63,14 +65,18 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
                           )
                         : IconButton(
                             icon: const Icon(Icons.auto_awesome, size: 20),
-                            onPressed: widget.onOcr,
-                            tooltip: 'Распознать текст (OCR)',
+                            onPressed: widget.canEdit ? widget.onOcr : null,
+                            tooltip: widget.canEdit 
+                                ? 'Распознать текст (OCR)' 
+                                : 'Недоступно для задач на модерации',
                           ),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                      onPressed: widget.onEdit,
-                      tooltip: 'Редактировать текст',
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    onPressed: widget.canEdit ? widget.onEdit : null,
+                    tooltip: widget.canEdit 
+                        ? 'Редактировать текст' 
+                        : 'Недоступно для прошедших модерацию',
+                  ),
                 ],
                 if (widget.problem.hasImage && widget.problem.hasText)
                   TextButton.icon(
@@ -117,19 +123,30 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
   }
 
   Widget _buildPlaceholder(BuildContext context) {
+    String message;
+    if (!widget.isOwner) {
+      message = 'Условие не добавлено';
+    } else if (!widget.canEdit) {
+      message = widget.problem.isApproved 
+          ? 'Задача прошла модерацию' 
+          : 'Задача отклонена модератором';
+    } else {
+      message = 'Нажмите ⋮ для добавления условия';
+    }
+    
     return Center(
       child: Column(
         children: [
           Icon(
-            Icons.add_photo_alternate_outlined,
+            widget.canEdit 
+                ? Icons.add_photo_alternate_outlined 
+                : (widget.problem.isRejected ? Icons.block : Icons.verified),
             size: 48,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
           Text(
-            widget.isOwner
-                ? 'Нажмите ⋮ для добавления условия'
-                : 'Условие не добавлено',
+            message,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

@@ -264,6 +264,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   void _showConditionActions(ProblemModel data, bool isOwner) {
     final ocrState = ref.read(ocrNotifierProvider);
     final isOcrLoading = ocrState.isLoading;
+    // Only pending problems can be edited
+    final canEdit = isOwner && data.isPending;
     
     showModalBottomSheet(
       context: context,
@@ -271,7 +273,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isOwner) ...[
+            if (canEdit) ...[
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('Редактировать текст'),
@@ -335,7 +337,21 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   // Navigate to image viewer
                 },
               ),
-            if (!isOwner && !data.hasImage)
+            // Show message if owner but not pending
+            if (isOwner && !data.isPending)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  data.isApproved 
+                      ? 'Задача прошла модерацию и не может быть изменена'
+                      : 'Задача отклонена и не может быть изменена',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (!isOwner && !data.hasImage && data.isPending)
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -420,6 +436,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                 ConditionCard(
                   problem: data,
                   isOwner: isOwner,
+                  canEdit: isOwner && data.isPending,
                   onEdit: () => _showEditConditionDialog(data.conditionText ?? ''),
                   onOcr: _runOcr,
                 ),
@@ -527,86 +544,88 @@ class _EditConditionSheetState extends State<_EditConditionSheet> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.indigo.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.edit, color: Colors.indigo, size: 24),
                   ),
-                  child: const Icon(Icons.edit, color: Colors.indigo, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Редактировать условие',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Редактировать условие',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Text field
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: r'Текст условия (поддержка LaTeX: $...$ или $$...$$)',
+                ],
               ),
-              maxLines: 8,
-              autofocus: true,
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Отмена'),
-                  ),
+              // Text field
+              TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: r'Текст условия (поддержка LaTeX: $...$ или $$...$$)',
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => widget.onSave(_controller.text),
-                    icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Сохранить'),
+                maxLines: 6,
+                autofocus: true,
+              ),
+              const SizedBox(height: 20),
+
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Отмена'),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => widget.onSave(_controller.text),
+                      icon: const Icon(Icons.save, size: 18),
+                      label: const Text('Сохранить'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
