@@ -417,13 +417,33 @@ class _ActiveSolutionsCard extends StatelessWidget {
                   child: const Icon(Icons.timer, color: AppTheme.activeColor),
                 ),
                 title: Text(
-                  problem?.displayTitle ?? 'Задача #${solution.problemId}',
+                  problem?.reference ?? '#${solution.problemId}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                subtitle: Text(
-                  RussianPlural.formatMinutes(solution.totalMinutes.toInt()),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      problem?.sourceName ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      RussianPlural.formatMinutes(solution.totalMinutes.toInt()),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
+                isThreeLine: true,
                 trailing: IconButton(
                   icon: const Icon(Icons.play_arrow),
                   onPressed: () => onContinue(solution.id, solution.totalMinutes),
