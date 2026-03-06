@@ -203,7 +203,7 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                           final group = groupedSolutions[index];
                           return _ProblemSolutionGroup(
                             problemId: group.problemId,
-                            problemTitle: group.problemTitle,
+                            problemReference: group.problemReference,
                             sourceName: group.sourceName,
                             solutions: group.solutions,
                           );
@@ -385,7 +385,7 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
             const SizedBox(height: 24),
           ],
           FilledButton.icon(
-            onPressed: () => context.push('/main/library'),
+            onPressed: () => context.go('/main/library'),
             icon: const Icon(Icons.add_task),
             label: const Text('Начать решать'),
           ),
@@ -482,7 +482,7 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
       if (!groups.containsKey(problemId)) {
         groups[problemId] = _ProblemGroup(
           problemId: problemId,
-          problemTitle: solution.problem?.displayTitle ?? 'Задача #$problemId',
+          problemReference: solution.problem?.reference ?? 'Задача #$problemId',
           sourceName: solution.problem?.sourceName,
           solutions: [],
         );
@@ -526,13 +526,13 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
 
 class _ProblemGroup {
   final int problemId;
-  final String problemTitle;
+  final String problemReference;
   final String? sourceName;
   final List<SolutionModel> solutions;
 
   _ProblemGroup({
     required this.problemId,
-    required this.problemTitle,
+    required this.problemReference,
     this.sourceName,
     required this.solutions,
   });
@@ -540,13 +540,13 @@ class _ProblemGroup {
 
 class _ProblemSolutionGroup extends StatelessWidget {
   final int problemId;
-  final String problemTitle;
+  final String problemReference;
   final String? sourceName;
   final List<SolutionModel> solutions;
 
   const _ProblemSolutionGroup({
     required this.problemId,
-    required this.problemTitle,
+    required this.problemReference,
     this.sourceName,
     required this.solutions,
   });
@@ -584,7 +584,7 @@ class _ProblemSolutionGroup extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          problemTitle,
+                          problemReference,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
