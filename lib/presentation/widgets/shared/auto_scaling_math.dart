@@ -146,6 +146,7 @@ class FittedMath extends StatelessWidget {
   final MathStyle mathStyle;
   final Alignment alignment;
   final EdgeInsets padding;
+  final VoidCallback? onTap;
 
   const FittedMath({
     super.key,
@@ -154,22 +155,36 @@ class FittedMath extends StatelessWidget {
     this.mathStyle = MathStyle.display,
     this.alignment = Alignment.centerLeft,
     this.padding = EdgeInsets.zero,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final mathWidget = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: alignment,
+      child: Math.tex(
+        latex,
+        textStyle: textStyle?.copyWith(fontFamily: null) ??
+            DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
+        mathStyle: mathStyle,
+      ),
+    );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: padding,
+          child: mathWidget,
+        ),
+      );
+    }
+
     return Padding(
       padding: padding,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: alignment,
-        child: Math.tex(
-          latex,
-          textStyle: textStyle?.copyWith(fontFamily: null) ??
-              DefaultTextStyle.of(context).style.copyWith(fontFamily: null),
-          mathStyle: mathStyle,
-        ),
-      ),
+      child: mathWidget,
     );
   }
 }

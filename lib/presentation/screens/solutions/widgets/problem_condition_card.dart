@@ -5,6 +5,7 @@ import '../../../providers/problems_provider.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 import '../../../widgets/shared/image_viewer.dart';
 import '../../../widgets/shared/error_display.dart';
+import '../../../widgets/shared/math_zoom_dialog.dart';
 
 /// Problem condition card - loads full problem data
 class ProblemConditionCard extends ConsumerWidget {
@@ -52,6 +53,9 @@ class ProblemConditionCard extends ConsumerWidget {
                 MarkdownWithMath(
                   text: prob.conditionText!,
                   textStyle: Theme.of(context).textTheme.bodyLarge,
+                  onFormulaTap: (latex) {
+                    MathZoomDialog.show(context, latex: latex);
+                  },
                 )
               else if (prob.hasImage)
                 ConditionImageThumbnail(

@@ -9,6 +9,7 @@ import '../../../widgets/shared/markdown_with_math.dart';
 import '../../../widgets/shared/image_viewer.dart';
 import '../../../widgets/shared/thinking_indicator.dart';
 import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/math_zoom_dialog.dart';
 
 /// Condition card with image/text toggle and OCR support
 class ConditionCard extends ConsumerStatefulWidget {
@@ -106,6 +107,9 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
       return MarkdownWithMath(
         text: widget.problem.conditionText!,
         textStyle: Theme.of(context).textTheme.bodyLarge,
+        onFormulaTap: (latex) {
+          MathZoomDialog.show(context, latex: latex);
+        },
       );
     }
 

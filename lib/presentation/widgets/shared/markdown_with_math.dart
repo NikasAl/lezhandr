@@ -19,6 +19,7 @@ class MarkdownWithMath extends StatelessWidget {
   final bool selectable;
   final int? maxLines;
   final TextOverflow? overflow;
+  final void Function(String latex)? onFormulaTap;
 
   const MarkdownWithMath({
     super.key,
@@ -27,6 +28,7 @@ class MarkdownWithMath extends StatelessWidget {
     this.selectable = true,
     this.maxLines,
     this.overflow,
+    this.onFormulaTap,
   });
 
   @override
@@ -129,6 +131,7 @@ class MarkdownWithMath extends StatelessWidget {
         mathStyle: MathStyle.display,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        onTap: onFormulaTap != null ? () => onFormulaTap!(block.formula) : null,
       );
     } else if (block is _HeaderBlock) {
       final headerStyle = _getHeaderStyle(baseStyle, block.level);
@@ -286,37 +289,51 @@ class MarkdownWithMath extends StatelessWidget {
         )));
       } else if (match.group(9) != null) {
         // $math$
+        final formula = match.group(9)!;
         final mathStyle = baseStyle.copyWith(
           fontFamily: null,
           fontSize: (baseStyle.fontSize ?? 14) * 1.1,
         );
+        final mathWidget = FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Math.tex(
+            formula,
+            textStyle: mathStyle,
+            mathStyle: MathStyle.text,
+          ),
+        );
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Math.tex(
-              match.group(9)!,
-              textStyle: mathStyle,
-              mathStyle: MathStyle.text,
-            ),
-          ),
+          child: onFormulaTap != null
+              ? GestureDetector(
+                  onTap: () => onFormulaTap!(formula),
+                  child: mathWidget,
+                )
+              : mathWidget,
         ));
       } else if (match.group(10) != null) {
         // \(math\)
+        final formula = match.group(10)!;
         final mathStyle = baseStyle.copyWith(
           fontFamily: null,
           fontSize: (baseStyle.fontSize ?? 14) * 1.1,
         );
+        final mathWidget = FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Math.tex(
+            formula,
+            textStyle: mathStyle,
+            mathStyle: MathStyle.text,
+          ),
+        );
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Math.tex(
-              match.group(10)!,
-              textStyle: mathStyle,
-              mathStyle: MathStyle.text,
-            ),
-          ),
+          child: onFormulaTap != null
+              ? GestureDetector(
+                  onTap: () => onFormulaTap!(formula),
+                  child: mathWidget,
+                )
+              : mathWidget,
         ));
       }
 
