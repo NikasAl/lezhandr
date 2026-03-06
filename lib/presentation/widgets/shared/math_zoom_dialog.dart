@@ -33,8 +33,7 @@ class MathZoomDialog extends StatefulWidget {
 
 class _MathZoomDialogState extends State<MathZoomDialog> {
   double _scale = 1.0;
-  double _baseScale = 1.0;
-  final _TransformationController _controller = TransformationController();
+  final TransformationController _controller = TransformationController();
 
   @override
   void dispose() {
