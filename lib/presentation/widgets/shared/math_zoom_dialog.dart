@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
-/// Dialog that displays a math formula in a larger, zoomable view.
+/// Dialog that displays a math formula in a larger, scrollable view.
 /// Allows the user to see small formulas that were scaled down to fit.
 class MathZoomDialog extends StatefulWidget {
   final String latex;
@@ -34,11 +34,32 @@ class MathZoomDialog extends StatefulWidget {
 class _MathZoomDialogState extends State<MathZoomDialog> {
   double _scale = 1.0;
   final TransformationController _controller = TransformationController();
+  final ScrollController _horizontalController = ScrollController();
+  final ScrollController _verticalController = ScrollController();
 
   @override
   void dispose() {
     _controller.dispose();
+    _horizontalController.dispose();
+    _verticalController.dispose();
     super.dispose();
+  }
+
+  void _resetView() {
+    setState(() {
+      _scale = 1.0;
+      _controller.value = Matrix4.identity();
+    });
+    _horizontalController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+    _verticalController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -88,24 +109,38 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
 
             const Divider(),
 
-            // Formula view with zoom
-            Flexible(
+            // Formula view with scroll and zoom
+            Expanded(
               child: InteractiveViewer(
                 transformationController: _controller,
                 minScale: 0.5,
                 maxScale: 3.0,
-                boundaryMargin: const EdgeInsets.all(32),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  alignment: Alignment.center,
-                  child: Math.tex(
-                    widget.latex,
-                    textStyle: theme.textTheme.headlineMedium?.copyWith(
-                      fontFamily: null,
-                      fontWeight: FontWeight.normal,
+                boundaryMargin: const EdgeInsets.all(64),
+                constrained: false,
+                child: Scrollbar(
+                  controller: _horizontalController,
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    controller: _horizontalController,
+                    scrollDirection: Axis.horizontal,
+                    child: Scrollbar(
+                      controller: _verticalController,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _verticalController,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Math.tex(
+                            widget.latex,
+                            textStyle: theme.textTheme.headlineMedium?.copyWith(
+                              fontFamily: null,
+                              fontWeight: FontWeight.normal,
+                            ),
+                            mathStyle: MathStyle.display,
+                          ),
+                        ),
+                      ),
                     ),
-                    mathStyle: MathStyle.display,
                   ),
                 ),
               ),
@@ -162,12 +197,7 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
                   TextButton.icon(
                     icon: const Icon(Icons.fit_screen, size: 18),
                     label: const Text('Сброс'),
-                    onPressed: () {
-                      setState(() {
-                        _scale = 1.0;
-                        _controller.value = Matrix4.identity();
-                      });
-                    },
+                    onPressed: _resetView,
                   ),
                 ],
               ),
