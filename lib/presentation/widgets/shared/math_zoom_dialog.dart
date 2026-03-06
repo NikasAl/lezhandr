@@ -3,7 +3,6 @@ import 'package:flutter_math_fork/flutter_math.dart';
 
 /// Dialog that displays a math formula in a larger, scrollable view.
 /// Allows the user to see small formulas that were scaled down to fit.
-/// Dialog height adapts to formula size (up to max screen height).
 class MathZoomDialog extends StatefulWidget {
   final String latex;
   final String? title;
@@ -74,31 +73,26 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: ConstrainedBox(
+      child: Container(
         constraints: BoxConstraints(
           maxWidth: screenSize.width * 0.9,
           maxHeight: maxHeight,
         ),
-        child: IntrinsicHeight(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              _buildHeader(theme),
-              const Divider(height: 1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header (fixed)
+            _buildHeader(theme),
+            const Divider(height: 1),
 
-              // Formula view - expands only as needed
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: maxHeight - 180, // Reserve space for header + controls
-                ),
-                child: _buildFormulaView(theme),
-              ),
+            // Formula view - flexible but with min height
+            Flexible(
+              child: _buildFormulaView(theme),
+            ),
 
-              // Controls (fixed height at bottom)
-              _buildControls(theme),
-            ],
-          ),
+            // Controls (fixed at bottom)
+            _buildControls(theme),
+          ],
         ),
       ),
     );
