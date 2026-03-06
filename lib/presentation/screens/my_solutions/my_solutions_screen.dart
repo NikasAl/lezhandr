@@ -113,10 +113,42 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
       appBar: AppBar(
         title: const Text('Мои решения'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-            tooltip: 'Фильтр',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Меню',
+            onSelected: (value) {
+              if (value == 'filter') {
+                _showFilterDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'filter',
+                child: Row(
+                  children: [
+                    Icon(Icons.filter_list),
+                    SizedBox(width: 12),
+                    Text('Фильтр по статусу'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                enabled: false,
+                child: Row(
+                  children: [
+                    Icon(Icons.touch_app_outlined, size: 18),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Долгое нажатие — удалить',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -190,30 +222,6 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                     children: [
                       // Stats summary
                       _buildStatsSummary(solutions),
-
-                      // Hint about long press to delete
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.touch_app_outlined,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Долгое нажатие — удалить решение',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
 
                       // Solutions list
                       Expanded(
