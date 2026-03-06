@@ -6,6 +6,7 @@ import '../../../core/utils/russian_plural.dart';
 import '../../providers/providers.dart';
 import '../../providers/solutions_provider.dart';
 import '../../widgets/shared/error_display.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import '../../../core/motivation/motivation_engine.dart';
 import '../../../core/motivation/motivation_models.dart';
@@ -119,116 +120,119 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Status filter chips
-          _buildFilterChips(),
-          
-          // Active filter indicator
-          if (_selectedStatus != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.filter_alt,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Фильтр: ${_getStatusText(_selectedStatus!)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedStatus = null;
-                        _resetPagination();
-                        ref.invalidate(mySolutionsProvider);
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.close,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          
-          const Divider(height: 1),
-
-          // Solutions list
-          Expanded(
-            child: solutionsAsync.when(
-              data: (response) {
-                final solutions = _accumulatedSolutions;
-
-                if (solutions.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                // Group solutions by problem
-                final groupedSolutions = _groupSolutionsByProblem(solutions);
-
-                return Column(
+      body: AdaptiveLayout(
+        maxWidth: 900,
+        child: Column(
+          children: [
+            // Status filter chips
+            _buildFilterChips(),
+            
+            // Active filter indicator
+            if (_selectedStatus != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                child: Row(
                   children: [
-                    // Stats summary
-                    _buildStatsSummary(solutions),
-                    
-                    // Solutions list
+                    Icon(
+                      Icons.filter_alt,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: groupedSolutions.length + (_hasMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == groupedSolutions.length && _hasMore) {
-                            return LoadMoreCard(
-                              isLoading: _isLoadingMore,
-                              onLoadMore: _loadMore,
-                              remainingCount: _totalSolutions - solutions.length,
-                            );
-                          }
-
-                          final group = groupedSolutions[index];
-                          return _ProblemSolutionGroup(
-                            problemId: group.problemId,
-                            problemReference: group.problemReference,
-                            sourceName: group.sourceName,
-                            solutions: group.solutions,
-                            deletingSolutions: _deletingSolutions,
-                            onDelete: _deleteSolution,
-                          );
-                        },
+                      child: Text(
+                        'Фильтр: ${_getStatusText(_selectedStatus!)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedStatus = null;
+                          _resetPagination();
+                          ref.invalidate(mySolutionsProvider);
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => ErrorDisplay(
-                error: error,
-                onRetry: () {
-                  ref.invalidate(mySolutionsProvider);
-                  _resetPagination();
+                ),
+              ),
+            
+            const Divider(height: 1),
+
+            // Solutions list
+            Expanded(
+              child: solutionsAsync.when(
+                data: (response) {
+                  final solutions = _accumulatedSolutions;
+
+                  if (solutions.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
+                  // Group solutions by problem
+                  final groupedSolutions = _groupSolutionsByProblem(solutions);
+
+                  return Column(
+                    children: [
+                      // Stats summary
+                      _buildStatsSummary(solutions),
+                      
+                      // Solutions list
+                      Expanded(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: groupedSolutions.length + (_hasMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == groupedSolutions.length && _hasMore) {
+                              return LoadMoreCard(
+                                isLoading: _isLoadingMore,
+                                onLoadMore: _loadMore,
+                                remainingCount: _totalSolutions - solutions.length,
+                              );
+                            }
+
+                            final group = groupedSolutions[index];
+                            return _ProblemSolutionGroup(
+                              problemId: group.problemId,
+                              problemReference: group.problemReference,
+                              sourceName: group.sourceName,
+                              solutions: group.solutions,
+                              deletingSolutions: _deletingSolutions,
+                              onDelete: _deleteSolution,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
                 },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => ErrorDisplay(
+                  error: error,
+                  onRetry: () {
+                    ref.invalidate(mySolutionsProvider);
+                    _resetPagination();
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -402,6 +406,11 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
   void _showFilterDialog() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: context.isWideScreen ? 500 : double.infinity,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -530,7 +539,7 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
 
   /// Delete a solution with confirmation
   Future<void> _deleteSolution(SolutionModel solution) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showConstrainedDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Удалить решение?'),
