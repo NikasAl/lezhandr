@@ -90,6 +90,13 @@ class SolutionsRepository {
     return SolutionModel.fromJson(response.data);
   }
 
+  /// Delete a solution (owner or admin only)
+  /// Returns deletion stats
+  Future<Map<String, dynamic>> deleteSolution(int id) async {
+    final response = await _apiClient.dio.delete('/solutions/$id');
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Create session record
   Future<SessionModel> createSession(SessionCreate session) async {
     final response = await _apiClient.dio.post(

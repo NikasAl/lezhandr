@@ -22,6 +22,9 @@ class MySolutionsScreen extends ConsumerStatefulWidget {
 class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
   SolutionStatus? _selectedStatus;
   
+  // Track solutions being deleted to show loading state
+  final Set<int> _deletingSolutions = {};
+  
   // Accumulated solutions list for infinite scroll
   List<SolutionModel> _accumulatedSolutions = [];
   int _totalSolutions = 0;
@@ -206,6 +209,8 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                             problemReference: group.problemReference,
                             sourceName: group.sourceName,
                             solutions: group.solutions,
+                            deletingSolutions: _deletingSolutions,
+                            onDelete: _deleteSolution,
                           );
                         },
                       ),
@@ -522,6 +527,94 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
     final mins = (minutes % 60).round();
     return '$hours ч $mins мин';
   }
+
+  /// Delete a solution with confirmation
+  Future<void> _deleteSolution(SolutionModel solution) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить решение?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Это действие нельзя отменить.'),
+            const SizedBox(height: 12),
+            Text(
+              'Будут удалены:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text('• Сессии решения'),
+            Text('• Озарения и вопросы'),
+            Text('• Подсказки'),
+            if (solution.isCompleted && solution.xpEarned != null && solution.xpEarned! > 0)
+              Text('• XP за это решение'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _deletingSolutions.add(solution.id);
+    });
+
+    try {
+      final repo = ref.read(solutionsRepositoryProvider);
+      final result = await repo.deleteSolution(solution.id);
+
+      if (mounted) {
+        // Remove from local list
+        setState(() {
+          _accumulatedSolutions.removeWhere((s) => s.id == solution.id);
+          _deletingSolutions.remove(solution.id);
+        });
+
+        // Show result
+        final stats = result['stats'] as Map<String, dynamic>?;
+        final deletedImages = stats?['deleted_images'] ?? 0;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Решение удалено'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Invalidate providers to refresh
+        ref.invalidate(mySolutionsProvider);
+        ref.invalidate(activeSolutionsProvider);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _deletingSolutions.remove(solution.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка удаления: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 class _ProblemGroup {
@@ -543,12 +636,16 @@ class _ProblemSolutionGroup extends StatelessWidget {
   final String problemReference;
   final String? sourceName;
   final List<SolutionModel> solutions;
+  final Set<int> deletingSolutions;
+  final Function(SolutionModel) onDelete;
 
   const _ProblemSolutionGroup({
     required this.problemId,
     required this.problemReference,
     this.sourceName,
     required this.solutions,
+    required this.deletingSolutions,
+    required this.onDelete,
   });
 
   @override
@@ -623,6 +720,8 @@ class _ProblemSolutionGroup extends StatelessWidget {
               showProblemTitle: false,
               isFirst: index == 0,
               isLast: index == solutions.length - 1,
+              isDeleting: deletingSolutions.contains(solution.id),
+              onDelete: () => onDelete(solution),
             );
           }),
         ],
@@ -636,12 +735,16 @@ class _SolutionTile extends StatelessWidget {
   final bool showProblemTitle;
   final bool isFirst;
   final bool isLast;
+  final bool isDeleting;
+  final VoidCallback? onDelete;
 
   const _SolutionTile({
     required this.solution,
     this.showProblemTitle = true,
     this.isFirst = false,
     this.isLast = false,
+    this.isDeleting = false,
+    this.onDelete,
   });
 
   @override
@@ -649,7 +752,8 @@ class _SolutionTile extends StatelessWidget {
     final statusColor = _getStatusColor(solution.status);
     
     return InkWell(
-      onTap: () => context.push('/solutions/${solution.id}'),
+      onTap: isDeleting ? null : () => context.push('/solutions/${solution.id}'),
+      onLongPress: isDeleting ? null : onDelete,
       child: Padding(
         padding: EdgeInsets.fromLTRB(16, isFirst ? 12 : 8, 16, isLast ? 12 : 8),
         child: Row(
@@ -747,12 +851,28 @@ class _SolutionTile extends StatelessWidget {
               ),
             ),
             
-            // Arrow
-            Icon(
-              Icons.chevron_right,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
+            // Delete button or loading
+            if (isDeleting)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (onDelete != null)
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 20,
+                ),
+                onPressed: onDelete,
+                tooltip: 'Удалить',
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
+                padding: EdgeInsets.zero,
+              ),
           ],
         ),
       ),
