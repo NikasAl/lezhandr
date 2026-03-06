@@ -103,14 +103,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              Row(
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.4,
                 children: [
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.school_outlined,
-                      label: 'Мои навыки',
-                      onTap: () => context.push('/skills-map'),
-                    ),
+                  _QuickActionButton(
+                    icon: Icons.history_outlined,
+                    label: 'Мои решения',
+                    subtitle: 'История задач',
+                    color: Colors.blue,
+                    onTap: () => context.push('/my-solutions'),
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.school_outlined,
+                    label: 'Мои навыки',
+                    subtitle: 'Карта навыков',
+                    color: Colors.teal,
+                    onTap: () => context.push('/skills-map'),
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.bar_chart_outlined,
+                    label: 'Статистика',
+                    subtitle: 'Прогресс',
+                    color: Colors.purple,
+                    onTap: () => context.push('/main/statistics'),
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.lightbulb_outline,
+                    label: 'Концепты',
+                    subtitle: 'Идеи и инсайты',
+                    color: Colors.amber,
+                    onTap: () => context.push('/concepts'),
                   ),
                 ],
               ),
@@ -470,37 +497,61 @@ class _ActiveSolutionsCard extends StatelessWidget {
 class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
+  final Color? color;
   final VoidCallback onTap;
 
   const _QuickActionButton({
     required this.icon,
     required this.label,
+    this.subtitle,
+    this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final buttonColor = color ?? Theme.of(context).colorScheme.primary;
+    
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: buttonColor.withOpacity(0.1),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
+                size: 28,
+                color: buttonColor,
               ),
               const SizedBox(height: 8),
               Text(
                 label,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: buttonColor,
+                ),
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),

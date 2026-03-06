@@ -9,6 +9,62 @@ final activeSolutionsProvider = FutureProvider<List<SolutionModel>>((ref) async 
   return await repo.getActiveSolutions();
 });
 
+/// All user solutions provider with pagination
+/// Returns all solutions for the current user (active, completed, abandoned)
+final mySolutionsProvider =
+    FutureProvider.family<SolutionListResponse, MySolutionsFilter>((ref, filter) async {
+  final repo = ref.watch(solutionsRepositoryProvider);
+  return await repo.getSolutions(
+    status: filter.status,
+    mineOnly: true,
+    limit: filter.limit,
+    offset: filter.offset,
+  );
+});
+
+/// Filter for my solutions
+class MySolutionsFilter {
+  final SolutionStatus? status;
+  final int limit;
+  final int offset;
+
+  const MySolutionsFilter({
+    this.status,
+    this.limit = 20,
+    this.offset = 0,
+  });
+
+  MySolutionsFilter copyWith({
+    SolutionStatus? status,
+    int? limit,
+    int? offset,
+  }) {
+    return MySolutionsFilter(
+      status: status ?? this.status,
+      limit: limit ?? this.limit,
+      offset: offset ?? this.offset,
+    );
+  }
+
+  MySolutionsFilter nextPage() {
+    return copyWith(offset: offset + limit);
+  }
+
+  bool get isFirstPage => offset == 0;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MySolutionsFilter &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          limit == other.limit &&
+          offset == other.offset;
+
+  @override
+  int get hashCode => status.hashCode ^ limit.hashCode ^ offset.hashCode;
+}
+
 /// Solutions for a problem with pagination
 /// Returns full SolutionListResponse with items, total, limit, offset
 final solutionsListProvider =

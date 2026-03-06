@@ -18,6 +18,7 @@ import '../../presentation/screens/concepts/concepts_screen.dart';
 import '../../presentation/screens/skills/skills_map_screen.dart';
 import '../../presentation/screens/about/about_screen.dart';
 import '../../presentation/screens/legal/privacy_policy_screen.dart';
+import '../../presentation/screens/my_solutions/my_solutions_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -176,6 +177,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/skills-map',
         name: 'skills-map',
         builder: (context, state) => const SkillsMapScreen(),
+      ),
+
+      // My Solutions (History)
+      GoRoute(
+        path: '/my-solutions',
+        name: 'my-solutions',
+        builder: (context, state) => const MySolutionsScreen(),
       ),
 
       // About screen
