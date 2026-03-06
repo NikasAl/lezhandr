@@ -451,18 +451,16 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 ),
             textAlign: TextAlign.center,
           ),
-          if (widget.isFirstLaunch) ...[
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _closeScreen,
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('Начать решать'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                foregroundColor: Theme.of(context).colorScheme.primaryContainer,
-              ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _closeScreen,
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Решать задачи'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+              foregroundColor: Theme.of(context).colorScheme.primaryContainer,
             ),
-          ],
+          ),
         ],
       ),
     );
