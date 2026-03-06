@@ -190,7 +190,31 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                     children: [
                       // Stats summary
                       _buildStatsSummary(solutions),
-                      
+
+                      // Hint about long press to delete
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.touch_app_outlined,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Долгое нажатие — удалить решение',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // Solutions list
                       Expanded(
                         child: ListView.builder(
@@ -860,27 +884,12 @@ class _SolutionTile extends StatelessWidget {
               ),
             ),
             
-            // Delete button or loading
+            // Loading indicator when deleting
             if (isDeleting)
               const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (onDelete != null)
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 20,
-                ),
-                onPressed: onDelete,
-                tooltip: 'Удалить',
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-                padding: EdgeInsets.zero,
               ),
           ],
         ),
