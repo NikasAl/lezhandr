@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
-/// Dialog that displays a math formula in a larger, scrollable view.
-/// Allows the user to see small formulas that were scaled down to fit.
+/// Dialog that displays a math formula in a zoomable view.
+/// Supports pinch-to-zoom and pan gestures for easy reading of long formulas.
 class MathZoomDialog extends StatefulWidget {
   final String latex;
   final String? title;
@@ -32,65 +32,65 @@ class MathZoomDialog extends StatefulWidget {
 }
 
 class _MathZoomDialogState extends State<MathZoomDialog> {
-  double _scale = 1.0;
   final TransformationController _transformController = TransformationController();
-  final ScrollController _horizontalController = ScrollController();
-  final ScrollController _verticalController = ScrollController();
 
   @override
   void dispose() {
     _transformController.dispose();
-    _horizontalController.dispose();
-    _verticalController.dispose();
     super.dispose();
   }
 
   void _resetView() {
-    setState(() {
-      _scale = 1.0;
-      _transformController.value = Matrix4.identity();
-    });
-    _horizontalController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
-    _verticalController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
+    _transformController.value = Matrix4.identity();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenSize = MediaQuery.of(context).size;
-    final maxHeight = screenSize.height * 0.85;
 
     return Dialog(
       backgroundColor: theme.colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
-        constraints: BoxConstraints(
-          maxWidth: screenSize.width * 0.9,
-          maxHeight: maxHeight,
-        ),
+        width: screenSize.width * 0.9,
+        height: screenSize.height * 0.85,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header (fixed)
+            // Header
             _buildHeader(theme),
             const Divider(height: 1),
 
-            // Formula view - flexible but with min height
-            Flexible(
-              child: _buildFormulaView(theme),
+            // Formula view with pinch-to-zoom and pan
+            Expanded(
+              child: ClipRect(
+                child: InteractiveViewer(
+                  transformationController: _transformController,
+                  minScale: 0.3,
+                  maxScale: 5.0,
+                  boundaryMargin: const EdgeInsets.all(double.infinity),
+                  constrained: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Math.tex(
+                        widget.latex,
+                        textStyle: theme.textTheme.headlineMedium?.copyWith(
+                          fontFamily: null,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        mathStyle: MathStyle.display,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
 
-            // Controls (fixed at bottom)
+            // Controls
             _buildControls(theme),
           ],
         ),
@@ -109,11 +109,22 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              widget.title ?? 'Формула',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title ?? 'Формула',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'Зажмите и растяните для увеличения',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
           IconButton(
@@ -126,61 +137,20 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
     );
   }
 
-  Widget _buildFormulaView(ThemeData theme) {
-    final mathWidget = Padding(
-      padding: const EdgeInsets.all(32),
-      child: Math.tex(
-        widget.latex,
-        textStyle: theme.textTheme.headlineMedium?.copyWith(
-          fontFamily: null,
-          fontWeight: FontWeight.normal,
-        ),
-        mathStyle: MathStyle.display,
-      ),
-    );
-
-    return InteractiveViewer(
-      transformationController: _transformController,
-      minScale: 0.5,
-      maxScale: 3.0,
-      boundaryMargin: const EdgeInsets.all(64),
-      constrained: false,
-      child: Scrollbar(
-        controller: _horizontalController,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          controller: _horizontalController,
-          scrollDirection: Axis.horizontal,
-          child: Scrollbar(
-            controller: _verticalController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              controller: _verticalController,
-              child: mathWidget,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildControls(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Zoom out
+          // Zoom out button
           IconButton.outlined(
             icon: const Icon(Icons.remove),
-            onPressed: _scale > 0.5
-                ? () {
-                    setState(() {
-                      _scale = (_scale - 0.25).clamp(0.5, 3.0);
-                      _transformController.value = Matrix4.identity()..scale(_scale);
-                    });
-                  }
-                : null,
+            onPressed: () {
+              final currentScale = _transformController.value.getMaxScaleOnAxis();
+              final newScale = (currentScale - 0.25).clamp(0.3, 5.0);
+              _transformController.value = Matrix4.identity()..scale(newScale);
+            },
             tooltip: 'Уменьшить',
           ),
           const SizedBox(width: 8),
@@ -192,22 +162,19 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${(_scale * 100).round()}%',
+              'Свайп для зума',
               style: theme.textTheme.bodySmall,
             ),
           ),
           const SizedBox(width: 8),
-          // Zoom in
+          // Zoom in button
           IconButton.outlined(
             icon: const Icon(Icons.add),
-            onPressed: _scale < 3.0
-                ? () {
-                    setState(() {
-                      _scale = (_scale + 0.25).clamp(0.5, 3.0);
-                      _transformController.value = Matrix4.identity()..scale(_scale);
-                    });
-                  }
-                : null,
+            onPressed: () {
+              final currentScale = _transformController.value.getMaxScaleOnAxis();
+              final newScale = (currentScale + 0.25).clamp(0.3, 5.0);
+              _transformController.value = Matrix4.identity()..scale(newScale);
+            },
             tooltip: 'Увеличить',
           ),
           const SizedBox(width: 16),
