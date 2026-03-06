@@ -729,13 +729,13 @@ class _SolutionTile extends StatelessWidget {
                       if (solution.personalDifficulty != null) ...[
                         const SizedBox(width: 12),
                         Icon(
-                          Icons.signal_cellular_alt,
+                          Icons.fitness_center,
                           size: 14,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Сложность: ${solution.personalDifficulty}',
+                          ': ${solution.personalDifficulty} / 5',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
