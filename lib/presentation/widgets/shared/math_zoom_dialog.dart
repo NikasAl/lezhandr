@@ -68,10 +68,7 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
                   maxScale: 5.0,
                   boundaryMargin: const EdgeInsets.all(double.infinity),
                   constrained: false,
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    alignment: Alignment.center,
+                  child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
                       child: Math.tex(
