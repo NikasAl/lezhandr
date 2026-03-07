@@ -40,10 +40,6 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
     super.dispose();
   }
 
-  void _resetView() {
-    _transformController.value = Matrix4.identity();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -62,7 +58,6 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
           children: [
             // Header
             _buildHeader(theme),
-            const Divider(height: 1),
 
             // Formula view with pinch-to-zoom and pan
             Expanded(
@@ -73,7 +68,10 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
                   maxScale: 5.0,
                   boundaryMargin: const EdgeInsets.all(double.infinity),
                   constrained: false,
-                  child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    alignment: Alignment.center,
                     child: Padding(
                       padding: const EdgeInsets.all(32),
                       child: Math.tex(
@@ -90,8 +88,8 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
               ),
             ),
 
-            // Controls
-            _buildControls(theme),
+            // Hint about gestures
+            _buildHint(theme),
           ],
         ),
       ),
@@ -100,7 +98,7 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
 
   Widget _buildHeader(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
       child: Row(
         children: [
           Icon(
@@ -109,22 +107,12 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title ?? 'Формула',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  'Зажмите и растяните для увеличения',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+            child: Text(
+              widget.title ?? 'Формула',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           IconButton(
@@ -137,52 +125,43 @@ class _MathZoomDialogState extends State<MathZoomDialog> {
     );
   }
 
-  Widget _buildControls(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildHint(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
         children: [
-          // Zoom out button
-          IconButton.outlined(
-            icon: const Icon(Icons.remove),
-            onPressed: () {
-              final currentScale = _transformController.value.getMaxScaleOnAxis();
-              final newScale = (currentScale - 0.25).clamp(0.3, 5.0);
-              _transformController.value = Matrix4.identity()..scale(newScale);
-            },
-            tooltip: 'Уменьшить',
+          Icon(
+            Icons.pinch,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: 8),
-          // Scale indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Свайп для зума',
-              style: theme.textTheme.bodySmall,
+          Text(
+            'Щипок — масштабирование',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(width: 8),
-          // Zoom in button
-          IconButton.outlined(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              final currentScale = _transformController.value.getMaxScaleOnAxis();
-              final newScale = (currentScale + 0.25).clamp(0.3, 5.0);
-              _transformController.value = Matrix4.identity()..scale(newScale);
-            },
-            tooltip: 'Увеличить',
+          Text(
+            '•',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
-          const SizedBox(width: 16),
-          // Reset
-          TextButton.icon(
-            icon: const Icon(Icons.fit_screen, size: 18),
-            label: const Text('Сброс'),
-            onPressed: _resetView,
+          Icon(
+            Icons.pan_tool,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          Text(
+            'Перетаскивание — перемещение',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

@@ -15,6 +15,7 @@ import '../../widgets/motivation/motivation_card.dart';
 import '../../widgets/shared/markdown_with_math.dart';
 import '../../widgets/shared/image_viewer.dart';
 import '../../widgets/shared/error_display.dart';
+import '../../widgets/shared/math_zoom_dialog.dart';
 // Dialogs - extracted to separate files for better maintainability
 import 'dialogs/dialogs.dart';
 import 'dialogs/epiphany_edit_dialog.dart';
@@ -1134,6 +1135,9 @@ class _ProblemConditionCard extends ConsumerWidget {
                   child: MarkdownWithMath(
                     text: problem.conditionText!,
                     textStyle: Theme.of(context).textTheme.bodyMedium,
+                    onFormulaTap: (latex) {
+                      MathZoomDialog.show(context, latex: latex);
+                    },
                   ),
                 ),
               ] else if (problem.hasImage) ...[
