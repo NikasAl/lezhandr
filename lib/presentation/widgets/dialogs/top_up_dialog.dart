@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart' show launchUrl, launchUrlString, LaunchMode;
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/billing_provider.dart';
 
 /// Data class for top-up amount options
@@ -345,19 +345,6 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                           }
                                         }
                                         
-                                        // Method 4: launchUrlString
-                                        if (!launched) {
-                                          try {
-                                            launched = await launchUrlString(
-                                              paymentUrl,
-                                              mode: LaunchMode.externalApplication,
-                                            );
-                                            debugPrint('🔗 Method 4 - launchUrlString: $launched');
-                                          } catch (e) {
-                                            debugPrint('❌ Method 4 error: $e');
-                                          }
-                                        }
-                                        
                                         if (!launched && context.mounted) {
                                           // Fallback: show dialog with URL to copy
                                           _showPaymentUrlDialog(
@@ -428,11 +415,11 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
-          const Icon(Icons.payment, color: Colors.green),
-          const SizedBox(width: 8),
-          const Flexible(child: Text('Оплата')),
+          Icon(Icons.payment, color: Colors.green),
+          SizedBox(width: 8),
+          Text('Оплата'),
         ],
       ),
       content: Column(
@@ -480,7 +467,7 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
             }
           },
           icon: const Icon(Icons.open_in_browser, size: 18),
-          label: const Flexible(child: Text('Открыть снова')),
+          label: const Text('Открыть'),
         ),
         FilledButton.icon(
           onPressed: () {
@@ -506,11 +493,11 @@ void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
-          const Icon(Icons.link, color: Colors.blue),
-          const SizedBox(width: 8),
-          const Flexible(child: Text('Ссылка на оплату')),
+          Icon(Icons.link, color: Colors.blue),
+          SizedBox(width: 8),
+          Text('Ссылка на оплату'),
         ],
       ),
       content: Column(
@@ -565,7 +552,7 @@ void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
             );
           },
           icon: const Icon(Icons.copy, size: 18),
-          label: const Flexible(child: Text('Копировать')),
+          label: const Text('Копировать'),
         ),
         FilledButton.icon(
           onPressed: () {
