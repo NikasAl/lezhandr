@@ -52,7 +52,7 @@ dependencies:
   device_info_plus: ^10.1.2
 
   # URL Launcher
-  url_launcher: ^6.2.3
+  url_launcher: ^6.3.0
 
   # Markdown
   flutter_markdown: ^0.6.19

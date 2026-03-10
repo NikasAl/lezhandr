@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,7 +11,16 @@ class UrlOpener {
   static Future<bool> openUrl(String url) async {
     final uri = Uri.parse(url);
 
-    // First try url_launcher
+    // For web platform, use url_launcher directly
+    if (kIsWeb) {
+      try {
+        return await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // First try url_launcher (works on Linux, macOS, Windows, iOS)
     try {
       final launched = await launchUrl(
         uri,
@@ -18,7 +28,7 @@ class UrlOpener {
       );
       if (launched) return true;
     } catch (e) {
-      // Ignore, try native method
+      // Ignore, try native method for Android
     }
 
     // Fallback to native method channel for Android
@@ -31,15 +41,11 @@ class UrlOpener {
       }
     }
 
-    // For iOS, try again with different mode
-    if (Platform.isIOS) {
-      try {
-        return await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } catch (e) {
-        return false;
-      }
+    // For other platforms (Linux, macOS, Windows, iOS), try platformDefault
+    try {
+      return await launchUrl(uri);
+    } catch (e) {
+      return false;
     }
-
-    return false;
   }
 }
