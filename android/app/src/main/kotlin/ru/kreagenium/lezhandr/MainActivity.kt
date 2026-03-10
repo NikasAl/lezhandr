@@ -1,4 +1,4 @@
-package com.example.lezhandr
+package ru.kreagenium.lezhandr
 
 import io.flutter.embedding.android.FlutterActivity
 

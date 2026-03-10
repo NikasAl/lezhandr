@@ -32,6 +32,11 @@ coverage/
 *.token
 secrets/
 
+# Android signing
+android/key.properties
+*.jks
+*.keystore
+
 # Build artifacts
 *.apk
 *.aab
