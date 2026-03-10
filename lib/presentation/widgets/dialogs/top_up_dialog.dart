@@ -303,37 +303,46 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                         Navigator.pop(sheetContext);
 
                                         final uri = Uri.parse(response.paymentUrl);
+                                        debugPrint('🔗 Payment URL: ${response.paymentUrl}');
+                                        debugPrint('🔗 Parsed URI: $uri');
+                                        
+                                        bool launched = false;
+                                        
+                                        // Try different launch modes
                                         try {
-                                          final launched = await launchUrl(
+                                          // First try: external application (default browser)
+                                          launched = await launchUrl(
                                             uri,
                                             mode: LaunchMode.externalApplication,
                                           );
-                                          if (!launched && context.mounted) {
-                                            // Fallback: show dialog with URL to copy
-                                            _showPaymentUrlDialog(
-                                              context,
-                                              ref,
-                                              paymentUrl: response.paymentUrl,
-                                              invoiceId: response.invoiceId,
-                                              amount: selectedAmount!,
-                                            );
-                                            return;
-                                          }
+                                          debugPrint('🔗 LaunchMode.externalApplication: $launched');
                                         } catch (e) {
-                                          if (context.mounted) {
-                                            // Fallback: show dialog with URL to copy
-                                            _showPaymentUrlDialog(
-                                              context,
-                                              ref,
-                                              paymentUrl: response.paymentUrl,
-                                              invoiceId: response.invoiceId,
-                                              amount: selectedAmount!,
-                                            );
+                                          debugPrint('❌ externalApplication error: $e');
+                                        }
+                                        
+                                        if (!launched) {
+                                          try {
+                                            // Second try: platform default
+                                            launched = await launchUrl(uri);
+                                            debugPrint('🔗 LaunchMode.platformDefault: $launched');
+                                          } catch (e) {
+                                            debugPrint('❌ platformDefault error: $e');
                                           }
+                                        }
+                                        
+                                        if (!launched && context.mounted) {
+                                          // Fallback: show dialog with URL to copy
+                                          _showPaymentUrlDialog(
+                                            context,
+                                            ref,
+                                            paymentUrl: response.paymentUrl,
+                                            invoiceId: response.invoiceId,
+                                            amount: selectedAmount!,
+                                          );
                                           return;
                                         }
 
-                                        if (context.mounted) {
+                                        if (launched && context.mounted) {
                                           _showPaymentWaitingDialog(
                                             context,
                                             ref,
@@ -391,11 +400,11 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.payment, color: Colors.green),
-          SizedBox(width: 8),
-          Text('Оплата'),
+          const Icon(Icons.payment, color: Colors.green),
+          const SizedBox(width: 8),
+          const Flexible(child: Text('Оплата')),
         ],
       ),
       content: Column(
@@ -433,14 +442,17 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
             if (response != null && response.paymentUrl.isNotEmpty) {
               final uri = Uri.parse(response.paymentUrl);
               try {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!launched) {
+                  await launchUrl(uri);
+                }
               } catch (e) {
-                // Ignore error, user can copy URL manually
+                debugPrint('❌ Launch error: $e');
               }
             }
           },
           icon: const Icon(Icons.open_in_browser, size: 18),
-          label: const Text('Открыть снова'),
+          label: const Flexible(child: Text('Открыть снова')),
         ),
         FilledButton.icon(
           onPressed: () {
@@ -466,11 +478,11 @@ void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.link, color: Colors.blue),
-          SizedBox(width: 8),
-          Text('Ссылка на оплату'),
+          const Icon(Icons.link, color: Colors.blue),
+          const SizedBox(width: 8),
+          const Flexible(child: Text('Ссылка на оплату')),
         ],
       ),
       content: Column(
@@ -525,7 +537,7 @@ void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
             );
           },
           icon: const Icon(Icons.copy, size: 18),
-          label: const Text('Копировать ссылку'),
+          label: const Flexible(child: Text('Копировать')),
         ),
         FilledButton.icon(
           onPressed: () {
