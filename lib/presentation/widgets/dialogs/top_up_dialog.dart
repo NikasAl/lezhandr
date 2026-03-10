@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../providers/billing_provider.dart';
+import '../../utils/url_opener.dart';
 
 /// Data class for top-up amount options
 class _TopUpAmount {
@@ -303,48 +303,11 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                         Navigator.pop(sheetContext);
 
                                         final paymentUrl = response.paymentUrl;
-                                        final uri = Uri.parse(paymentUrl);
                                         debugPrint('🔗 Payment URL: $paymentUrl');
-                                        debugPrint('🔗 Parsed URI: $uri');
-                                        debugPrint('🔗 URI scheme: ${uri.scheme}, host: ${uri.host}');
-                                        
-                                        bool launched = false;
-                                        
-                                        // Try different launch methods
-                                        // Method 1: externalApplication
-                                        try {
-                                          launched = await launchUrl(
-                                            uri,
-                                            mode: LaunchMode.externalApplication,
-                                          );
-                                          debugPrint('🔗 Method 1 - externalApplication: $launched');
-                                        } catch (e) {
-                                          debugPrint('❌ Method 1 error: $e');
-                                        }
-                                        
-                                        // Method 2: inAppBrowserView (Chrome Custom Tabs)
-                                        if (!launched) {
-                                          try {
-                                            launched = await launchUrl(
-                                              uri,
-                                              mode: LaunchMode.inAppBrowserView,
-                                            );
-                                            debugPrint('🔗 Method 2 - inAppBrowserView: $launched');
-                                          } catch (e) {
-                                            debugPrint('❌ Method 2 error: $e');
-                                          }
-                                        }
-                                        
-                                        // Method 3: platformDefault
-                                        if (!launched) {
-                                          try {
-                                            launched = await launchUrl(uri);
-                                            debugPrint('🔗 Method 3 - platformDefault: $launched');
-                                          } catch (e) {
-                                            debugPrint('❌ Method 3 error: $e');
-                                          }
-                                        }
-                                        
+
+                                        final launched = await UrlOpener.openUrl(paymentUrl);
+                                        debugPrint('🔗 UrlOpener.openUrl result: $launched');
+
                                         if (!launched && context.mounted) {
                                           // Fallback: show dialog with URL to copy
                                           _showPaymentUrlDialog(
@@ -363,6 +326,7 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                             ref,
                                             invoiceId: response.invoiceId,
                                             amount: selectedAmount!,
+                                            paymentUrl: response.paymentUrl,
                                           );
                                         }
                                       } else {
@@ -410,16 +374,18 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
 void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
   required String invoiceId,
   required int amount,
+  required String paymentUrl,
 }) {
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Row(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.payment, color: Colors.green),
-          SizedBox(width: 8),
-          Text('Оплата'),
+          const Icon(Icons.payment, color: Colors.green),
+          const SizedBox(width: 8),
+          Flexible(child: const Text('Оплата')),
         ],
       ),
       content: Column(
@@ -450,21 +416,7 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
       actions: [
         TextButton.icon(
           onPressed: () async {
-            // Open payment URL again
-            final response = await ref
-                .read(billingNotifierProvider.notifier)
-                .createTopUp(amount.toDouble());
-            if (response != null && response.paymentUrl.isNotEmpty) {
-              final uri = Uri.parse(response.paymentUrl);
-              try {
-                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                if (!launched) {
-                  await launchUrl(uri);
-                }
-              } catch (e) {
-                debugPrint('❌ Launch error: $e');
-              }
-            }
+            await UrlOpener.openUrl(paymentUrl);
           },
           icon: const Icon(Icons.open_in_browser, size: 18),
           label: const Text('Открыть'),
@@ -493,11 +445,12 @@ void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Row(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.link, color: Colors.blue),
-          SizedBox(width: 8),
-          Text('Ссылка на оплату'),
+          const Icon(Icons.link, color: Colors.blue),
+          const SizedBox(width: 8),
+          const Flexible(child: Text('Ссылка на оплату')),
         ],
       ),
       content: Column(
