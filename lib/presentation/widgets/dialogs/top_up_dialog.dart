@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/billing_provider.dart';
@@ -302,25 +303,43 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                         Navigator.pop(sheetContext);
 
                                         final uri = Uri.parse(response.paymentUrl);
-                                        if (await canLaunchUrl(uri)) {
-                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-
-                                          if (context.mounted) {
-                                            _showPaymentWaitingDialog(
+                                        try {
+                                          final launched = await launchUrl(
+                                            uri,
+                                            mode: LaunchMode.externalApplication,
+                                          );
+                                          if (!launched && context.mounted) {
+                                            // Fallback: show dialog with URL to copy
+                                            _showPaymentUrlDialog(
                                               context,
                                               ref,
+                                              paymentUrl: response.paymentUrl,
+                                              invoiceId: response.invoiceId,
+                                              amount: selectedAmount!,
+                                            );
+                                            return;
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            // Fallback: show dialog with URL to copy
+                                            _showPaymentUrlDialog(
+                                              context,
+                                              ref,
+                                              paymentUrl: response.paymentUrl,
                                               invoiceId: response.invoiceId,
                                               amount: selectedAmount!,
                                             );
                                           }
-                                        } else {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Не удалось открыть ссылку оплаты'),
-                                              ),
-                                            );
-                                          }
+                                          return;
+                                        }
+
+                                        if (context.mounted) {
+                                          _showPaymentWaitingDialog(
+                                            context,
+                                            ref,
+                                            invoiceId: response.invoiceId,
+                                            amount: selectedAmount!,
+                                          );
                                         }
                                       } else {
                                         if (context.mounted) {
@@ -413,11 +432,100 @@ void _showPaymentWaitingDialog(BuildContext context, WidgetRef ref, {
                 .createTopUp(amount.toDouble());
             if (response != null && response.paymentUrl.isNotEmpty) {
               final uri = Uri.parse(response.paymentUrl);
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              try {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (e) {
+                // Ignore error, user can copy URL manually
+              }
             }
           },
           icon: const Icon(Icons.open_in_browser, size: 18),
           label: const Text('Открыть снова'),
+        ),
+        FilledButton.icon(
+          onPressed: () {
+            Navigator.pop(dialogContext);
+            // Refresh balance
+            ref.invalidate(billingBalanceProvider);
+          },
+          icon: const Icon(Icons.check),
+          label: const Text('Готово'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Fallback dialog when browser cannot be launched - allows copying URL
+void _showPaymentUrlDialog(BuildContext context, WidgetRef ref, {
+  required String paymentUrl,
+  required String invoiceId,
+  required int amount,
+}) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.link, color: Colors.blue),
+          SizedBox(width: 8),
+          Text('Ссылка на оплату'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Счёт на $amount ₽ создан',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Не удалось открыть браузер. Скопируйте ссылку и откройте её вручную:',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SelectableText(
+              paymentUrl,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+              maxLines: 3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'ID: $invoiceId',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: paymentUrl));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ссылка скопирована'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          icon: const Icon(Icons.copy, size: 18),
+          label: const Text('Копировать ссылку'),
         ),
         FilledButton.icon(
           onPressed: () {
