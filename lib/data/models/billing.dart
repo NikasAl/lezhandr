@@ -51,6 +51,8 @@ class TransactionModel {
   final String status;
   final String? description;
   final DateTime? createdAt;
+  final String? paymentId;   // ID счёта в платёжной системе
+  final String? paymentUrl;  // URL для оплаты (только для pending)
 
   TransactionModel({
     required this.id,
@@ -59,6 +61,8 @@ class TransactionModel {
     required this.status,
     this.description,
     this.createdAt,
+    this.paymentId,
+    this.paymentUrl,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -94,6 +98,8 @@ class TransactionModel {
       status: json['status'] as String? ?? 'pending',
       description: json['description'] as String?,
       createdAt: createdAt,
+      paymentId: json['payment_id'] as String?,
+      paymentUrl: json['payment_url'] as String?,
     );
   }
 
@@ -104,6 +110,8 @@ class TransactionModel {
         'status': status,
         'description': description,
         'created_at': createdAt?.toIso8601String(),
+        'payment_id': paymentId,
+        'payment_url': paymentUrl,
       };
 
   /// Is this an incoming transaction (money added to balance)
@@ -113,6 +121,9 @@ class TransactionModel {
 
   /// Is this transaction completed successfully
   bool get isCompleted => status == 'succeeded';
+
+  /// Can this transaction be paid (pending with payment URL)
+  bool get canBePaid => status == 'pending' && paymentUrl != null && paymentUrl!.isNotEmpty;
 
   /// Display text for transaction type
   String get typeText {

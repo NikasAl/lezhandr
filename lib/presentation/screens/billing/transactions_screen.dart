@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/billing.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/error_display.dart';
+import '../../../utils/url_opener.dart';
 
 /// Transactions screen - list of all transactions (income/expense)
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -159,7 +161,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           }
                           
                           final transaction = transactions[index];
-                          return _TransactionTile(transaction: transaction);
+                          return _TransactionTile(
+                            transaction: transaction,
+                            onPayTap: transaction.canBePaid
+                                ? () => _openPaymentUrl(
+                                    context,
+                                    transaction.paymentUrl!,
+                                    transaction.amount,
+                                  )
+                                : null,
+                          );
                         },
                       ),
                     ),
@@ -245,13 +256,160 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         .where((t) => !t.isIncoming && t.isCompleted)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
+
+  /// Open payment URL for pending transaction
+  Future<void> _openPaymentUrl(
+    BuildContext context,
+    String paymentUrl,
+    double amount,
+  ) async {
+    final launched = await UrlOpener.openUrl(paymentUrl);
+    
+    if (!launched && context.mounted) {
+      // Fallback: show dialog to copy URL
+      _showPaymentUrlDialog(context, paymentUrl, amount);
+      return;
+    }
+
+    if (launched && context.mounted) {
+      // Show waiting dialog
+      _showPaymentWaitingDialog(context, paymentUrl, amount);
+    }
+  }
+
+  /// Show dialog with payment URL for manual copy
+  void _showPaymentUrlDialog(BuildContext context, String paymentUrl, double amount) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.link, color: Colors.blue),
+            const SizedBox(width: 8),
+            const Flexible(child: Text('Ссылка на оплату')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Счёт на ${amount.toStringAsFixed(2)} ₽',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Не удалось открыть браузер. Скопируйте ссылку и откройте её вручную:',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                paymentUrl,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                ),
+                maxLines: 3,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: paymentUrl));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ссылка скопирована'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('Копировать'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Готово'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show waiting dialog after opening payment URL
+  void _showPaymentWaitingDialog(BuildContext context, String paymentUrl, double amount) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.payment, color: Colors.green),
+            const SizedBox(width: 8),
+            const Flexible(child: Text('Оплата')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Счёт на ${amount.toStringAsFixed(2)} ₽ создан',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Завершите оплату в браузере и вернитесь в приложение',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await UrlOpener.openUrl(paymentUrl);
+            },
+            icon: const Icon(Icons.open_in_browser, size: 18),
+            label: const Text('Открыть'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // Refresh transactions list
+              ref.invalidate(transactionsListProvider);
+              ref.invalidate(billingBalanceProvider);
+              _resetPagination();
+            },
+            icon: const Icon(Icons.check),
+            label: const Text('Готово'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Transaction tile widget
 class _TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
+  final VoidCallback? onPayTap;
 
-  const _TransactionTile({required this.transaction});
+  const _TransactionTile({
+    required this.transaction,
+    this.onPayTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +483,24 @@ class _TransactionTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _StatusBadge(status: transaction.status),
+                _StatusBadge(status: transaction.status, canBePaid: transaction.canBePaid),
               ],
             ),
+            // Кнопка оплаты для pending транзакций
+            if (transaction.canBePaid) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onPayTap,
+                  icon: const Icon(Icons.open_in_browser, size: 16),
+                  label: const Text('Оплатить'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         isThreeLine: transaction.description != null && transaction.description!.isNotEmpty,
@@ -339,30 +512,45 @@ class _TransactionTile extends StatelessWidget {
 /// Status badge widget
 class _StatusBadge extends StatelessWidget {
   final String status;
+  final bool canBePaid;
 
-  const _StatusBadge({required this.status});
+  const _StatusBadge({
+    required this.status,
+    this.canBePaid = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     Color color;
     String text;
+    IconData? icon;
 
     switch (status) {
       case 'succeeded':
         color = Colors.green;
         text = 'Успешно';
+        icon = Icons.check_circle;
         break;
       case 'pending':
-        color = Colors.orange;
-        text = 'В обработке';
+        if (canBePaid) {
+          color = Colors.blue;
+          text = 'К оплате';
+          icon = Icons.payment;
+        } else {
+          color = Colors.orange;
+          text = 'В обработке';
+          icon = Icons.hourglass_empty;
+        }
         break;
       case 'canceled':
         color = Colors.red;
         text = 'Отменено';
+        icon = Icons.cancel;
         break;
       default:
         color = Colors.grey;
         text = status;
+        icon = null;
     }
 
     return Container(
@@ -371,13 +559,22 @@ class _StatusBadge extends StatelessWidget {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 10, color: color),
+            const SizedBox(width: 2),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
