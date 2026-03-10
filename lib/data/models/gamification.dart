@@ -5,9 +5,15 @@ class GamificationModel {
   final int currentHearts;
   final int maxHearts;
   final int streakCurrent;
-  final int streakBest;  // Changed from streakMax to match API field
+  final int streakBest;
   final int solvedTasksToday;
   final DateTime? lastActivityDate;
+  
+  // Поля уровня (вычисляются сервером из total_xp)
+  final int level;
+  final double levelProgress;  // Прогресс до следующего уровня (0.0-1.0)
+  final double xpCurrent;      // XP на текущем уровне
+  final double xpToNext;       // XP до следующего уровня
 
   GamificationModel({
     this.userId,
@@ -19,6 +25,10 @@ class GamificationModel {
     this.streakBest = 0,
     this.solvedTasksToday = 0,
     this.lastActivityDate,
+    this.level = 1,
+    this.levelProgress = 0.0,
+    this.xpCurrent = 0.0,
+    this.xpToNext = 100.0,
   });
 
   factory GamificationModel.fromJson(Map<String, dynamic> json) {
@@ -36,9 +46,14 @@ class GamificationModel {
       currentHearts: json['current_hearts'] as int? ?? 5,
       maxHearts: json['max_hearts'] as int? ?? 5,
       streakCurrent: json['streak_current'] as int? ?? 0,
-      streakBest: json['streak_best'] as int? ?? 0,  // Fixed: was streak_max
+      streakBest: json['streak_best'] as int? ?? 0,
       solvedTasksToday: json['solved_tasks_today'] as int? ?? 0,
       lastActivityDate: lastActivityDate,
+      // Новые поля уровня от сервера
+      level: json['level'] as int? ?? json['current_level'] as int? ?? 1,
+      levelProgress: (json['level_progress'] as num?)?.toDouble() ?? 0.0,
+      xpCurrent: (json['xp_current'] as num?)?.toDouble() ?? 0.0,
+      xpToNext: (json['xp_to_next'] as num?)?.toDouble() ?? 100.0,
     );
   }
 
@@ -52,20 +67,24 @@ class GamificationModel {
         'streak_best': streakBest,
         'solved_tasks_today': solvedTasksToday,
         'last_activity_date': lastActivityDate?.toIso8601String(),
+        'level': level,
+        'level_progress': levelProgress,
+        'xp_current': xpCurrent,
+        'xp_to_next': xpToNext,
       };
 
-  double get xpProgress {
-    final xpForCurrentLevel = currentLevel * 100;
-    final xpForNextLevel = (currentLevel + 1) * 100;
-    final xpInLevel = totalXp - xpForCurrentLevel;
-    final xpNeeded = xpForNextLevel - xpForCurrentLevel;
-    if (xpNeeded <= 0) return 1.0;
-    return (xpInLevel / xpNeeded).clamp(0.0, 1.0);
-  }
+  /// Прогресс до следующего уровня (использует данные сервера)
+  double get xpProgress => levelProgress;
 
   double get heartsProgress => maxHearts > 0 ? currentHearts / maxHearts : 1.0;
 
   bool get streakAtRisk => streakCurrent > 0 && solvedTasksToday == 0;
+  
+  /// Форматированный XP для отображения
+  String get xpDisplay => '${totalXp.toStringAsFixed(0)} XP';
+  
+  /// Прогресс бар уровня в процентах
+  int get levelProgressPercent => (levelProgress * 100).round();
 }
 
 class DailyActivityModel {

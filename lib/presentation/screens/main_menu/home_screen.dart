@@ -79,7 +79,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // Quick stats
               _QuickStatsCard(
-                xp: gamification.value?.totalXp ?? 0,
+                level: gamification.value?.level ?? 1,
+                levelProgress: gamification.value?.levelProgress ?? 0.0,
+                xpCurrent: gamification.value?.xpCurrent ?? 0,
+                xpToNext: gamification.value?.xpToNext ?? 100,
+                totalXp: gamification.value?.totalXp ?? 0,
                 hearts: gamification.value?.currentHearts ?? 5,
                 maxHearts: gamification.value?.maxHearts ?? 5,
               ),
@@ -259,12 +263,20 @@ class _GreetingCard extends StatelessWidget {
 }
 
 class _QuickStatsCard extends StatelessWidget {
-  final double xp;
+  final int level;
+  final double levelProgress;
+  final double xpCurrent;
+  final double xpToNext;
+  final double totalXp;
   final int hearts;
   final int maxHearts;
 
   const _QuickStatsCard({
-    required this.xp,
+    required this.level,
+    required this.levelProgress,
+    required this.xpCurrent,
+    required this.xpToNext,
+    required this.totalXp,
     required this.hearts,
     required this.maxHearts,
   });
@@ -274,25 +286,96 @@ class _QuickStatsCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            _StatItem(
-              icon: Icons.star,
-              iconColor: Colors.amber,
-              label: 'XP',
-              value: xp.toStringAsFixed(0),
+            // Level with progress bar
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.tertiary,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$level',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Уровень $level',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${xpCurrent.toStringAsFixed(0)} / ${xpToNext.toStringAsFixed(0)} XP',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: levelProgress.clamp(0.0, 1.0),
+                          minHeight: 8,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Container(
-              height: 40,
-              width: 1,
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            _StatItem(
-              icon: Icons.favorite,
-              iconColor: Colors.red,
-              label: 'Сердца',
-              value: '$hearts/$maxHearts',
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            // Hearts and Total XP
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _StatItem(
+                  icon: Icons.favorite,
+                  iconColor: Colors.red,
+                  label: 'Сердца',
+                  value: '$hearts/$maxHearts',
+                ),
+                Container(
+                  height: 40,
+                  width: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                _StatItem(
+                  icon: Icons.star,
+                  iconColor: Colors.amber,
+                  label: 'Всего XP',
+                  value: totalXp.toStringAsFixed(0),
+                ),
+              ],
             ),
           ],
         ),
