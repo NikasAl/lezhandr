@@ -2,7 +2,106 @@
 
 ## История изменений (Changelog)
 
-### Версия 0.5.1 (Текущая)
+### Версия 1.0.0 (Текущая)
+
+#### 🎉 Первый релиз
+
+##### ✨ Новые функции
+
+###### Zoom для формул
+**Функция:** Диалог увеличения формул с жестами масштабирования.
+
+**Реализовано:**
+1. Тап на формулу открывает полноэкранный диалог
+2. Pinch-to-zoom от 0.3x до 5x
+3. Pan для перемещения формулы
+4. Подсказки о жестах внизу экрана
+5. Работает в условии задачи и в сессии решения
+
+**Изменённые файлы:**
+- `lib/presentation/widgets/shared/math_zoom_dialog.dart` (новый)
+- `lib/presentation/widgets/shared/auto_scaling_math.dart`
+- `lib/presentation/widgets/shared/markdown_with_math.dart`
+- `lib/presentation/screens/problems/widgets/condition_card.dart`
+- `lib/presentation/screens/solutions/widgets/problem_condition_card.dart`
+- `lib/presentation/screens/solutions/solution_session_screen.dart`
+
+---
+
+###### Экран "Мои решения"
+**Функция:** История всех решений пользователя с группировкой по задачам.
+
+**Реализовано:**
+1. Группировка решений по задачам
+2. Фильтрация по статусу (в процессе, завершено, отложено)
+3. Статистика: XP, время, количество решённых
+4. Удаление решений долгим нажатием
+5. Меню с подсказкой о жестах
+6. Адаптивный UI для широких экранов
+
+**Изменённые файлы:**
+- `lib/presentation/screens/my_solutions/my_solutions_screen.dart` (новый)
+- `lib/presentation/providers/solutions_provider.dart`
+- `lib/core/router/app_router.dart`
+
+---
+
+###### Субъективная сложность решений
+**Функция:** Сложность привязана к решению, а не к задаче.
+
+**Обоснование:** Одна задача может быть лёгкой для одного человека и сложной для другого. XP рассчитывается на основе усилий конкретного пользователя.
+
+**Пример:**
+- Задача A: решилась быстро → 15 XP
+- Задача B: вызвала затруднения → 200+ XP
+
+---
+
+###### Адаптивный UI
+**Функция:** Интерфейс адаптируется под размер экрана.
+
+**Реализовано:**
+1. Максимум ширины контента — 900px
+2. Центрирование на планшетах/desktop
+3. Адаптивные диалоги и bottom sheets
+
+**Изменённые файлы:**
+- `lib/presentation/widgets/shared/adaptive_layout.dart`
+
+---
+
+#### 🏗️ Build & Configuration
+
+###### Android Release Configuration
+**Реализовано:**
+1. Application ID: `ru.kreagenium.lezhandr`
+2. Kotlin package: `ru.kreagenium.lezhandr`
+3. Permissions: INTERNET, CAMERA
+4. Signing config из `key.properties`
+5. ProGuard minification
+6. ABI splits (~23MB per APK)
+
+**Изменённые файлы:**
+- `android/app/build.gradle.kts`
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/kotlin/ru/kreagenium/lezhandr/MainActivity.kt`
+- `android/key.properties.example`
+
+---
+
+#### Исправления ошибок
+
+##### 1. Infinite constraints в zoom диалоге
+**Проблема:** Container с double.infinity внутри InteractiveViewer.
+**Решение:** Убран Container, использован Center для центрирования.
+
+##### 2. Конфликт IntrinsicHeight с flutter_math
+**Проблема:** IntrinsicHeight вызывает бесконечный layout loop.
+**Решение:** Использован Column с Flexible вместо IntrinsicHeight.
+
+---
+
+### Версия 0.5.1
 
 #### Новые функции
 
