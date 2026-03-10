@@ -302,31 +302,59 @@ void showTopUpDialog(BuildContext context, WidgetRef ref) {
                                       if (response != null && response.paymentUrl.isNotEmpty) {
                                         Navigator.pop(sheetContext);
 
-                                        final uri = Uri.parse(response.paymentUrl);
-                                        debugPrint('🔗 Payment URL: ${response.paymentUrl}');
+                                        final paymentUrl = response.paymentUrl;
+                                        final uri = Uri.parse(paymentUrl);
+                                        debugPrint('🔗 Payment URL: $paymentUrl');
                                         debugPrint('🔗 Parsed URI: $uri');
+                                        debugPrint('🔗 URI scheme: ${uri.scheme}, host: ${uri.host}');
                                         
                                         bool launched = false;
                                         
-                                        // Try different launch modes
+                                        // Try different launch methods
+                                        // Method 1: externalApplication
                                         try {
-                                          // First try: external application (default browser)
                                           launched = await launchUrl(
                                             uri,
                                             mode: LaunchMode.externalApplication,
                                           );
-                                          debugPrint('🔗 LaunchMode.externalApplication: $launched');
+                                          debugPrint('🔗 Method 1 - externalApplication: $launched');
                                         } catch (e) {
-                                          debugPrint('❌ externalApplication error: $e');
+                                          debugPrint('❌ Method 1 error: $e');
                                         }
                                         
+                                        // Method 2: inAppBrowserView (Chrome Custom Tabs)
                                         if (!launched) {
                                           try {
-                                            // Second try: platform default
-                                            launched = await launchUrl(uri);
-                                            debugPrint('🔗 LaunchMode.platformDefault: $launched');
+                                            launched = await launchUrl(
+                                              uri,
+                                              mode: LaunchMode.inAppBrowserView,
+                                            );
+                                            debugPrint('🔗 Method 2 - inAppBrowserView: $launched');
                                           } catch (e) {
-                                            debugPrint('❌ platformDefault error: $e');
+                                            debugPrint('❌ Method 2 error: $e');
+                                          }
+                                        }
+                                        
+                                        // Method 3: platformDefault
+                                        if (!launched) {
+                                          try {
+                                            launched = await launchUrl(uri);
+                                            debugPrint('🔗 Method 3 - platformDefault: $launched');
+                                          } catch (e) {
+                                            debugPrint('❌ Method 3 error: $e');
+                                          }
+                                        }
+                                        
+                                        // Method 4: launchUrlString
+                                        if (!launched) {
+                                          try {
+                                            launched = await launchUrlString(
+                                              paymentUrl,
+                                              mode: LaunchMode.externalApplication,
+                                            );
+                                            debugPrint('🔗 Method 4 - launchUrlString: $launched');
+                                          } catch (e) {
+                                            debugPrint('❌ Method 4 error: $e');
                                           }
                                         }
                                         
