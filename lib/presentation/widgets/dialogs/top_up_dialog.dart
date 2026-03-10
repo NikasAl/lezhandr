@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/billing_provider.dart';
-import '../../utils/url_opener.dart';
+import '../../../utils/url_opener.dart';
 
 /// Data class for top-up amount options
 class _TopUpAmount {

@@ -211,17 +211,11 @@ flutter build appbundle --release
 
 ---
 
-## 📋 Roadmap
+## Обзоры / История
 
-### v1.1
-- [ ] Push-уведомления
-- [ ] Офлайн-режим
-- [ ] Виджет на домашний экран
-
-### v1.2
-- [ ] iOS поддержка
-- [ ] Web версия
-- [ ] Синхронизация между устройствами
+- [Лежандр: превращаем математику в RPG, а решение задач — в приключение и прокачку навыков](https://pikabu.ru/story/lezhandr_prevrashchaem_matematiku_v_rpg_a_reshenie_zadach__v_priklyuchenie_i_prokachku_navyikov_13764496)
+- [OCR Тест Gemini, Claude и GPT 5.1 на рукописной математике](https://pikabu.ru/story/ocr_test_gemini_claude_i_gpt_51_na_rukopisnoy_matematike_13630534)
+- [Прототип трекера времени для перерешивания задачников⁠](https://pikabu.ru/story/prototip_trekera_vremeni_dlya_perereshivaniya_zadachnikov_13607228)
 
 ---
 
