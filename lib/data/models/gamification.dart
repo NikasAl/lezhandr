@@ -12,8 +12,12 @@ class GamificationModel {
   // Поля уровня (вычисляются сервером из total_xp)
   final int level;
   final double levelProgress;  // Прогресс до следующего уровня (0.0-1.0)
-  final double xpCurrent;      // XP на текущем уровне
-  final double xpToNext;       // XP до следующего уровня
+  final double xpInLevel;      // XP накопленный на текущем уровне
+  final double xpToNextLevel;  // XP нужный для перехода на след. уровень
+  
+  // Backward compatibility aliases
+  double get xpCurrent => xpInLevel;
+  double get xpToNext => xpToNextLevel;
 
   GamificationModel({
     this.userId,
@@ -27,8 +31,8 @@ class GamificationModel {
     this.lastActivityDate,
     this.level = 1,
     this.levelProgress = 0.0,
-    this.xpCurrent = 0.0,
-    this.xpToNext = 100.0,
+    this.xpInLevel = 0.0,
+    this.xpToNextLevel = 100.0,
   });
 
   factory GamificationModel.fromJson(Map<String, dynamic> json) {
@@ -52,8 +56,9 @@ class GamificationModel {
       // Новые поля уровня от сервера
       level: json['level'] as int? ?? json['current_level'] as int? ?? 1,
       levelProgress: (json['level_progress'] as num?)?.toDouble() ?? 0.0,
-      xpCurrent: (json['xp_current'] as num?)?.toDouble() ?? 0.0,
-      xpToNext: (json['xp_to_next'] as num?)?.toDouble() ?? 100.0,
+      // Поддержка новых и старых названий полей
+      xpInLevel: (json['xp_in_level'] as num? ?? json['xp_current'] as num?)?.toDouble() ?? 0.0,
+      xpToNextLevel: (json['xp_to_next_level'] as num? ?? json['xp_to_next'] as num?)?.toDouble() ?? 100.0,
     );
   }
 
@@ -69,8 +74,8 @@ class GamificationModel {
         'last_activity_date': lastActivityDate?.toIso8601String(),
         'level': level,
         'level_progress': levelProgress,
-        'xp_current': xpCurrent,
-        'xp_to_next': xpToNext,
+        'xp_in_level': xpInLevel,
+        'xp_to_next_level': xpToNextLevel,
       };
 
   /// Прогресс до следующего уровня (использует данные сервера)

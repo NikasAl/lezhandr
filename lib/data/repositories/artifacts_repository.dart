@@ -132,14 +132,19 @@ class ArtifactsRepository {
   }
 
   /// Generate AI answer for question
+  /// [useHearts] - если true, оплатить сердцами вместо денег
   Future<QuestionModel?> generateQuestionAnswer({
     required int questionId,
     PersonaId persona = PersonaId.basis,
+    bool useHearts = false,
   }) async {
     try {
       final response = await _apiClient.dio.post(
         '/questions/$questionId/generate',
-        queryParameters: {'persona': persona.name},
+        queryParameters: {
+          'persona': persona.name,
+          'use_hearts': useHearts,
+        },
       );
       if (response.statusCode == 200) {
         return QuestionModel.fromJson(response.data);
@@ -198,14 +203,19 @@ class ArtifactsRepository {
   }
 
   /// Generate AI hint
+  /// [useHearts] - если true, оплатить сердцами вместо денег
   Future<HintModel?> generateHint({
     required int hintId,
     PersonaId persona = PersonaId.basis,
+    bool useHearts = false,
   }) async {
     try {
       final response = await _apiClient.dio.post(
         '/hints/$hintId/generate',
-        queryParameters: {'persona': persona.name},
+        queryParameters: {
+          'persona': persona.name,
+          'use_hearts': useHearts,
+        },
       );
       if (response.statusCode == 200) {
         return HintModel.fromJson(response.data);

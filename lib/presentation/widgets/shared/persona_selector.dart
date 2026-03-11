@@ -3,6 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/artifacts.dart';
 import '../dialogs/top_up_dialog.dart';
 
+/// Result of persona selection with payment method
+class PersonaSelectionResult {
+  final PersonaId persona;
+  final bool useHearts;
+
+  PersonaSelectionResult({
+    required this.persona,
+    this.useHearts = false,
+  });
+}
+
 /// Persona selection widget
 class PersonaSelector extends StatelessWidget {
   final PersonaId selectedPersona;
@@ -10,6 +21,7 @@ class PersonaSelector extends StatelessWidget {
   final bool showCost;
   final int? freeUsesLeft;
   final double? balance;
+  final int? hearts;  // Текущие сердца пользователя
   final VoidCallback? onDisabledPersonaTap;
 
   const PersonaSelector({
@@ -19,21 +31,24 @@ class PersonaSelector extends StatelessWidget {
     this.showCost = true,
     this.freeUsesLeft,
     this.balance,
+    this.hearts,
     this.onDisabledPersonaTap,
   });
 
   /// Check if a persona is disabled:
-  /// - Basis: disabled when free uses exhausted
-  /// - Petrovich/Legendre: disabled when insufficient balance
+  /// - Basis: disabled when free uses exhausted AND no hearts
+  /// - Petrovich/Legendre: disabled when insufficient balance AND no hearts
   bool _isPersonaDisabled(PersonaId persona) {
     if (persona == PersonaId.basis) {
-      return freeUsesLeft != null && freeUsesLeft! <= 0;
+      // Basis бесплатен, но имеет дневной лимит
+      final freeExhausted = freeUsesLeft != null && freeUsesLeft! <= 0;
+      final canUseHearts = hearts != null && hearts! >= 1;
+      return freeExhausted && !canUseHearts;
     }
-    // For paid personas, check if balance is insufficient
-    if (balance != null && persona.cost > balance!) {
-      return true;
-    }
-    return false;
+    // Для платных персон - проверяем баланс или сердца
+    final hasMoney = balance != null && persona.cost <= balance!;
+    final canUseHearts = hearts != null && hearts! >= 1;
+    return !hasMoney && !canUseHearts;
   }
 
   /// Get the reason why persona is disabled
@@ -41,7 +56,7 @@ class PersonaSelector extends StatelessWidget {
     if (persona == PersonaId.basis) {
       return '💤 Сплю...';
     }
-    return 'Недостаточно средств';
+    return 'Недостаточно средств и сердец';
   }
 
   @override
@@ -54,6 +69,21 @@ class PersonaSelector extends StatelessWidget {
           '🤔 Кого спросим?',
           style: Theme.of(context).textTheme.titleMedium,
         ),
+        if (hearts != null && hearts! > 0) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.favorite, size: 14, color: Colors.red[400]),
+              const SizedBox(width: 4),
+              Text(
+                'Оплата сердцами: 1❤️ за запрос',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 12),
         Row(
           children: PersonaId.values.map((persona) {
@@ -212,45 +242,59 @@ class _PersonaCard extends StatelessWidget {
   }
 }
 
-/// Check if a persona selection is disabled
-bool _isSelectionDisabled(PersonaId persona, int? freeUsesLeft, double? balance) {
+bool _isSelectionDisabled(PersonaId persona, int? freeUsesLeft, double? balance, int? hearts) {
   if (persona == PersonaId.basis) {
-    return freeUsesLeft != null && freeUsesLeft <= 0;
+    final freeExhausted = freeUsesLeft != null && freeUsesLeft <= 0;
+    final canUseHearts = hearts != null && hearts >= 1;
+    return freeExhausted && !canUseHearts;
   }
-  return balance != null && persona.cost > balance!;
+  final hasMoney = balance != null && persona.cost <= balance!;
+  final canUseHearts = hearts != null && hearts >= 1;
+  return !hasMoney && !canUseHearts;
 }
 
 /// Get disabled message for persona
-String _getDisabledMessage(PersonaId persona, int? freeUsesLeft, double? balance) {
+String _getDisabledMessage(PersonaId persona, int? freeUsesLeft, double? balance, int? hearts) {
   if (persona == PersonaId.basis && freeUsesLeft != null && freeUsesLeft <= 0) {
-    return '🐱 Кот Базис устал сегодня. Выберите другого персонажа!';
+    if (hearts == null || hearts < 1) {
+      return '🐱 Кот Базис устал сегодня и нет сердец. Пополните сердца!';
+    }
+    return '🐱 Кот Базис устал сегодня. Используйте сердце для оплаты!';
   }
   if (balance != null && persona.cost > balance!) {
     final cost = persona.cost.toStringAsFixed(0);
     final currentBalance = balance!.toStringAsFixed(2);
-    return '💰 Недостаточно средств. Нужно ${cost} ₽, на счету ${currentBalance} ₽';
+    if (hearts == null || hearts < 1) {
+      return '💰 Недостаточно средств. Нужно ${cost} ₽, на счету ${currentBalance} ₽';
+    }
+    return '💰 Недостаточно средств (${currentBalance} ₽). Используйте сердце или пополните баланс!';
   }
   return '';
 }
 
 /// Show persona selection dialog
-Future<PersonaId?> showPersonaSelectorDialog(
+Future<PersonaSelectionResult?> showPersonaSelectorDialog(
   BuildContext context,
   WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
   String title = 'Выберите AI',
   int? freeUsesLeft,
   double? balance,
+  int? hearts,
 }) async {
   PersonaId selected = defaultPersona;
+  bool useHearts = false;
 
-  return await showDialog<PersonaId>(
+  return await showDialog<PersonaSelectionResult>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
-        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance);
-        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance);
+        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance, hearts);
+        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
+        final canUseHearts = hearts != null && hearts >= 1;
+        // Автовыбор оплаты сердцами если нет денег но есть сердца
+        final shouldOfferHearts = canUseHearts && (isInsufficientBalance || (selected == PersonaId.basis && freeUsesLeft != null && freeUsesLeft! <= 0));
         
         return AlertDialog(
           title: Text(title),
@@ -258,8 +302,15 @@ Future<PersonaId?> showPersonaSelectorDialog(
             selectedPersona: selected,
             freeUsesLeft: freeUsesLeft,
             balance: balance,
+            hearts: hearts,
             onPersonaSelected: (persona) {
-              setState(() => selected = persona);
+              setState(() {
+                selected = persona;
+                // Сброс useHearts если достаточно денег
+                if (balance != null && persona.cost <= balance!) {
+                  useHearts = false;
+                }
+              });
             },
             onDisabledPersonaTap: () {
               ScaffoldMessenger.of(context).clearSnackBars();
@@ -278,7 +329,7 @@ Future<PersonaId?> showPersonaSelectorDialog(
               onPressed: () => Navigator.pop(context),
               child: const Text('Отмена'),
             ),
-            if (isInsufficientBalance)
+            if (isInsufficientBalance && !canUseHearts)
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -286,10 +337,25 @@ Future<PersonaId?> showPersonaSelectorDialog(
                 },
                 child: const Text('Пополнить'),
               ),
+            // Опция оплаты сердцами
+            if (shouldOfferHearts)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context, PersonaSelectionResult(
+                    persona: selected,
+                    useHearts: true,
+                  ));
+                },
+                icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
+                label: Text('За 1❤️'),
+              ),
             FilledButton(
               onPressed: isSelectionDisabled
                   ? null
-                  : () => Navigator.pop(context, selected),
+                  : () => Navigator.pop(context, PersonaSelectionResult(
+                    persona: selected,
+                    useHearts: useHearts,
+                  )),
               child: Text(isSelectionDisabled ? 'Недоступно' : 'Выбрать'),
             ),
           ],
@@ -300,22 +366,26 @@ Future<PersonaId?> showPersonaSelectorDialog(
 }
 
 /// Simple persona selection bottom sheet
-Future<PersonaId?> showPersonaSheet(
+Future<PersonaSelectionResult?> showPersonaSheet(
   BuildContext context,
   WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
   int? freeUsesLeft,
   double? balance,
+  int? hearts,
 }) async {
   PersonaId selected = defaultPersona;
 
-  return await showModalBottomSheet<PersonaId>(
+  return await showModalBottomSheet<PersonaSelectionResult>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
-        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance);
-        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance);
+        final isSelectionDisabled = _isSelectionDisabled(selected, freeUsesLeft, balance, hearts);
+        final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
+        final canUseHearts = hearts != null && hearts >= 1;
+        // Автовыбор оплаты сердцами если нет денег но есть сердца
+        final shouldOfferHearts = canUseHearts && (isInsufficientBalance || (selected == PersonaId.basis && freeUsesLeft != null && freeUsesLeft! <= 0));
         
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -326,6 +396,7 @@ Future<PersonaId?> showPersonaSheet(
                 selectedPersona: selected,
                 freeUsesLeft: freeUsesLeft,
                 balance: balance,
+                hearts: hearts,
                 onPersonaSelected: (persona) {
                   setState(() => selected = persona);
                 },
@@ -355,8 +426,8 @@ Future<PersonaId?> showPersonaSheet(
                     textAlign: TextAlign.center,
                   ),
                 ),
-              // Top up button for insufficient balance
-              if (isInsufficientBalance)
+              // Top up button for insufficient balance (without hearts)
+              if (isInsufficientBalance && !canUseHearts)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: SizedBox(
@@ -371,12 +442,33 @@ Future<PersonaId?> showPersonaSheet(
                     ),
                   ),
                 ),
+              // Hearts payment option
+              if (shouldOfferHearts)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.pop(context, PersonaSelectionResult(
+                          persona: selected,
+                          useHearts: true,
+                        ));
+                      },
+                      icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
+                      label: const Text('Оплатить сердцем (1❤️)'),
+                    ),
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: isSelectionDisabled
                       ? null
-                      : () => Navigator.pop(context, selected),
+                      : () => Navigator.pop(context, PersonaSelectionResult(
+                        persona: selected,
+                        useHearts: false,
+                      )),
                   child: Text(isSelectionDisabled ? 'Недоступно' : 'Запросить'),
                 ),
               ),

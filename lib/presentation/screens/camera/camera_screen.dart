@@ -7,6 +7,7 @@ import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/gamification_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import 'image_cropper_screen.dart';
 
@@ -212,32 +213,35 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
     // Показать выбор персоны
     final billing = ref.read(billingBalanceProvider);
+    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final persona = await showPersonaSheet(
+    final hearts = gamification.value?.currentHearts;
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
+      hearts: hearts,
     );
 
-    if (persona == null || !mounted) return;
+    if (result == null || !mounted) return;
 
     // Запустить OCR
     bool ocrSuccess = false;
     if (widget.category == 'condition') {
-      final result = await ref.read(ocrNotifierProvider.notifier).processProblem(
+      final ocrResult = await ref.read(ocrNotifierProvider.notifier).processProblem(
         problemId: widget.entityId,
-        persona: persona,
+        persona: result.persona,
       );
-      ocrSuccess = result.success;
+      ocrSuccess = ocrResult.success;
     } else {
-      final result = await ref.read(ocrNotifierProvider.notifier).processSolution(
+      final ocrResult = await ref.read(ocrNotifierProvider.notifier).processSolution(
         solutionId: widget.entityId,
-        persona: persona,
+        persona: result.persona,
       );
-      ocrSuccess = result.success;
+      ocrSuccess = ocrResult.success;
     }
 
     if (mounted) {

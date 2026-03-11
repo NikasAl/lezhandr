@@ -39,11 +39,18 @@ class StatisticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // XP Card
+              // Level Card (как в CLI)
+              _LevelCard(
+                level: gamification.value?.level ?? 1,
+                levelProgress: gamification.value?.levelProgress ?? 0,
+                xpInLevel: gamification.value?.xpInLevel ?? 0,
+                xpToNextLevel: gamification.value?.xpToNextLevel ?? 100,
+              ),
+              const SizedBox(height: 16),
+
+              // Total XP Card
               _XpCard(
                 xp: gamification.value?.totalXp ?? 0,
-                level: gamification.value?.currentLevel ?? 1,
-                progress: gamification.value?.xpProgress ?? 0,
               ),
               const SizedBox(height: 16),
 
@@ -129,7 +136,7 @@ class StatisticsScreen extends ConsumerWidget {
                       icon: Icons.trending_up,
                       label: 'Текущий уровень',
                       value:
-                          '${gamification.value?.currentLevel ?? 1}',
+                          '${gamification.value?.level ?? 1}',
                     ),
                     const Divider(height: 1),
                     _StatRow(
@@ -170,15 +177,17 @@ class StatisticsScreen extends ConsumerWidget {
   }
 }
 
-class _XpCard extends StatelessWidget {
-  final double xp;
+class _LevelCard extends StatelessWidget {
   final int level;
-  final double progress;
+  final double levelProgress;
+  final double xpInLevel;
+  final double xpToNextLevel;
 
-  const _XpCard({
-    required this.xp,
+  const _LevelCard({
     required this.level,
-    required this.progress,
+    required this.levelProgress,
+    required this.xpInLevel,
+    required this.xpToNextLevel,
   });
 
   @override
@@ -191,45 +200,109 @@ class _XpCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 28,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${xp.toStringAsFixed(0)} XP',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.military_tech, color: Colors.white, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Уровень $level',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  'Уровень $level',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                    ],
+                  ),
                 ),
                 const Spacer(),
                 Text(
-                  '${(progress * 100).toStringAsFixed(0)}%',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                  '${(levelProgress * 100).toStringAsFixed(0)}%',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            // Прогресс-бар
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor:
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                value: levelProgress,
+                minHeight: 12,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
               ),
+            ),
+            const SizedBox(height: 12),
+            // XP статистика
+            Row(
+              children: [
+                Icon(
+                  Icons.bar_chart,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${xpInLevel.toStringAsFixed(0)}/${xpToNextLevel.toStringAsFixed(0)} XP до уровня ${level + 1}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _XpCard extends StatelessWidget {
+  final double xp;
+
+  const _XpCard({required this.xp});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Icon(
+              Icons.star,
+              color: Colors.amber,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Всего XP',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  '${xp.toStringAsFixed(0)} XP',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -8,6 +8,7 @@ import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/gamification_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/shared/error_display.dart';
@@ -183,18 +184,20 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
-    final persona = await showPersonaSheet(
+    final gamification = ref.read(gamificationMeProvider);
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: billing.value?.freeUsesLeft,
       balance: billing.value?.balance,
+      hearts: gamification.value?.currentHearts,
     );
-    if (persona == null) return;
+    if (result == null) return;
 
     await ref.read(ocrNotifierProvider.notifier).processProblem(
       problemId: widget.problemId,
-      persona: persona,
+      persona: result.persona,
     );
     
     if (mounted) {
@@ -224,18 +227,20 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
   Future<void> _runConceptsAnalysis() async {
     final billing = ref.read(billingBalanceProvider);
-    final persona = await showPersonaSheet(
+    final gamification = ref.read(gamificationMeProvider);
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.legendre,
       freeUsesLeft: billing.value?.freeUsesLeft,
       balance: billing.value?.balance,
+      hearts: gamification.value?.currentHearts,
     );
-    if (persona == null) return;
+    if (result == null) return;
 
     await ref.read(conceptsNotifierProvider.notifier).analyzeProblem(
       problemId: widget.problemId,
-      persona: persona,
+      persona: result.persona,
     );
     
     if (mounted) {

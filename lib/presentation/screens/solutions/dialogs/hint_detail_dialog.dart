@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
+import '../../../providers/gamification_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 
@@ -261,30 +262,38 @@ class _HintDetailSheetState extends State<_HintDetailSheet> {
                         : () async {
                             setState(() => _isGenerating = true);
                             final billing = widget.ref.read(billingBalanceProvider);
+                            final gamification = widget.ref.read(gamificationMeProvider);
                             final freeUsesLeft = billing.value?.freeUsesLeft;
                             final balance = billing.value?.balance;
-                            final persona = await showPersonaSheet(
+                            final hearts = gamification.value?.currentHearts;
+                            final result = await showPersonaSheet(
                               context,
                               widget.ref,
                               defaultPersona: PersonaId.basis,
                               freeUsesLeft: freeUsesLeft,
                               balance: balance,
+                              hearts: hearts,
                             );
-                            if (persona != null && mounted) {
-                              final result = await widget.ref
+                            if (result != null && mounted) {
+                              final hint = await widget.ref
                                   .read(hintNotifierProvider.notifier)
                                   .generate(
                                     hintId: widget.hint.id!,
-                                    persona: persona,
+                                    persona: result.persona,
+                                    useHearts: result.useHearts,
                                   );
                               if (mounted) {
+                                // Обновляем геймификацию если использовали сердца
+                                if (result.useHearts) {
+                                  widget.ref.invalidate(gamificationMeProvider);
+                                }
                                 Navigator.of(context).pop();
                                 widget.ref.invalidate(hintsProvider(widget.solutionId));
-                                if (result != null && result.hasHint) {
+                                if (hint != null && hint.hasHint) {
                                   showHintDetailDialog(
                                     context: context,
                                     ref: widget.ref,
-                                    hint: result,
+                                    hint: hint,
                                     solutionId: widget.solutionId,
                                   );
                                 } else {

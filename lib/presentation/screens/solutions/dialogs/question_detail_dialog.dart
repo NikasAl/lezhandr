@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
+import '../../../providers/gamification_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import '../../../widgets/shared/markdown_with_math.dart';
 
@@ -207,27 +208,35 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                       : () async {
                           setState(() => _isGenerating = true);
                           final billing = widget.ref.read(billingBalanceProvider);
+                          final gamification = widget.ref.read(gamificationMeProvider);
                           final freeUsesLeft = billing.value?.freeUsesLeft;
                           final balance = billing.value?.balance;
-                          final persona = await showPersonaSheet(
+                          final hearts = gamification.value?.currentHearts;
+                          final result = await showPersonaSheet(
                             context,
                             widget.ref,
                             defaultPersona: PersonaId.basis,
                             freeUsesLeft: freeUsesLeft,
                             balance: balance,
+                            hearts: hearts,
                           );
-                          if (persona != null && widget.question.id != null) {
-                            final result = await widget.ref
+                          if (result != null && widget.question.id != null) {
+                            final answer = await widget.ref
                                 .read(questionNotifierProvider.notifier)
                                 .generateAnswer(
                                   questionId: widget.question.id!,
-                                  persona: persona,
+                                  persona: result.persona,
+                                  useHearts: result.useHearts,
                                 );
-                            if (result != null && mounted) {
+                            if (answer != null && mounted) {
+                              // Обновляем геймификацию если использовали сердца
+                              if (result.useHearts) {
+                                widget.ref.invalidate(gamificationMeProvider);
+                              }
                               Navigator.of(context).pop();
                               widget.ref.invalidate(questionsProvider(widget.solutionId));
                               // Show the generated answer
-                              widget.onQuestionUpdated(result);
+                              widget.onQuestionUpdated(answer);
                             }
                           }
                           if (mounted) {

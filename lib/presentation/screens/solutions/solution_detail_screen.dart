@@ -6,6 +6,7 @@ import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
+import '../../providers/gamification_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/shared/error_display.dart';
@@ -199,21 +200,24 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
 
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
+    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final persona = await showPersonaSheet(
+    final hearts = gamification.value?.currentHearts;
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
+      hearts: hearts,
     );
-    if (persona == null) return;
+    if (result == null) return;
 
     // OCR runs in background with notification on completion
     await ref.read(ocrNotifierProvider.notifier).processSolution(
       solutionId: widget.solutionId,
-      persona: persona,
+      persona: result.persona,
     );
     
     // Refresh solution to get updated text
@@ -241,21 +245,24 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
 
   Future<void> _runConceptsAnalysis() async {
     final billing = ref.read(billingBalanceProvider);
+    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final persona = await showPersonaSheet(
+    final hearts = gamification.value?.currentHearts;
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.legendre,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
+      hearts: hearts,
     );
-    if (persona == null) return;
+    if (result == null) return;
 
     // Analysis runs in background with notification on completion
     await ref.read(conceptsNotifierProvider.notifier).analyzeSolution(
       solutionId: widget.solutionId,
-      persona: persona,
+      persona: result.persona,
     );
     
     // Refresh concepts

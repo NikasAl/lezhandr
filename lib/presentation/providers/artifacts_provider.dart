@@ -161,12 +161,14 @@ class QuestionNotifier extends StateNotifier<AsyncValue<void>> {
   Future<QuestionModel?> generateAnswer({
     required int questionId,
     PersonaId persona = PersonaId.basis,
+    bool useHearts = false,
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _repo.generateQuestionAnswer(
         questionId: questionId,
         persona: persona,
+        useHearts: useHearts,
       );
       state = const AsyncValue.data(null);
       return result;
@@ -229,12 +231,14 @@ class HintNotifier extends StateNotifier<AsyncValue<void>> {
   Future<HintModel?> generate({
     required int hintId,
     PersonaId persona = PersonaId.basis,
+    bool useHearts = false,
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _repo.generateHint(
         hintId: hintId,
         persona: persona,
+        useHearts: useHearts,
       );
       state = const AsyncValue.data(null);
       return result;

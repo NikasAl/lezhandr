@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../data/models/artifacts.dart';
 import '../../../providers/artifacts_provider.dart';
 import '../../../providers/billing_provider.dart';
+import '../../../providers/gamification_provider.dart';
 import '../../../widgets/shared/persona_selector.dart';
 import 'hint_detail_dialog.dart';
 
@@ -79,26 +80,35 @@ Future<bool> showHintDialog({
   // Step 4: Select persona
   if (context.mounted) {
     final billing = ref.read(billingBalanceProvider);
+    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
+    final hearts = gamification.value?.currentHearts;
 
-    final persona = await showPersonaSheet(
+    final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.basis,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
+      hearts: hearts,
     );
 
-    if (persona != null) {
+    if (result != null) {
       // Step 5: Generate hint
       final genResult = await ref.read(hintNotifierProvider.notifier).generate(
         hintId: hint.id!,
-        persona: persona,
+        persona: result.persona,
+        useHearts: result.useHearts,
       );
 
       // Refresh list after generation
       ref.invalidate(hintsProvider(solutionId));
+      
+      // Обновляем геймификацию если использовали сердца
+      if (result.useHearts) {
+        ref.invalidate(gamificationMeProvider);
+      }
 
       if (context.mounted) {
         // Show hint detail dialog, even if generation failed
