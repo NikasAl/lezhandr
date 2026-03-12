@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../providers/admin_provider.dart';
+import '../../providers/admin_provider.dart';
+import '../../../data/repositories/admin_repository.dart';
 
 /// Concepts monitoring screen with aliases grouping
 class AdminConceptsScreen extends ConsumerStatefulWidget {

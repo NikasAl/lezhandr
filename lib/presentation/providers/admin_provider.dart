@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../data/services/api_client.dart';
-
+import '../../presentation/providers/admin_provider.dart';
 /// Admin repository provider
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(apiClient: ref.watch(apiClientProvider));

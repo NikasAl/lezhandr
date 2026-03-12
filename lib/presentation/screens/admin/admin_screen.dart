@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../providers/auth_provider.dart';
-import '../../../providers/admin_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/admin_provider.dart';
 
 /// Admin panel main screen
 class AdminScreen extends ConsumerWidget {
