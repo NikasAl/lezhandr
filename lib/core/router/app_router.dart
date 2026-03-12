@@ -19,6 +19,13 @@ import '../../presentation/screens/skills/skills_map_screen.dart';
 import '../../presentation/screens/about/about_screen.dart';
 import '../../presentation/screens/legal/privacy_policy_screen.dart';
 import '../../presentation/screens/my_solutions/my_solutions_screen.dart';
+import '../../presentation/screens/admin/admin_screen.dart';
+import '../../presentation/screens/admin/admin_tags_screen.dart';
+import '../../presentation/screens/admin/admin_sources_screen.dart';
+import '../../presentation/screens/admin/admin_problems_screen.dart';
+import '../../presentation/screens/admin/admin_solutions_screen.dart';
+import '../../presentation/screens/admin/admin_dedup_screen.dart';
+import '../../presentation/screens/admin/admin_concepts_screen.dart';
 import '../../presentation/providers/auth_provider.dart';
 
 /// Router provider
@@ -201,6 +208,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/privacy',
         name: 'privacy',
         builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+
+      // Admin Panel (admin only)
+      GoRoute(
+        path: '/admin',
+        name: 'admin',
+        builder: (context, state) => const AdminScreen(),
+      ),
+      GoRoute(
+        path: '/admin/tags',
+        name: 'admin-tags',
+        builder: (context, state) => const AdminTagsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/sources',
+        name: 'admin-sources',
+        builder: (context, state) => const AdminSourcesScreen(),
+      ),
+      GoRoute(
+        path: '/admin/problems',
+        name: 'admin-problems',
+        builder: (context, state) => const AdminProblemsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/solutions',
+        name: 'admin-solutions',
+        builder: (context, state) => const AdminSolutionsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/dedup',
+        name: 'admin-dedup',
+        builder: (context, state) => const AdminDedupScreen(),
+      ),
+      GoRoute(
+        path: '/admin/concepts',
+        name: 'admin-concepts',
+        builder: (context, state) => const AdminConceptsScreen(),
       ),
     ],
 

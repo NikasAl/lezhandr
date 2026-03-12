@@ -183,6 +183,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
 
+              // Admin panel link (for admins only)
+              if (user?.isAdmin == true) ...[
+                const SizedBox(height: 16),
+                Card(
+                  color: Colors.indigo.withOpacity(0.1),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_outlined, color: Colors.indigo),
+                    ),
+                    title: const Text('🛠 Админ-панель'),
+                    subtitle: const Text('Модерация контента и управление базой знаний'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/admin'),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 24),
 
               // Balance
