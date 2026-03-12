@@ -3,17 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/artifacts.dart';
 import '../dialogs/top_up_dialog.dart';
 
-/// Result of persona selection with payment method
-class PersonaSelectionResult {
-  final PersonaId persona;
-  final bool useHearts;
-
-  PersonaSelectionResult({
-    required this.persona,
-    this.useHearts = false,
-  });
-}
-
 /// Persona selection widget
 class PersonaSelector extends StatelessWidget {
   final PersonaId selectedPersona;
@@ -76,7 +65,7 @@ class PersonaSelector extends StatelessWidget {
               Icon(Icons.favorite, size: 14, color: Colors.red[400]),
               const SizedBox(width: 4),
               Text(
-                'Оплата сердцами: 1❤️ за запрос',
+                'Доступно сердец: $hearts',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -273,7 +262,9 @@ String _getDisabledMessage(PersonaId persona, int? freeUsesLeft, double? balance
 }
 
 /// Show persona selection dialog
-Future<PersonaSelectionResult?> showPersonaSelectorDialog(
+/// Returns selected PersonaId or null if cancelled
+/// Note: useHearts is determined automatically by the caller based on hearts availability
+Future<PersonaId?> showPersonaSelectorDialog(
   BuildContext context,
   WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
@@ -283,9 +274,8 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
   int? hearts,
 }) async {
   PersonaId selected = defaultPersona;
-  bool useHearts = false;
 
-  return await showDialog<PersonaSelectionResult>(
+  return await showDialog<PersonaId>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
@@ -293,9 +283,6 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
         final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         final canUseHearts = hearts != null && hearts >= 1;
-        // Оплата сердцами доступна всегда если hearts передан (вопросы/подсказки)
-        // OCR и анализ концепций передают hearts: null, поэтому опция не показывается
-        final shouldOfferHearts = canUseHearts;
         
         return AlertDialog(
           title: Text(title),
@@ -305,13 +292,7 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
             balance: balance,
             hearts: hearts,
             onPersonaSelected: (persona) {
-              setState(() {
-                selected = persona;
-                // Сброс useHearts если достаточно денег
-                if (balance != null && persona.cost <= balance!) {
-                  useHearts = false;
-                }
-              });
+              setState(() => selected = persona);
             },
             onDisabledPersonaTap: () {
               ScaffoldMessenger.of(context).clearSnackBars();
@@ -338,25 +319,10 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
                 },
                 child: const Text('Пополнить'),
               ),
-            // Опция оплаты сердцами
-            if (shouldOfferHearts)
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context, PersonaSelectionResult(
-                    persona: selected,
-                    useHearts: true,
-                  ));
-                },
-                icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
-                label: Text('За 1❤️'),
-              ),
             FilledButton(
               onPressed: isSelectionDisabled
                   ? null
-                  : () => Navigator.pop(context, PersonaSelectionResult(
-                    persona: selected,
-                    useHearts: useHearts,
-                  )),
+                  : () => Navigator.pop(context, selected),
               child: Text(isSelectionDisabled ? 'Недоступно' : 'Выбрать'),
             ),
           ],
@@ -367,7 +333,9 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
 }
 
 /// Simple persona selection bottom sheet
-Future<PersonaSelectionResult?> showPersonaSheet(
+/// Returns selected PersonaId or null if cancelled
+/// Note: useHearts is determined automatically by the caller based on hearts availability
+Future<PersonaId?> showPersonaSheet(
   BuildContext context,
   WidgetRef ref, {
   PersonaId defaultPersona = PersonaId.petrovich,
@@ -377,7 +345,7 @@ Future<PersonaSelectionResult?> showPersonaSheet(
 }) async {
   PersonaId selected = defaultPersona;
 
-  return await showModalBottomSheet<PersonaSelectionResult>(
+  return await showModalBottomSheet<PersonaId>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
@@ -385,9 +353,6 @@ Future<PersonaSelectionResult?> showPersonaSheet(
         final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         final canUseHearts = hearts != null && hearts >= 1;
-        // Оплата сердцами доступна всегда если hearts передан (вопросы/подсказки)
-        // OCR и анализ концепций передают hearts: null, поэтому опция не показывается
-        final shouldOfferHearts = canUseHearts;
         
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -428,6 +393,37 @@ Future<PersonaSelectionResult?> showPersonaSheet(
                     textAlign: TextAlign.center,
                   ),
                 ),
+              // Free bonus info when hearts available
+              if (canUseHearts)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.card_giftcard, size: 18, color: Colors.green[700]),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            '🎁 Бесплатный бонус: 1❤️ будет использован',
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               // Top up button for insufficient balance (without hearts)
               if (isInsufficientBalance && !canUseHearts)
                 Padding(
@@ -444,33 +440,12 @@ Future<PersonaSelectionResult?> showPersonaSheet(
                     ),
                   ),
                 ),
-              // Hearts payment option
-              if (shouldOfferHearts)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.tonalIcon(
-                      onPressed: () {
-                        Navigator.pop(context, PersonaSelectionResult(
-                          persona: selected,
-                          useHearts: true,
-                        ));
-                      },
-                      icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
-                      label: const Text('Оплатить сердцем (1❤️)'),
-                    ),
-                  ),
-                ),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: isSelectionDisabled
                       ? null
-                      : () => Navigator.pop(context, PersonaSelectionResult(
-                        persona: selected,
-                        useHearts: false,
-                      )),
+                      : () => Navigator.pop(context, selected),
                   child: Text(isSelectionDisabled ? 'Недоступно' : 'Запросить'),
                 ),
               ),

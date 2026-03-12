@@ -184,7 +184,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
     // OCR оплачивается только деньгами, не сердцами
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
@@ -192,11 +192,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
       balance: billing.value?.balance,
       hearts: null, // OCR не поддерживает оплату сердцами
     );
-    if (result == null) return;
+    if (persona == null) return;
 
     await ref.read(ocrNotifierProvider.notifier).processProblem(
       problemId: widget.problemId,
-      persona: result.persona,
+      persona: persona,
     );
     
     if (mounted) {
@@ -227,7 +227,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   Future<void> _runConceptsAnalysis() async {
     final billing = ref.read(billingBalanceProvider);
     // Анализ концепций оплачивается только деньгами, не сердцами
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.legendre,
@@ -235,11 +235,11 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
       balance: billing.value?.balance,
       hearts: null, // Анализ концепций не поддерживает оплату сердцами
     );
-    if (result == null) return;
+    if (persona == null) return;
 
     await ref.read(conceptsNotifierProvider.notifier).analyzeProblem(
       problemId: widget.problemId,
-      persona: result.persona,
+      persona: persona,
     );
     
     if (mounted) {

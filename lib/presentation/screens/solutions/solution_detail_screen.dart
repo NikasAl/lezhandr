@@ -202,7 +202,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
     // OCR оплачивается только деньгами, не сердцами
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
@@ -210,12 +210,12 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
       balance: balance,
       hearts: null, // OCR не поддерживает оплату сердцами
     );
-    if (result == null) return;
+    if (persona == null) return;
 
     // OCR runs in background with notification on completion
     await ref.read(ocrNotifierProvider.notifier).processSolution(
       solutionId: widget.solutionId,
-      persona: result.persona,
+      persona: persona,
     );
     
     // Refresh solution to get updated text
@@ -246,7 +246,7 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
     // Анализ концепций оплачивается только деньгами, не сердцами
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.legendre,
@@ -254,12 +254,12 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
       balance: balance,
       hearts: null, // Анализ концепций не поддерживает оплату сердцами
     );
-    if (result == null) return;
+    if (persona == null) return;
 
     // Analysis runs in background with notification on completion
     await ref.read(conceptsNotifierProvider.notifier).analyzeSolution(
       solutionId: widget.solutionId,
-      persona: result.persona,
+      persona: persona,
     );
     
     // Refresh concepts

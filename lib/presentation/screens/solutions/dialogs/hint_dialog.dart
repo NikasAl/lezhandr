@@ -85,7 +85,7 @@ Future<bool> showHintDialog({
     final balance = billing.value?.balance;
     final hearts = gamification.value?.currentHearts;
 
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.basis,
@@ -94,19 +94,22 @@ Future<bool> showHintDialog({
       hearts: hearts,
     );
 
-    if (result != null) {
+    if (persona != null) {
+      // Автоматически определяем useHearts: если сердца доступны, используем их
+      final useHearts = hearts != null && hearts >= 1;
+      
       // Step 5: Generate hint
       final genResult = await ref.read(hintNotifierProvider.notifier).generate(
         hintId: hint.id!,
-        persona: result.persona,
-        useHearts: result.useHearts,
+        persona: persona,
+        useHearts: useHearts,
       );
 
       // Refresh list after generation
       ref.invalidate(hintsProvider(solutionId));
       
       // Обновляем геймификацию если использовали сердца
-      if (result.useHearts) {
+      if (useHearts) {
         ref.invalidate(gamificationMeProvider);
       }
 

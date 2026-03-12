@@ -215,7 +215,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
     // OCR оплачивается только деньгами, не сердцами
-    final result = await showPersonaSheet(
+    final persona = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
@@ -224,20 +224,20 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       hearts: null, // OCR не поддерживает оплату сердцами
     );
 
-    if (result == null || !mounted) return;
+    if (persona == null || !mounted) return;
 
     // Запустить OCR
     bool ocrSuccess = false;
     if (widget.category == 'condition') {
       final ocrResult = await ref.read(ocrNotifierProvider.notifier).processProblem(
         problemId: widget.entityId,
-        persona: result.persona,
+        persona: persona,
       );
       ocrSuccess = ocrResult.success;
     } else {
       final ocrResult = await ref.read(ocrNotifierProvider.notifier).processSolution(
         solutionId: widget.entityId,
-        persona: result.persona,
+        persona: persona,
       );
       ocrSuccess = ocrResult.success;
     }

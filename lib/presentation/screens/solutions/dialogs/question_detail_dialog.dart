@@ -212,7 +212,7 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                           final freeUsesLeft = billing.value?.freeUsesLeft;
                           final balance = billing.value?.balance;
                           final hearts = gamification.value?.currentHearts;
-                          final result = await showPersonaSheet(
+                          final persona = await showPersonaSheet(
                             context,
                             widget.ref,
                             defaultPersona: PersonaId.basis,
@@ -220,17 +220,19 @@ class _QuestionDetailSheetState extends State<_QuestionDetailSheet> {
                             balance: balance,
                             hearts: hearts,
                           );
-                          if (result != null && widget.question.id != null) {
+                          if (persona != null && widget.question.id != null) {
+                            // Автоматически определяем useHearts: если сердца доступны, используем их
+                            final useHearts = hearts != null && hearts >= 1;
                             final answer = await widget.ref
                                 .read(questionNotifierProvider.notifier)
                                 .generateAnswer(
                                   questionId: widget.question.id!,
-                                  persona: result.persona,
-                                  useHearts: result.useHearts,
+                                  persona: persona,
+                                  useHearts: useHearts,
                                 );
                             if (answer != null && mounted) {
                               // Обновляем геймификацию если использовали сердца
-                              if (result.useHearts) {
+                              if (useHearts) {
                                 widget.ref.invalidate(gamificationMeProvider);
                               }
                               Navigator.of(context).pop();

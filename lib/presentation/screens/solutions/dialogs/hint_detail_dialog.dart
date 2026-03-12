@@ -266,7 +266,7 @@ class _HintDetailSheetState extends State<_HintDetailSheet> {
                             final freeUsesLeft = billing.value?.freeUsesLeft;
                             final balance = billing.value?.balance;
                             final hearts = gamification.value?.currentHearts;
-                            final result = await showPersonaSheet(
+                            final persona = await showPersonaSheet(
                               context,
                               widget.ref,
                               defaultPersona: PersonaId.basis,
@@ -274,17 +274,19 @@ class _HintDetailSheetState extends State<_HintDetailSheet> {
                               balance: balance,
                               hearts: hearts,
                             );
-                            if (result != null && mounted) {
+                            if (persona != null && mounted) {
+                              // Автоматически определяем useHearts: если сердца доступны, используем их
+                              final useHearts = hearts != null && hearts >= 1;
                               final hint = await widget.ref
                                   .read(hintNotifierProvider.notifier)
                                   .generate(
                                     hintId: widget.hint.id!,
-                                    persona: result.persona,
-                                    useHearts: result.useHearts,
+                                    persona: persona,
+                                    useHearts: useHearts,
                                   );
                               if (mounted) {
                                 // Обновляем геймификацию если использовали сердца
-                                if (result.useHearts) {
+                                if (useHearts) {
                                   widget.ref.invalidate(gamificationMeProvider);
                                 }
                                 Navigator.of(context).pop();
