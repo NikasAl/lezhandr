@@ -7,7 +7,6 @@ import '../../../data/models/artifacts.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/problems_provider.dart';
 import '../../providers/billing_provider.dart';
-import '../../providers/gamification_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import 'image_cropper_screen.dart';
 
@@ -213,17 +212,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
     // Показать выбор персоны
     final billing = ref.read(billingBalanceProvider);
-    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final hearts = gamification.value?.currentHearts;
+    // OCR оплачивается только деньгами, не сердцами
     final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
-      hearts: hearts,
+      hearts: null, // OCR не поддерживает оплату сердцами
     );
 
     if (result == null || !mounted) return;

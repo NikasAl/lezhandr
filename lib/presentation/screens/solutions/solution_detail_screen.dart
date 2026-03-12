@@ -6,7 +6,6 @@ import '../../providers/solutions_provider.dart';
 import '../../providers/ocr_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/billing_provider.dart';
-import '../../providers/gamification_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/shared/error_display.dart';
@@ -200,17 +199,16 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
 
   Future<void> _runOcr() async {
     final billing = ref.read(billingBalanceProvider);
-    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final hearts = gamification.value?.currentHearts;
+    // OCR оплачивается только деньгами, не сердцами
     final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.petrovich,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
-      hearts: hearts,
+      hearts: null, // OCR не поддерживает оплату сердцами
     );
     if (result == null) return;
 
@@ -245,17 +243,16 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
 
   Future<void> _runConceptsAnalysis() async {
     final billing = ref.read(billingBalanceProvider);
-    final gamification = ref.read(gamificationMeProvider);
     final freeUsesLeft = billing.value?.freeUsesLeft;
     final balance = billing.value?.balance;
-    final hearts = gamification.value?.currentHearts;
+    // Анализ концепций оплачивается только деньгами, не сердцами
     final result = await showPersonaSheet(
       context,
       ref,
       defaultPersona: PersonaId.legendre,
       freeUsesLeft: freeUsesLeft,
       balance: balance,
-      hearts: hearts,
+      hearts: null, // Анализ концепций не поддерживает оплату сердцами
     );
     if (result == null) return;
 
