@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/admin_repository.dart';
-import '../../data/services/api_client.dart';
-import '../../presentation/providers/admin_provider.dart';
+import 'providers.dart';
+
 /// Admin repository provider
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(apiClient: ref.watch(apiClientProvider));
@@ -77,8 +77,9 @@ class TagsNotifier extends StateNotifier<TagsState> {
 
   Future<int> approveAll() async {
     int count = 0;
-    for (final tag in state.tags) {
-      if (await _repository.approveTag(tag.id)) {
+    for (final tag in List.of(state.tags)) {
+      final result = await _repository.approveTag(tag.id);
+      if (result != null) {
         count++;
       }
     }
@@ -155,8 +156,9 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
 
   Future<int> approveAll() async {
     int count = 0;
-    for (final source in state.sources) {
-      if (await _repository.approveSource(source.id)) {
+    for (final source in List.of(state.sources)) {
+      final result = await _repository.approveSource(source.id);
+      if (result != null) {
         count++;
       }
     }
@@ -248,7 +250,8 @@ class ProblemsNotifier extends StateNotifier<ProblemsState> {
   Future<int> approveAll() async {
     int count = 0;
     for (final problem in List.of(state.problems)) {
-      if (await _repository.approveProblem(problem.id)) {
+      final result = await _repository.approveProblem(problem.id);
+      if (result != null) {
         count++;
       }
     }
@@ -348,7 +351,8 @@ class SolutionsNotifier extends StateNotifier<SolutionsState> {
   Future<int> approveAll() async {
     int count = 0;
     for (final solution in List.of(state.solutions)) {
-      if (await _repository.approveSolution(solution.id)) {
+      final result = await _repository.approveSolution(solution.id);
+      if (result != null) {
         count++;
       }
     }
