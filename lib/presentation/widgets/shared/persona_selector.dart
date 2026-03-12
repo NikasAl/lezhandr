@@ -293,8 +293,9 @@ Future<PersonaSelectionResult?> showPersonaSelectorDialog(
         final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         final canUseHearts = hearts != null && hearts >= 1;
-        // Автовыбор оплаты сердцами если нет денег но есть сердца
-        final shouldOfferHearts = canUseHearts && (isInsufficientBalance || (selected == PersonaId.basis && freeUsesLeft != null && freeUsesLeft! <= 0));
+        // Оплата сердцами доступна всегда если hearts передан (вопросы/подсказки)
+        // OCR и анализ концепций передают hearts: null, поэтому опция не показывается
+        final shouldOfferHearts = canUseHearts;
         
         return AlertDialog(
           title: Text(title),
@@ -384,8 +385,9 @@ Future<PersonaSelectionResult?> showPersonaSheet(
         final disabledMessage = _getDisabledMessage(selected, freeUsesLeft, balance, hearts);
         final isInsufficientBalance = balance != null && selected.cost > balance! && selected != PersonaId.basis;
         final canUseHearts = hearts != null && hearts >= 1;
-        // Автовыбор оплаты сердцами если нет денег но есть сердца
-        final shouldOfferHearts = canUseHearts && (isInsufficientBalance || (selected == PersonaId.basis && freeUsesLeft != null && freeUsesLeft! <= 0));
+        // Оплата сердцами доступна всегда если hearts передан (вопросы/подсказки)
+        // OCR и анализ концепций передают hearts: null, поэтому опция не показывается
+        final shouldOfferHearts = canUseHearts;
         
         return Padding(
           padding: const EdgeInsets.all(24),
