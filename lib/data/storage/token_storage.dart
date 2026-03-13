@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,9 +16,12 @@ class TokenStorage {
     }
   }
 
-  /// Check if we should use SharedPreferences fallback (Linux doesn't support flutter_secure_storage well)
+  /// Check if we should use SharedPreferences fallback
+  /// Web and Linux don't support flutter_secure_storage well
   bool get _useSharedPreferences =>
-      !Platform.isAndroid && !Platform.isIOS && !Platform.isMacOS;
+      kIsWeb || (!defaultTargetPlatform.isAndroid && 
+                 !defaultTargetPlatform.isIOS && 
+                 !defaultTargetPlatform.isMacOS);
 
   /// Get or create secure storage instance
   FlutterSecureStorage _getOrCreateSecureStorage() {
