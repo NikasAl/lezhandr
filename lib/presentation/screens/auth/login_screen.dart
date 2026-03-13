@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/solutions_provider.dart';
 import '../../providers/gamification_provider.dart';
 import '../about/about_screen.dart';
+import '../../../utils/error_messages.dart';
 
 /// Login screen with splash-like design
 /// Main button starts account login, expandable forms for existing account
@@ -120,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Error message
                   if (authState.error != null) ...[
-                    _buildErrorMessage(context),
+                    _buildErrorMessage(context, authState.error),
                     const SizedBox(height: 16),
                   ],
 
@@ -217,7 +218,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildErrorMessage(BuildContext context) {
+  Widget _buildErrorMessage(BuildContext context, String? errorMessage) {
+    final displayMessage = ErrorMessages.getErrorMessage(errorMessage);
+    
+    // Determine if this is a network error for icon
+    final isNetworkError = errorMessage?.toString().toLowerCase().contains('connection') == true ||
+                          errorMessage?.toString().toLowerCase().contains('network') == true ||
+                          errorMessage?.toString().toLowerCase().contains('socket') == true ||
+                          displayMessage.contains('интернет');
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -227,13 +236,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Row(
         children: [
           Icon(
-            Icons.error_outline,
+            isNetworkError ? Icons.wifi_off : Icons.error_outline,
             color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Ошибка входа. Проверьте данные.',
+              displayMessage,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onErrorContainer,
               ),
