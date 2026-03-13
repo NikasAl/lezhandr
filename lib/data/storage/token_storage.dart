@@ -19,9 +19,9 @@ class TokenStorage {
   /// Check if we should use SharedPreferences fallback
   /// Web and Linux don't support flutter_secure_storage well
   bool get _useSharedPreferences =>
-      kIsWeb || (!defaultTargetPlatform.isAndroid && 
-                 !defaultTargetPlatform.isIOS && 
-                 !defaultTargetPlatform.isMacOS);
+      kIsWeb || (defaultTargetPlatform != TargetPlatform.android && 
+                 defaultTargetPlatform != TargetPlatform.iOS && 
+                 defaultTargetPlatform != TargetPlatform.macOS);
 
   /// Get or create secure storage instance
   FlutterSecureStorage _getOrCreateSecureStorage() {
