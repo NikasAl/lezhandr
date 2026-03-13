@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/admin_provider.dart';
 import '../../../data/repositories/admin_repository.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 /// Concepts monitoring screen with aliases grouping
 class AdminConceptsScreen extends ConsumerStatefulWidget {
@@ -46,89 +47,91 @@ class _AdminConceptsScreenState extends ConsumerState<AdminConceptsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search and filters
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: '🔍 Поиск концептов...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+      body: AdaptiveLayout(
+        child: Column(
+          children: [
+            // Search and filters
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: '🔍 Поиск концептов...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _applyFilters();
+                        },
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _applyFilters();
-                      },
-                    ),
+                    onSubmitted: (_) => _applyFilters(),
                   ),
-                  onSubmitted: (_) => _applyFilters(),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    FilterChip(
-                      label: const Text('Все канонические'),
-                      selected: !_onlyWithAliases,
-                      onSelected: (_) {
-                        setState(() => _onlyWithAliases = false);
-                        _applyFilters();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      label: const Text('Только с алиасами'),
-                      selected: _onlyWithAliases,
-                      onSelected: (_) {
-                        setState(() => _onlyWithAliases = true);
-                        _applyFilters();
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      FilterChip(
+                        label: const Text('Все канонические'),
+                        selected: !_onlyWithAliases,
+                        onSelected: (_) {
+                          setState(() => _onlyWithAliases = false);
+                          _applyFilters();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        label: const Text('Только с алиасами'),
+                        selected: _onlyWithAliases,
+                        onSelected: (_) {
+                          setState(() => _onlyWithAliases = true);
+                          _applyFilters();
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Stats
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: Row(
-              children: [
-                Text('📊 Концептов: ${state.concepts.length}'),
-                const SizedBox(width: 16),
-                Text(
-                  'Алиасов: ${state.concepts.fold(0, (sum, c) => sum + c.aliases.length)}',
-                ),
-              ],
+            // Stats
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Row(
+                children: [
+                  Text('📊 Концептов: ${state.concepts.length}'),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Алиасов: ${state.concepts.fold(0, (sum, c) => sum + c.aliases.length)}',
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // List
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                    ? Center(child: Text('Ошибка: ${state.error}'))
-                    : state.concepts.isEmpty
-                        ? const Center(child: Text('📭 Концепты не найдены'))
-                        : ListView.builder(
-                            itemCount: state.concepts.length,
-                            itemBuilder: (context, index) {
-                              final concept = state.concepts[index];
-                              return _ConceptGroup(concept: concept);
-                            },
-                          ),
-          ),
-        ],
+            // List
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                      ? Center(child: Text('Ошибка: ${state.error}'))
+                      : state.concepts.isEmpty
+                          ? const Center(child: Text('📭 Концепты не найдены'))
+                          : ListView.builder(
+                              itemCount: state.concepts.length,
+                              itemBuilder: (context, index) {
+                                final concept = state.concepts[index];
+                                return _ConceptGroup(concept: concept);
+                              },
+                            ),
+            ),
+          ],
+        ),
       ),
     );
   }

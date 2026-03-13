@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/admin_provider.dart';
 import '../../../data/repositories/admin_repository.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 /// Tags moderation screen
 class AdminTagsScreen extends ConsumerWidget {
@@ -21,72 +22,74 @@ class AdminTagsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Filter chips
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('Ожидают'),
-                  selected: state.statusFilter == 'pending',
-                  onSelected: (_) =>
-                      ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'pending'),
-                ),
-                FilterChip(
-                  label: const Text('Одобрены'),
-                  selected: state.statusFilter == 'approved',
-                  onSelected: (_) =>
-                      ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'approved'),
-                ),
-                FilterChip(
-                  label: const Text('Отклонены'),
-                  selected: state.statusFilter == 'rejected',
-                  onSelected: (_) =>
-                      ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'rejected'),
-                ),
-              ],
-            ),
-          ),
-          
-          // Stats
-          if (state.tags.isNotEmpty)
+      body: AdaptiveLayout(
+        child: Column(
+          children: [
+            // Filter chips
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Row(
+              padding: const EdgeInsets.all(8),
+              child: Wrap(
+                spacing: 8,
                 children: [
-                  Text('📊 Тегов: ${state.tags.length}'),
-                  const Spacer(),
-                  if (state.statusFilter == 'pending')
-                    TextButton.icon(
-                      icon: const Icon(Icons.done_all),
-                      label: const Text('Одобрить все'),
-                      onPressed: () => _approveAll(context, ref),
-                    ),
+                  FilterChip(
+                    label: const Text('Ожидают'),
+                    selected: state.statusFilter == 'pending',
+                    onSelected: (_) =>
+                        ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'pending'),
+                  ),
+                  FilterChip(
+                    label: const Text('Одобрены'),
+                    selected: state.statusFilter == 'approved',
+                    onSelected: (_) =>
+                        ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'approved'),
+                  ),
+                  FilterChip(
+                    label: const Text('Отклонены'),
+                    selected: state.statusFilter == 'rejected',
+                    onSelected: (_) =>
+                        ref.read(tagsNotifierProvider.notifier).load(statusFilter: 'rejected'),
+                  ),
                 ],
               ),
             ),
+            
+            // Stats
+            if (state.tags.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Row(
+                  children: [
+                    Text('📊 Тегов: ${state.tags.length}'),
+                    const Spacer(),
+                    if (state.statusFilter == 'pending')
+                      TextButton.icon(
+                        icon: const Icon(Icons.done_all),
+                        label: const Text('Одобрить все'),
+                        onPressed: () => _approveAll(context, ref),
+                      ),
+                  ],
+                ),
+              ),
 
-          // List
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                    ? Center(child: Text('Ошибка: ${state.error}'))
-                    : state.tags.isEmpty
-                        ? const Center(child: Text('📭 Нет тегов'))
-                        : ListView.builder(
-                            itemCount: state.tags.length,
-                            itemBuilder: (context, index) {
-                              final tag = state.tags[index];
-                              return _TagTile(tag: tag);
-                            },
-                          ),
-          ),
-        ],
+            // List
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                      ? Center(child: Text('Ошибка: ${state.error}'))
+                      : state.tags.isEmpty
+                          ? const Center(child: Text('📭 Нет тегов'))
+                          : ListView.builder(
+                              itemCount: state.tags.length,
+                              itemBuilder: (context, index) {
+                                final tag = state.tags[index];
+                                return _TagTile(tag: tag);
+                              },
+                            ),
+            ),
+          ],
+        ),
       ),
     );
   }

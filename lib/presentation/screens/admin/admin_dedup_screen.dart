@@ -4,6 +4,7 @@ import '../../../data/models/artifacts.dart';
 import '../../providers/admin_provider.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/persona_selector.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import '../../../data/repositories/admin_repository.dart';
 
 /// Deduplication management screen
@@ -41,101 +42,103 @@ class _AdminDedupScreenState extends ConsumerState<AdminDedupScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Stats from last run
-          if (state.lastResult != null) ...[
+      body: AdaptiveLayout(
+        child: Column(
+          children: [
+            // Stats from last run
+            if (state.lastResult != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.green.withOpacity(0.1),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('📊 Результат последнего запуска:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Активных: ${state.lastResult!.totalActiveConcepts} | '
+                      'Слито: ${state.lastResult!.totalMergedAliases} | '
+                      'Кандидатов: ${state.lastResult!.candidatesCreated} | '
+                      'Auto: ${state.lastResult!.autoApproved} | '
+                      'Pending: ${state.lastResult!.pendingReview}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Filter chips
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: Colors.green.withOpacity(0.1),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.all(8),
+              child: Wrap(
+                spacing: 8,
                 children: [
-                  const Text('📊 Результат последнего запуска:',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Активных: ${state.lastResult!.totalActiveConcepts} | '
-                    'Слито: ${state.lastResult!.totalMergedAliases} | '
-                    'Кандидатов: ${state.lastResult!.candidatesCreated} | '
-                    'Auto: ${state.lastResult!.autoApproved} | '
-                    'Pending: ${state.lastResult!.pendingReview}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  FilterChip(
+                    label: Text('Ожидают (${state.pendingCount})'),
+                    selected: _statusFilter == 'pending',
+                    onSelected: (_) => _setFilter('pending'),
+                  ),
+                  FilterChip(
+                    label: const Text('Auto-approved'),
+                    selected: _statusFilter == 'auto_approved',
+                    onSelected: (_) => _setFilter('auto_approved'),
+                  ),
+                  FilterChip(
+                    label: const Text('Все'),
+                    selected: _statusFilter == 'all',
+                    onSelected: (_) => _setFilter('all'),
                   ),
                 ],
               ),
             ),
+
+            // Action buttons
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.auto_fix_high),
+                      label: const Text('Запустить дедуп'),
+                      onPressed: () => _runDedup(context),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.done_all),
+                      label: const Text('Применить auto'),
+                      onPressed: state.isLoading ? null : _applyAutoApproved,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Candidates list
+            Expanded(
+              child: state.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : state.error != null
+                      ? Center(child: Text('Ошибка: ${state.error}'))
+                      : state.candidates.isEmpty
+                          ? const Center(child: Text('📭 Нет кандидатов'))
+                          : ListView.builder(
+                              itemCount: state.candidates.length,
+                              itemBuilder: (context, index) {
+                                return _CandidateCard(
+                                  candidate: state.candidates[index],
+                                );
+                              },
+                            ),
+            ),
           ],
-
-          // Filter chips
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: Text('Ожидают (${state.pendingCount})'),
-                  selected: _statusFilter == 'pending',
-                  onSelected: (_) => _setFilter('pending'),
-                ),
-                FilterChip(
-                  label: const Text('Auto-approved'),
-                  selected: _statusFilter == 'auto_approved',
-                  onSelected: (_) => _setFilter('auto_approved'),
-                ),
-                FilterChip(
-                  label: const Text('Все'),
-                  selected: _statusFilter == 'all',
-                  onSelected: (_) => _setFilter('all'),
-                ),
-              ],
-            ),
-          ),
-
-          // Action buttons
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.auto_fix_high),
-                    label: const Text('Запустить дедуп'),
-                    onPressed: () => _runDedup(context),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.done_all),
-                    label: const Text('Применить auto'),
-                    onPressed: state.isLoading ? null : _applyAutoApproved,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Candidates list
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.error != null
-                    ? Center(child: Text('Ошибка: ${state.error}'))
-                    : state.candidates.isEmpty
-                        ? const Center(child: Text('📭 Нет кандидатов'))
-                        : ListView.builder(
-                            itemCount: state.candidates.length,
-                            itemBuilder: (context, index) {
-                              return _CandidateCard(
-                                candidate: state.candidates[index],
-                              );
-                            },
-                          ),
-          ),
-        ],
+        ),
       ),
     );
   }

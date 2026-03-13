@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/admin_provider.dart';
 import '../../../data/repositories/admin_repository.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 /// Sources moderation screen
 class AdminSourcesScreen extends ConsumerWidget {
@@ -21,40 +22,42 @@ class AdminSourcesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.error != null
-              ? Center(child: Text('Ошибка: ${state.error}'))
-              : state.sources.isEmpty
-                  ? const Center(child: Text('📭 Нет источников на модерации'))
-                  : Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          child: Row(
-                            children: [
-                              Text('📊 Источников: ${state.sources.length}'),
-                              const Spacer(),
-                              TextButton.icon(
-                                icon: const Icon(Icons.done_all),
-                                label: const Text('Одобрить все'),
-                                onPressed: () => _approveAll(context, ref),
-                              ),
-                            ],
+      body: AdaptiveLayout(
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : state.error != null
+                ? Center(child: Text('Ошибка: ${state.error}'))
+                : state.sources.isEmpty
+                    ? const Center(child: Text('📭 Нет источников на модерации'))
+                    : Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: Row(
+                              children: [
+                                Text('📊 Источников: ${state.sources.length}'),
+                                const Spacer(),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.done_all),
+                                  label: const Text('Одобрить все'),
+                                  onPressed: () => _approveAll(context, ref),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: state.sources.length,
-                            itemBuilder: (context, index) {
-                              final source = state.sources[index];
-                              return _SourceTile(source: source);
-                            },
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: state.sources.length,
+                              itemBuilder: (context, index) {
+                                final source = state.sources[index];
+                                return _SourceTile(source: source);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+      ),
     );
   }
 

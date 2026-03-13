@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/admin_provider.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 /// Admin panel main screen
 class AdminScreen extends ConsumerWidget {
@@ -43,156 +44,158 @@ class AdminScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '📊 На модерации',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    stats.when(
-                      data: (data) => Wrap(
-                        spacing: 16,
-                        runSpacing: 8,
-                        children: [
-                          _StatChip(
-                            icon: Icons.label_outline,
-                            label: 'Теги',
-                            count: data['tags'] ?? 0,
-                            color: Colors.blue,
-                          ),
-                          _StatChip(
-                            icon: Icons.source_outlined,
-                            label: 'Источники',
-                            count: data['sources'] ?? 0,
-                            color: Colors.purple,
-                          ),
-                          _StatChip(
-                            icon: Icons.description_outlined,
-                            label: 'Задачи',
-                            count: data['problems'] ?? 0,
-                            color: Colors.orange,
-                          ),
-                          _StatChip(
-                            icon: Icons.edit_note,
-                            label: 'Решения',
-                            count: data['solutions'] ?? 0,
-                            color: Colors.green,
-                          ),
-                          _StatChip(
-                            icon: Icons.merge_type,
-                            label: 'Дедуп',
-                            count: data['dedup_candidates'] ?? 0,
-                            color: Colors.teal,
-                          ),
-                        ],
+      body: AdaptiveLayout(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📊 На модерации',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text('Ошибка загрузки статистики'),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      stats.when(
+                        data: (data) => Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
+                          children: [
+                            _StatChip(
+                              icon: Icons.label_outline,
+                              label: 'Теги',
+                              count: data['tags'] ?? 0,
+                              color: Colors.blue,
+                            ),
+                            _StatChip(
+                              icon: Icons.source_outlined,
+                              label: 'Источники',
+                              count: data['sources'] ?? 0,
+                              color: Colors.purple,
+                            ),
+                            _StatChip(
+                              icon: Icons.description_outlined,
+                              label: 'Задачи',
+                              count: data['problems'] ?? 0,
+                              color: Colors.orange,
+                            ),
+                            _StatChip(
+                              icon: Icons.edit_note,
+                              label: 'Решения',
+                              count: data['solutions'] ?? 0,
+                              color: Colors.green,
+                            ),
+                            _StatChip(
+                              icon: Icons.merge_type,
+                              label: 'Дедуп',
+                              count: data['dedup_candidates'] ?? 0,
+                              color: Colors.teal,
+                            ),
+                          ],
+                        ),
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (_, __) => const Text('Ошибка загрузки статистики'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Moderation section
-            Text(
-              'Модерация',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            _AdminTile(
-              icon: Icons.label_outline,
-              title: '🏷️ Теги',
-              subtitle: 'Модерация тегов',
-              color: Colors.blue,
-              onTap: () => context.push('/admin/tags'),
-            ),
-            _AdminTile(
-              icon: Icons.source_outlined,
-              title: '📚 Источники',
-              subtitle: 'Модерация источников задач',
-              color: Colors.purple,
-              onTap: () => context.push('/admin/sources'),
-            ),
-            _AdminTile(
-              icon: Icons.description_outlined,
-              title: '📝 Задачи',
-              subtitle: 'Модерация задач',
-              color: Colors.orange,
-              onTap: () => context.push('/admin/problems'),
-            ),
-            _AdminTile(
-              icon: Icons.edit_note,
-              title: '✍️ Решения',
-              subtitle: 'Модерация решений',
-              color: Colors.green,
-              onTap: () => context.push('/admin/solutions'),
-            ),
-            const SizedBox(height: 24),
+              // Moderation section
+              Text(
+                'Модерация',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _AdminTile(
+                icon: Icons.label_outline,
+                title: '🏷️ Теги',
+                subtitle: 'Модерация тегов',
+                color: Colors.blue,
+                onTap: () => context.push('/admin/tags'),
+              ),
+              _AdminTile(
+                icon: Icons.source_outlined,
+                title: '📚 Источники',
+                subtitle: 'Модерация источников задач',
+                color: Colors.purple,
+                onTap: () => context.push('/admin/sources'),
+              ),
+              _AdminTile(
+                icon: Icons.description_outlined,
+                title: '📝 Задачи',
+                subtitle: 'Модерация задач',
+                color: Colors.orange,
+                onTap: () => context.push('/admin/problems'),
+              ),
+              _AdminTile(
+                icon: Icons.edit_note,
+                title: '✍️ Решения',
+                subtitle: 'Модерация решений',
+                color: Colors.green,
+                onTap: () => context.push('/admin/solutions'),
+              ),
+              const SizedBox(height: 24),
 
-            // Concepts section
-            Text(
-              'Концепты',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            _AdminTile(
-              icon: Icons.auto_fix_high,
-              title: '🧹 Дедупликация',
-              subtitle: 'Запуск и верификация дубликатов',
-              color: Colors.teal,
-              onTap: () => context.push('/admin/dedup'),
-            ),
-            _AdminTile(
-              icon: Icons.account_tree_outlined,
-              title: '📊 Мониторинг концептов',
-              subtitle: 'Просмотр базы концептов с алиасами',
-              color: Colors.indigo,
-              onTap: () => context.push('/admin/concepts'),
-            ),
-            _AdminTile(
-              icon: Icons.build_circle_outlined,
-              title: '🔧 Исправить циклы',
-              subtitle: 'Исправление циклических ссылок в алиасах',
-              color: Colors.red,
-              onTap: () => _fixCycles(context, ref),
-            ),
-            const SizedBox(height: 24),
+              // Concepts section
+              Text(
+                'Концепты',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _AdminTile(
+                icon: Icons.auto_fix_high,
+                title: '🧹 Дедупликация',
+                subtitle: 'Запуск и верификация дубликатов',
+                color: Colors.teal,
+                onTap: () => context.push('/admin/dedup'),
+              ),
+              _AdminTile(
+                icon: Icons.account_tree_outlined,
+                title: '📊 Мониторинг концептов',
+                subtitle: 'Просмотр базы концептов с алиасами',
+                color: Colors.indigo,
+                onTap: () => context.push('/admin/concepts'),
+              ),
+              _AdminTile(
+                icon: Icons.build_circle_outlined,
+                title: '🔧 Исправить циклы',
+                subtitle: 'Исправление циклических ссылок в алиасах',
+                color: Colors.red,
+                onTap: () => _fixCycles(context, ref),
+              ),
+              const SizedBox(height: 24),
 
-            // Tools section
-            Text(
-              'Инструменты',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            _AdminTile(
-              icon: Icons.merge_type,
-              title: '🔗 Объединить теги',
-              subtitle: 'Ручное объединение тегов',
-              color: Colors.blueGrey,
-              onTap: () => _showMergeTagsDialog(context, ref),
-            ),
-          ],
+              // Tools section
+              Text(
+                'Инструменты',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _AdminTile(
+                icon: Icons.merge_type,
+                title: '🔗 Объединить теги',
+                subtitle: 'Ручное объединение тегов',
+                color: Colors.blueGrey,
+                onTap: () => _showMergeTagsDialog(context, ref),
+              ),
+            ],
+          ),
         ),
       ),
     );

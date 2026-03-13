@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/admin_provider.dart';
 import '../../../data/repositories/admin_repository.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 
 /// Solutions moderation screen
 class AdminSolutionsScreen extends ConsumerWidget {
@@ -21,40 +22,42 @@ class AdminSolutionsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.error != null
-              ? Center(child: Text('Ошибка: ${state.error}'))
-              : state.solutions.isEmpty
-                  ? const Center(child: Text('📭 Нет решений на модерации'))
-                  : Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          child: Row(
-                            children: [
-                              Text('📊 Решений: ${state.total}'),
-                              const Spacer(),
-                              TextButton.icon(
-                                icon: const Icon(Icons.done_all),
-                                label: const Text('Одобрить все'),
-                                onPressed: () => _approveAll(context, ref),
-                              ),
-                            ],
+      body: AdaptiveLayout(
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : state.error != null
+                ? Center(child: Text('Ошибка: ${state.error}'))
+                : state.solutions.isEmpty
+                    ? const Center(child: Text('📭 Нет решений на модерации'))
+                    : Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: Row(
+                              children: [
+                                Text('📊 Решений: ${state.total}'),
+                                const Spacer(),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.done_all),
+                                  label: const Text('Одобрить все'),
+                                  onPressed: () => _approveAll(context, ref),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: state.solutions.length,
-                            itemBuilder: (context, index) {
-                              final solution = state.solutions[index];
-                              return _SolutionTile(solution: solution);
-                            },
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: state.solutions.length,
+                              itemBuilder: (context, index) {
+                                final solution = state.solutions[index];
+                                return _SolutionTile(solution: solution);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+      ),
     );
   }
 
