@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../data/models/billing.dart';
 import '../../providers/billing_provider.dart';
 import '../../widgets/shared/error_display.dart';
+import '../../widgets/shared/adaptive_layout.dart';
 import '../../../utils/url_opener.dart';
 
 /// Transactions screen - list of all transactions (income/expense)
@@ -57,156 +58,158 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       appBar: AppBar(
         title: const Text('Транзакции'),
       ),
-      body: Column(
-        children: [
-          // Summary header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      body: AdaptiveLayout(
+        child: Column(
+          children: [
+            // Summary header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildSummaryItem(
+                    context,
+                    'Приход',
+                    _calculateTotalIncome(),
+                    Colors.green,
+                    Icons.arrow_downward,
+                  ),
+                  Container(
+                    height: 40,
+                    width: 1,
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
+                  _buildSummaryItem(
+                    context,
+                    'Расход',
+                    _calculateTotalExpense(),
+                    Colors.red,
+                    Icons.arrow_upward,
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildSummaryItem(
-                  context,
-                  'Приход',
-                  _calculateTotalIncome(),
-                  Colors.green,
-                  Icons.arrow_downward,
-                ),
-                Container(
-                  height: 40,
-                  width: 1,
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                ),
-                _buildSummaryItem(
-                  context,
-                  'Расход',
-                  _calculateTotalExpense(),
-                  Colors.red,
-                  Icons.arrow_upward,
-                ),
-              ],
-            ),
-          ),
-          
-          // Transactions list
-          Expanded(
-            child: transactionsAsync.when(
-              data: (response) {
-                final transactions = _accumulatedTransactions;
-                
-                if (transactions.isEmpty && _currentOffset == 0) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Нет транзакций',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'История операций будет отображаться здесь',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            
+            // Transactions list
+            Expanded(
+              child: transactionsAsync.when(
+                data: (response) {
+                  final transactions = _accumulatedTransactions;
+                  
+                  if (transactions.isEmpty && _currentOffset == 0) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Нет транзакций',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'История операций будет отображаться здесь',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      // Total count
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        color: Theme.of(context).colorScheme.surface,
+                        child: Text(
+                          'Всего: $_totalTransactions',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    // Total count
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: Theme.of(context).colorScheme.surface,
-                      child: Text(
-                        'Всего: $_totalTransactions',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      
+                      // List
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: transactions.length + (_hasMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == transactions.length && _hasMore) {
+                              return _LoadMoreCard(
+                                isLoading: transactionsAsync.isLoading,
+                                onLoadMore: () {
+                                  if (!transactionsAsync.isLoading) {
+                                    setState(() {
+                                      _currentOffset += _pageSize;
+                                    });
+                                  }
+                                },
+                                remainingCount: _totalTransactions - transactions.length,
+                              );
+                            }
+                            
+                            final transaction = transactions[index];
+                            return _TransactionTile(
+                              transaction: transaction,
+                              onPayTap: transaction.canBePaid
+                                  ? () => _openPaymentUrl(
+                                      context,
+                                      transaction.paymentUrl!,
+                                      transaction.amount,
+                                    )
+                                  : null,
+                            );
+                          },
                         ),
                       ),
-                    ),
-                    
-                    // List
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: transactions.length + (_hasMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == transactions.length && _hasMore) {
-                            return _LoadMoreCard(
-                              isLoading: transactionsAsync.isLoading,
-                              onLoadMore: () {
-                                if (!transactionsAsync.isLoading) {
-                                  setState(() {
-                                    _currentOffset += _pageSize;
-                                  });
-                                }
-                              },
-                              remainingCount: _totalTransactions - transactions.length,
-                            );
-                          }
-                          
-                          final transaction = transactions[index];
-                          return _TransactionTile(
-                            transaction: transaction,
-                            onPayTap: transaction.canBePaid
-                                ? () => _openPaymentUrl(
-                                    context,
-                                    transaction.paymentUrl!,
-                                    transaction.amount,
-                                  )
-                                : null,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-              loading: () {
-                if (_accumulatedTransactions.isNotEmpty) {
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _accumulatedTransactions.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _accumulatedTransactions.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      return _TransactionTile(transaction: _accumulatedTransactions[index]);
-                    },
+                    ],
                   );
-                }
-                return const Center(child: CircularProgressIndicator());
-              },
-              error: (error, _) => ErrorDisplay(
-                error: error,
-                onRetry: () {
-                  ref.invalidate(transactionsListProvider);
-                  _resetPagination();
                 },
+                loading: () {
+                  if (_accumulatedTransactions.isNotEmpty) {
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _accumulatedTransactions.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == _accumulatedTransactions.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        return _TransactionTile(transaction: _accumulatedTransactions[index]);
+                      },
+                    );
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+                error: (error, _) => ErrorDisplay(
+                  error: error,
+                  onRetry: () {
+                    ref.invalidate(transactionsListProvider);
+                    _resetPagination();
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
