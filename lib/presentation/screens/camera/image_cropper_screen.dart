@@ -186,9 +186,11 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
 
   void _handlePanUpdate(DragUpdateDetails details) {
     if (_dragStart == null || _dragStartRect == null) return;
-    
+
     final delta = details.localPosition - _dragStart!;
-    final minSize = 50.0;
+    // Minimum size for crop rect - smaller value allows more precise selection
+    // for tasks that are close together on the photo
+    const minSize = 20.0;
     
     // Bounds are the fitted image bounds (not container)
     final double minX = _imageOffset.dx;
