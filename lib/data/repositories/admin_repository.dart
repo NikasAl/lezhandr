@@ -130,6 +130,219 @@ class AdminSolution {
   }
 }
 
+/// Detailed solution info for moderation
+class SolutionModerationDetails {
+  final AdminSolutionDetail solution;
+  final List<AdminQuestionDetail> questions;
+  final List<AdminHintDetail> hints;
+  final List<AdminEpiphanyDetail> epiphanies;
+
+  SolutionModerationDetails({
+    required this.solution,
+    this.questions = const [],
+    this.hints = const [],
+    this.epiphanies = const [],
+  });
+
+  factory SolutionModerationDetails.fromJson(Map<String, dynamic> json) {
+    return SolutionModerationDetails(
+      solution: AdminSolutionDetail.fromJson(json['solution'] as Map<String, dynamic>),
+      questions: json['questions'] != null
+          ? (json['questions'] as List)
+              .map((q) => AdminQuestionDetail.fromJson(q as Map<String, dynamic>))
+              .toList()
+          : [],
+      hints: json['hints'] != null
+          ? (json['hints'] as List)
+              .map((h) => AdminHintDetail.fromJson(h as Map<String, dynamic>))
+              .toList()
+          : [],
+      epiphanies: json['epiphanies'] != null
+          ? (json['epiphanies'] as List)
+              .map((e) => AdminEpiphanyDetail.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : [],
+    );
+  }
+}
+
+/// Detailed solution for moderation view
+class AdminSolutionDetail {
+  final int id;
+  final String status;
+  final String moderationStatus;
+  final String? userNotes;
+  final String? solutionText;
+  final bool hasImage;
+  final int? personalDifficulty;
+  final double? qualityScore;
+  final double? totalMinutes;
+  final double? xpEarned;
+  final AdminUserInfo? user;
+  final AdminProblemDetail? problem;
+
+  AdminSolutionDetail({
+    required this.id,
+    required this.status,
+    required this.moderationStatus,
+    this.userNotes,
+    this.solutionText,
+    this.hasImage = false,
+    this.personalDifficulty,
+    this.qualityScore,
+    this.totalMinutes,
+    this.xpEarned,
+    this.user,
+    this.problem,
+  });
+
+  factory AdminSolutionDetail.fromJson(Map<String, dynamic> json) {
+    return AdminSolutionDetail(
+      id: json['id'] as int? ?? 0,
+      status: json['status'] as String? ?? 'active',
+      moderationStatus: json['moderation_status'] as String? ?? 'pending',
+      userNotes: json['user_notes'] as String?,
+      solutionText: json['solution_text'] as String?,
+      hasImage: json['solution_img_path'] != null,
+      personalDifficulty: json['personal_difficulty'] as int?,
+      qualityScore: (json['quality_score'] as num?)?.toDouble(),
+      totalMinutes: (json['total_minutes'] as num?)?.toDouble(),
+      xpEarned: (json['xp_earned'] as num?)?.toDouble(),
+      user: json['user'] != null
+          ? AdminUserInfo.fromJson(json['user'] as Map<String, dynamic>)
+          : null,
+      problem: json['problem'] != null
+          ? AdminProblemDetail.fromJson(json['problem'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+/// Problem detail for moderation view
+class AdminProblemDetail {
+  final int id;
+  final String? reference;
+  final String? conditionText;
+  final bool hasImage;
+  final AdminSourceInfo? source;
+
+  AdminProblemDetail({
+    required this.id,
+    this.reference,
+    this.conditionText,
+    this.hasImage = false,
+    this.source,
+  });
+
+  factory AdminProblemDetail.fromJson(Map<String, dynamic> json) {
+    return AdminProblemDetail(
+      id: json['id'] as int? ?? 0,
+      reference: json['reference'] as String?,
+      conditionText: json['condition_text'] as String?,
+      hasImage: json['condition_img'] != null,
+      source: json['source'] != null
+          ? AdminSourceInfo.fromJson(json['source'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+/// Question detail for moderation
+class AdminQuestionDetail {
+  final int id;
+  final String? body;
+  final bool hasImage;
+  final String? answer;
+  final DateTime? createdAt;
+
+  AdminQuestionDetail({
+    required this.id,
+    this.body,
+    this.hasImage = false,
+    this.answer,
+    this.createdAt,
+  });
+
+  factory AdminQuestionDetail.fromJson(Map<String, dynamic> json) {
+    return AdminQuestionDetail(
+      id: json['id'] as int? ?? 0,
+      body: json['body'] as String?,
+      hasImage: json['image_path'] != null,
+      answer: json['answer'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+    );
+  }
+}
+
+/// Hint detail for moderation
+class AdminHintDetail {
+  final int id;
+  final String? hintText;
+  final String? userNotes;
+  final bool hasImage;
+  final String? status;
+  final String? aiModel;
+  final int? xpPenalty;
+  final DateTime? createdAt;
+
+  AdminHintDetail({
+    required this.id,
+    this.hintText,
+    this.userNotes,
+    this.hasImage = false,
+    this.status,
+    this.aiModel,
+    this.xpPenalty,
+    this.createdAt,
+  });
+
+  factory AdminHintDetail.fromJson(Map<String, dynamic> json) {
+    return AdminHintDetail(
+      id: json['id'] as int? ?? 0,
+      hintText: json['hint_text'] as String?,
+      userNotes: json['user_notes'] as String?,
+      hasImage: json['context_image_path'] != null,
+      status: json['status'] as String?,
+      aiModel: json['ai_model'] as String?,
+      xpPenalty: json['xp_penalty'] as int?,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+    );
+  }
+}
+
+/// Epiphany detail for moderation
+class AdminEpiphanyDetail {
+  final int id;
+  final String? description;
+  final bool hasImage;
+  final int? magnitude;
+  final DateTime? createdAt;
+
+  AdminEpiphanyDetail({
+    required this.id,
+    this.description,
+    this.hasImage = false,
+    this.magnitude,
+    this.createdAt,
+  });
+
+  factory AdminEpiphanyDetail.fromJson(Map<String, dynamic> json) {
+    return AdminEpiphanyDetail(
+      id: json['id'] as int? ?? 0,
+      description: json['description'] as String?,
+      hasImage: json['image_path'] != null,
+      magnitude: json['magnitude'] as int?,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+    );
+  }
+}
+
 /// Concept model with aliases
 class AdminConcept {
   final int id;
@@ -545,6 +758,18 @@ class AdminRepository {
       final response = await _apiClient.dio.delete('/solutions/$solutionId');
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Get detailed solution info for moderation
+  /// Returns solution with images, questions, hints, epiphanies
+  Future<SolutionModerationDetails?> getSolutionModerationDetails(int solutionId) async {
+    try {
+      final response = await _apiClient.dio.get('/solutions/$solutionId/moderation-details');
+      if (response.statusCode == 200) {
+        return SolutionModerationDetails.fromJson(response.data);
       }
     } catch (_) {}
     return null;

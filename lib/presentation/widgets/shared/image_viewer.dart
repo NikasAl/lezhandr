@@ -311,3 +311,84 @@ class SolutionImageThumbnail extends ConsumerWidget {
     );
   }
 }
+
+/// Convenience widget for question images
+class QuestionImageThumbnail extends ConsumerWidget {
+  final int questionId;
+  final String? title;
+  final double height;
+  final double? width;
+
+  const QuestionImageThumbnail({
+    super.key,
+    required this.questionId,
+    this.title,
+    this.height = 200,
+    this.width,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ImageThumbnail(
+      category: 'question',
+      entityId: questionId,
+      title: title,
+      height: height,
+      width: width,
+    );
+  }
+}
+
+/// Convenience widget for hint images
+class HintImageThumbnail extends ConsumerWidget {
+  final int hintId;
+  final String? title;
+  final double height;
+  final double? width;
+
+  const HintImageThumbnail({
+    super.key,
+    required this.hintId,
+    this.title,
+    this.height = 200,
+    this.width,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ImageThumbnail(
+      category: 'hint',
+      entityId: hintId,
+      title: title,
+      height: height,
+      width: width,
+    );
+  }
+}
+
+/// Convenience widget for epiphany images
+class EpiphanyImageThumbnail extends ConsumerWidget {
+  final int epiphanyId;
+  final String? title;
+  final double height;
+  final double? width;
+
+  const EpiphanyImageThumbnail({
+    super.key,
+    required this.epiphanyId,
+    this.title,
+    this.height = 200,
+    this.width,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ImageThumbnail(
+      category: 'epiphany',
+      entityId: epiphanyId,
+      title: title,
+      height: height,
+      width: width,
+    );
+  }
+}

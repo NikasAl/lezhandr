@@ -269,8 +269,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   void _showConditionActions(ProblemModel data, bool isOwner) {
     final ocrState = ref.read(ocrNotifierProvider);
     final isOcrLoading = ocrState.isLoading;
-    // Only pending problems can be edited
-    final canEdit = isOwner && data.isPending;
+    // Owner can edit any problem - approved problems will be reset to pending
+    final canEdit = isOwner;
     
     showModalBottomSheet(
       context: context,
@@ -342,14 +342,38 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   // Navigate to image viewer
                 },
               ),
-            // Show message if owner but not pending
-            if (isOwner && !data.isPending)
+            // Show warning if editing approved problem
+            if (isOwner && data.isApproved)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'При редактировании задача вернётся на модерацию',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (isOwner && data.isRejected)
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  data.isApproved 
-                      ? 'Задача прошла модерацию и не может быть изменена'
-                      : 'Задача отклонена и не может быть изменена',
+                  'Задача отклонена и не может быть изменена',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -441,7 +465,8 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                 ConditionCard(
                   problem: data,
                   isOwner: isOwner,
-                  canEdit: isOwner && data.isPending,
+                  canEdit: isOwner && !data.isRejected,
+                  showModerationWarning: isOwner && data.isApproved,
                   onEdit: () => _showEditConditionDialog(data.conditionText ?? ''),
                   onOcr: _runOcr,
                 ),

@@ -16,6 +16,7 @@ class ConditionCard extends ConsumerStatefulWidget {
   final ProblemModel problem;
   final bool isOwner;
   final bool canEdit;
+  final bool showModerationWarning;
   final VoidCallback onEdit;
   final VoidCallback onOcr;
 
@@ -24,6 +25,7 @@ class ConditionCard extends ConsumerStatefulWidget {
     required this.problem,
     required this.isOwner,
     this.canEdit = true,
+    this.showModerationWarning = false,
     required this.onEdit,
     required this.onOcr,
   });
@@ -103,27 +105,59 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
   }
 
   Widget _buildContent(BuildContext context) {
+    final content = <Widget>[];
+    
+    // Show moderation warning if needed
+    if (widget.showModerationWarning) {
+      content.add(Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.orange[700], size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'При редактировании задача вернётся на модерацию',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.orange[700],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
+    
     if (widget.problem.hasText && !_showConditionImage) {
-      return MarkdownWithMath(
+      content.add(MarkdownWithMath(
         text: widget.problem.conditionText!,
         textStyle: Theme.of(context).textTheme.bodyLarge,
         onFormulaTap: (latex) {
           MathZoomDialog.show(context, latex: latex);
         },
-      );
-    }
-
-    if (widget.problem.hasImage) {
+      ));
+    } else if (widget.problem.hasImage) {
       // Use ConditionImageThumbnail from image_viewer.dart which properly
       // loads images via imageProvider with authorization
-      return ConditionImageThumbnail(
+      content.add(ConditionImageThumbnail(
         problemId: widget.problem.id,
         title: 'Условие: ${widget.problem.reference}',
         height: 250,
-      );
+      ));
+    } else {
+      content.add(_buildPlaceholder(context));
     }
-
-    return _buildPlaceholder(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: content,
+    );
   }
 
   Widget _buildPlaceholder(BuildContext context) {
