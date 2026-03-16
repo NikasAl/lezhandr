@@ -3,6 +3,77 @@ import '../../data/models/problem.dart';
 import '../../data/repositories/problems_repository.dart';
 import 'providers.dart';
 
+/// Library filter state - persists across navigation
+class LibraryFilterState {
+  final String? selectedSource;
+  final String searchQuery;
+  final bool searchByReference;
+  final bool showMyOnly;
+
+  const LibraryFilterState({
+    this.selectedSource,
+    this.searchQuery = '',
+    this.searchByReference = false,
+    this.showMyOnly = false,
+  });
+
+  LibraryFilterState copyWith({
+    String? selectedSource,
+    String? searchQuery,
+    bool? searchByReference,
+    bool? showMyOnly,
+  }) {
+    return LibraryFilterState(
+      selectedSource: selectedSource ?? this.selectedSource,
+      searchQuery: searchQuery ?? this.searchQuery,
+      searchByReference: searchByReference ?? this.searchByReference,
+      showMyOnly: showMyOnly ?? this.showMyOnly,
+    );
+  }
+}
+
+/// Notifier for library filter state
+class LibraryFilterNotifier extends StateNotifier<LibraryFilterState> {
+  LibraryFilterNotifier() : super(const LibraryFilterState());
+
+  void setSource(String? source) {
+    state = state.copyWith(selectedSource: source);
+  }
+
+  void setSearch(String query, {bool? byReference}) {
+    state = state.copyWith(
+      searchQuery: query,
+      searchByReference: byReference ?? state.searchByReference,
+    );
+  }
+
+  void setSearchByReference(bool value) {
+    state = state.copyWith(searchByReference: value);
+  }
+
+  void toggleShowMyOnly() {
+    state = state.copyWith(showMyOnly: !state.showMyOnly);
+  }
+
+  void setShowMyOnly(bool value) {
+    state = state.copyWith(showMyOnly: value);
+  }
+
+  void clearSearch() {
+    state = state.copyWith(searchQuery: '', searchByReference: false);
+  }
+
+  void reset() {
+    state = const LibraryFilterState();
+  }
+}
+
+/// Provider for library filter state - persists across navigation
+final libraryFilterProvider =
+    StateNotifierProvider<LibraryFilterNotifier, LibraryFilterState>((ref) {
+  return LibraryFilterNotifier();
+});
+
 /// Sources list with pagination
 final sourcesListProvider =
     FutureProvider.family<SourceListResponse, SourcesFilter>((ref, filter) async {

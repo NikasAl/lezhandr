@@ -22,10 +22,8 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  String? _selectedSource;
-  String _searchQuery = '';
-  bool _searchByReference = false; // Search mode: false = by text, true = by reference
-  bool _showMyOnly = false;
+  // Filter state is now managed by provider for persistence across navigation
+  // Local state only for pagination and accumulated problems
 
   // Accumulated problems list for infinite scroll
   List<ProblemModel> _accumulatedProblems = [];
@@ -204,6 +202,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
+  /// Get current filter values from provider
+  String? get _selectedSource => ref.watch(libraryFilterProvider).selectedSource;
+  String get _searchQuery => ref.watch(libraryFilterProvider).searchQuery;
+  bool get _searchByReference => ref.watch(libraryFilterProvider).searchByReference;
+  bool get _showMyOnly => ref.watch(libraryFilterProvider).showMyOnly;
+  LibraryFilterNotifier get _filterNotifier => ref.read(libraryFilterProvider.notifier);
+
   /// Load more problems
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
@@ -341,11 +346,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: SourceSelectorChip(
                     selectedSource: _selectedSource,
                     onSourceSelected: (source) {
-                      setState(() {
-                        _selectedSource = source;
-                        _resetPagination();
-                        ref.invalidate(problemsListProvider);
-                      });
+                      _filterNotifier.setSource(source);
+                      _resetPagination();
+                      ref.invalidate(problemsListProvider);
                     },
                   ),
                 ),
@@ -357,11 +360,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     icon: Icons.person_outline,
                     selected: _showMyOnly,
                     onSelected: (selected) {
-                      setState(() {
-                        _showMyOnly = selected;
-                        _resetPagination();
-                        ref.invalidate(problemsListProvider);
-                      });
+                      _filterNotifier.setShowMyOnly(selected);
+                      _resetPagination();
+                      ref.invalidate(problemsListProvider);
                     },
                   ),
               ],
@@ -395,12 +396,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                   InkWell(
                     onTap: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _searchByReference = false;
-                        _resetPagination();
-                        ref.invalidate(problemsListProvider);
-                      });
+                      _filterNotifier.clearSearch();
+                      _resetPagination();
+                      ref.invalidate(problemsListProvider);
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
@@ -565,12 +563,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 autofocus: true,
                 onSubmitted: (value) {
                   Navigator.pop(dialogContext);
-                  setState(() {
-                    _searchQuery = value;
-                    _searchByReference = searchByReference;
-                    _resetPagination();
-                    ref.invalidate(problemsListProvider);
-                  });
+                  _filterNotifier.setSearch(value, byReference: searchByReference);
+                  _resetPagination();
+                  ref.invalidate(problemsListProvider);
                 },
               ),
               const SizedBox(height: 8),
@@ -622,24 +617,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                setState(() {
-                  _searchQuery = '';
-                  _searchByReference = false;
-                  _resetPagination();
-                  ref.invalidate(problemsListProvider);
-                });
+                _filterNotifier.clearSearch();
+                _resetPagination();
+                ref.invalidate(problemsListProvider);
               },
               child: const Text('Сбросить'),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                setState(() {
-                  _searchQuery = searchController.text;
-                  _searchByReference = searchByReference;
-                  _resetPagination();
-                  ref.invalidate(problemsListProvider);
-                });
+                _filterNotifier.setSearch(searchController.text, byReference: searchByReference);
+                _resetPagination();
+                ref.invalidate(problemsListProvider);
               },
               child: const Text('Найти'),
             ),

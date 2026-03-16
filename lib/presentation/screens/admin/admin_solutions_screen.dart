@@ -205,23 +205,23 @@ class _SolutionTile extends ConsumerWidget {
             
             // Actions
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 TextButton.icon(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
                   label: const Text('Удалить'),
                   onPressed: () => _delete(context, ref),
                 ),
-                const SizedBox(width: 8),
                 TextButton.icon(
-                  icon: const Icon(Icons.close, color: Colors.orange),
+                  icon: const Icon(Icons.close, color: Colors.orange, size: 18),
                   label: const Text('Отклонить'),
                   onPressed: () => _reject(context, ref),
                 ),
-                const SizedBox(width: 8),
                 FilledButton.icon(
-                  icon: const Icon(Icons.check),
+                  icon: const Icon(Icons.check, size: 18),
                   label: const Text('Одобрить'),
                   onPressed: () => _approve(context, ref),
                 ),

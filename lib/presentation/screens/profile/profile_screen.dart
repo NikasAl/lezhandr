@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -364,12 +365,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding: const EdgeInsets.all(8),
                     child: Column(
                       children: [
-                        Text(
-                          'Лежандр v1.0.0',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color:
-                                    Theme.of(context).colorScheme.onSurfaceVariant,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Лежандр v1.0.0',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            if (kDebugMode) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                                ),
+                                child: const Text(
+                                  'DEV',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                  ),
+                                ),
                               ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
