@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -375,7 +374,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                             ),
-                            if (kDebugMode) ...[
+                            if (const String.fromEnvironment('env') == 'dev') ...[
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
