@@ -480,9 +480,9 @@ class _SolutionModerationDetailScreenState extends ConsumerState<_SolutionModera
             _buildInfoRow(context, 'Статус', solution.status),
             _buildInfoRow(context, 'Модерация', solution.moderationStatus),
             if (solution.personalDifficulty != null)
-              _buildInfoRow(context, 'Сложность', '${solution.personalDifficulty}/10'),
+              _buildInfoRow(context, 'Сложность', '${solution.personalDifficulty}/5'),
             if (solution.qualityScore != null)
-              _buildInfoRow(context, 'Качество', '${solution.qualityScore!.toStringAsFixed(1)}/5'),
+              _buildInfoRow(context, 'Качество', '${solution.qualityScore!.toStringAsFixed(1)}/1.0'),
             if (solution.totalMinutes != null)
               _buildInfoRow(context, 'Время', '${solution.totalMinutes!.toStringAsFixed(0)} мин'),
             if (solution.xpEarned != null)
