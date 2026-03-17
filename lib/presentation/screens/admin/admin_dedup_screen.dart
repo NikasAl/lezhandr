@@ -278,15 +278,18 @@ class _CandidateCard extends ConsumerWidget {
               children: [
                 const Icon(Icons.star, size: 16, color: Colors.amber),
                 const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.amber.withOpacity(0.5)),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '[${candidate.canonicalConcept.id}] ${candidate.canonicalConcept.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '[${candidate.canonicalConcept.id}] ${candidate.canonicalConcept.name}',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -304,9 +307,12 @@ class _CandidateCard extends ConsumerWidget {
                     children: [
                       const Icon(Icons.link, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(
-                        '[${alias.id}] ${alias.name}',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      Expanded(
+                        child: Text(
+                          '[${alias.id}] ${alias.name}',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -356,23 +362,23 @@ class _CandidateCard extends ConsumerWidget {
             // Actions
             if (candidate.status == 'pending') ...[
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   TextButton.icon(
-                    icon: const Icon(Icons.close, color: Colors.orange),
+                    icon: const Icon(Icons.close, color: Colors.orange, size: 18),
                     label: const Text('Отклонить'),
                     onPressed: () => _reject(context, ref),
                   ),
-                  const SizedBox(width: 8),
                   TextButton.icon(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
                     label: const Text('С коррекцией'),
                     onPressed: () => _approveWithRename(context, ref),
                   ),
-                  const SizedBox(width: 8),
                   FilledButton.icon(
-                    icon: const Icon(Icons.check),
+                    icon: const Icon(Icons.check, size: 18),
                     label: const Text('Мерж'),
                     onPressed: () => _approve(context, ref),
                   ),

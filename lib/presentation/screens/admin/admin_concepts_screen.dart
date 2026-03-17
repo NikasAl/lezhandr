@@ -74,7 +74,8 @@ class _AdminConceptsScreenState extends ConsumerState<AdminConceptsScreen> {
                     onSubmitted: (_) => _applyFilters(),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 8,
                     children: [
                       FilterChip(
                         label: const Text('Все канонические'),
@@ -84,7 +85,6 @@ class _AdminConceptsScreenState extends ConsumerState<AdminConceptsScreen> {
                           _applyFilters();
                         },
                       ),
-                      const SizedBox(width: 8),
                       FilterChip(
                         label: const Text('Только с алиасами'),
                         selected: _onlyWithAliases,
@@ -245,11 +245,14 @@ class _ConceptGroup extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          alias.name,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                        Expanded(
+                          child: Text(
+                            alias.name,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

@@ -413,6 +413,12 @@ class _SolutionModerationDetailScreenState extends ConsumerState<_SolutionModera
               const SizedBox(height: 16),
             ],
 
+            // Solution image (shown independently of text)
+            if (solution.hasImage) ...[
+              _buildSolutionImageCard(context),
+              const SizedBox(height: 16),
+            ],
+
             // Solution text
             if (solution.solutionText != null && solution.solutionText!.isNotEmpty) ...[
               _buildSolutionTextCard(context, solution.solutionText!),
@@ -600,6 +606,32 @@ class _SolutionModerationDetailScreenState extends ConsumerState<_SolutionModera
     );
   }
 
+  Widget _buildSolutionImageCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.image_outlined, size: 20),
+                const SizedBox(width: 8),
+                Text('📷 Фото решения', style: Theme.of(context).textTheme.titleMedium),
+              ],
+            ),
+            const Divider(),
+            SolutionImageThumbnail(
+              solutionId: widget.solutionId,
+              title: 'Фото решения',
+              height: 300,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSolutionTextCard(BuildContext context, String text) {
     return Card(
       child: Padding(
@@ -612,13 +644,6 @@ class _SolutionModerationDetailScreenState extends ConsumerState<_SolutionModera
                 const Icon(Icons.text_snippet_outlined, size: 20),
                 const SizedBox(width: 8),
                 Text('✍️ Текст решения', style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                if (_details!.solution.hasImage)
-                  SolutionImageThumbnail(
-                    solutionId: widget.solutionId,
-                    title: 'Фото решения',
-                    height: 150,
-                  ),
               ],
             ),
             const Divider(),
