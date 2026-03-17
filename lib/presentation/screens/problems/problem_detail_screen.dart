@@ -247,7 +247,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     }
   }
 
-  void _showEditConditionDialog(String currentText) {
+  void _showEditConditionDialog(String currentText, bool isApproved) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -258,6 +258,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
       ),
       builder: (sheetContext) => _EditConditionSheet(
         initialText: currentText,
+        isApproved: isApproved,
         onSave: (text) {
           Navigator.of(sheetContext).pop();
           _saveConditionText(text);
@@ -285,7 +286,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                 subtitle: Text(data.hasText ? 'Изменить текущий текст' : 'Добавить текст'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _showEditConditionDialog(data.conditionText ?? '');
+                  _showEditConditionDialog(data.conditionText ?? '', data.isApproved);
                 },
               ),
               ListTile(
@@ -341,33 +342,6 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   Navigator.pop(sheetContext);
                   // Navigate to image viewer
                 },
-              ),
-            // Show warning if editing approved problem
-            if (isOwner && data.isApproved)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'При редактировании задача вернётся на модерацию',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.orange[700],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             if (isOwner && data.isRejected)
               Padding(
@@ -466,8 +440,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                   problem: data,
                   isOwner: isOwner,
                   canEdit: isOwner && !data.isRejected,
-                  showModerationWarning: isOwner && data.isApproved,
-                  onEdit: () => _showEditConditionDialog(data.conditionText ?? ''),
+                  onEdit: () => _showEditConditionDialog(data.conditionText ?? '', data.isApproved),
                   onOcr: _runOcr,
                 ),
                 const SizedBox(height: 16),
@@ -534,10 +507,12 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 /// Bottom sheet for editing problem condition
 class _EditConditionSheet extends StatefulWidget {
   final String initialText;
+  final bool isApproved;
   final ValueChanged<String> onSave;
 
   const _EditConditionSheet({
     required this.initialText,
+    required this.isApproved,
     required this.onSave,
   });
 
@@ -622,6 +597,33 @@ class _EditConditionSheetState extends State<_EditConditionSheet> {
                 maxLines: 6,
                 autofocus: true,
               ),
+              
+              // Moderation warning
+              if (widget.isApproved) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange[700], size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'При редактировании задача вернётся на модерацию',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               // Buttons
