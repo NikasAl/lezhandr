@@ -93,26 +93,25 @@ bash tools/screenshots.sh check
 **Вариант 2: Через ADB (для Android-устройства)**
 
 ```bash
-# 1. Подключить телефон по USB, включить USB-отладку
+# Подключить телефон по USB, включить USB-отладку
 
-# 2. Установить разрешение 1080x1920 (9:16)
-bash tools/screenshots_adb.sh setup
+# Запустить интерактивный режим
+bash tools/screenshots_adb.sh
 
-# 3. Открыть приложение на нужном экране
+# Скрипт:
+#   1. Установит разрешение 1080x1920
+#   2. Будет ждать ввода имени скриншота
+#   3. По Enter сделает скриншот и сохранит
+#   4. Введите 'q' для выхода и восстановления разрешения
 
-# 4. Сделать скриншоты
-bash tools/screenshots_adb.sh main_scr
-bash tools/screenshots_adb.sh lib_scr
-bash tools/screenshots_adb.sh task_scr
-# и т.д.
-
-# 5. Восстановить оригинальное разрешение
-bash tools/screenshots_adb.sh restore
-
-# Дополнительно:
-bash tools/screenshots_adb.sh status   # статус устройства
-bash tools/screenshots_adb.sh check    # проверить скриншоты
+# Пример сессии:
+Имя скриншота > main_scr        # Enter → скриншот сохранён
+Имя скриншота > lib_scr         # Enter → скриншот сохранён
+Имя скриншота > task_scr        # Enter → скриншот сохранён
+Имя скриншота > q               # Enter → выход, разрешение восстановлено
 ```
+
+**Быстрые имена:** `main_scr`, `lib_scr`, `task_scr`, `solve_scr`, `my_sol_scr`, `stat_scr`, `concepts_map_scr`
 
 ---
 

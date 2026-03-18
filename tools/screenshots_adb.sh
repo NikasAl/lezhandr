@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-# Скрипт для создания скриншотов с Android-устройства для RuStore
-# Автоматически: устанавливает размер экрана → делает скриншот → копирует → чистит
-#
-# Требования: adb, подключённое устройство с включённой USB-отладкой
+# Интерактивный скрипт для создания скриншотов с Android-устройства для RuStore
 #
 # Использование:
-#   bash tools/screenshots_adb.sh setup      # установить разрешение 1080x1920
-#   bash tools/screenshots_adb.sh main_scr  # сделать скриншот
-#   bash tools/screenshots_adb.sh restore   # восстановить оригинальное разрешение
-#   bash tools/screenshots_adb.sh check     # проверить все скриншоты
+#   bash tools/screenshots_adb.sh
+#
+# Работа:
+#   1. Устанавливает разрешение 1080x1920 (9:16)
+#   2. Ждёт ввода имени скриншота
+#   3. По Enter делает скриншот
+#   4. Введите 'q' для выхода и восстановления разрешения
 #
 
 set -e
@@ -25,118 +25,93 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+DIM='\033[2m'
 NC='\033[0m'
+
+# Предустановленные имена
+SCREENSHOT_NAMES=(
+    "main_scr"
+    "lib_scr"
+    "task_scr"
+    "solve_scr"
+    "my_sol_scr"
+    "stat_scr"
+    "concepts_map_scr"
+)
 
 # Проверка ADB
 check_adb() {
     if ! command -v adb &> /dev/null; then
-        echo -e "${RED}ADB не найден. Установите Android SDK Platform Tools:${NC}"
+        echo -e "${RED}ADB не найден. Установите:${NC}"
         echo "  Ubuntu/Debian: sudo apt install android-tools-adb"
-        echo "  Arch: sudo pacman -S android-tools"
-        echo "  Fedora: sudo dnf install android-tools"
         exit 1
     fi
 }
 
 # Проверка подключения устройства
 check_device() {
-    local devices=$(adb devices | grep -v "List of devices" | grep -c "device" || echo "0")
+    local devices=$(adb devices 2>/dev/null | grep -v "List" | grep -c "device" || echo "0")
     if [ "$devices" -eq 0 ]; then
         echo -e "${RED}Устройство не подключено${NC}"
         echo ""
         echo "Проверьте:"
         echo "  1. USB-кабель подключён"
-        echo "  2. USB-отладка включена (Настройки → Для разработчиков)"
+        echo "  2. USB-отладка включена"
         echo "  3. Разрешена отладка на этом компьютере"
         exit 1
     fi
 }
 
-# Получить текущее разрешение экрана
-get_original_resolution() {
-    adb shell wm size | grep -oP '\d+x\d+' || echo ""
-}
-
-# Установить разрешение для скриншотов (9:16)
+# Установить разрешение
 setup_resolution() {
-    check_adb
-    check_device
-
-    local current=$(get_original_resolution)
-    
-    echo -e "${CYAN}Текущее разрешение: $current${NC}"
-    
-    # Сохраняем оригинальное разрешение в файл
+    local current=$(adb shell wm size 2>/dev/null | grep -oP '\d+x\d+' || echo "")
     echo "$current" > /tmp/adb_original_resolution.txt
     
-    echo -e "${YELLOW}Установка разрешения ${TARGET_WIDTH}x${TARGET_HEIGHT} (9:16)...${NC}"
-    adb shell wm size ${TARGET_WIDTH}x${TARGET_HEIGHT}
+    echo -e "${CYAN}Установка разрешения ${TARGET_WIDTH}x${TARGET_HEIGHT} (9:16)...${NC}"
+    adb shell wm size ${TARGET_WIDTH}x${TARGET_HEIGHT} 2>/dev/null
     
-    # Плотность пикселей для чёткости
     local density=$((TARGET_WIDTH * 160 / 360))
-    adb shell wm density $density
+    adb shell wm density $density 2>/dev/null
     
     echo -e "${GREEN}✓ Разрешение установлено${NC}"
     echo ""
-    echo -e "${YELLOW}Теперь откройте приложение и сделайте скриншоты кнопками:${NC}"
-    echo "  bash tools/screenshots_adb.sh main_scr"
-    echo "  bash tools/screenshots_adb.sh lib_scr"
-    echo "  ..."
-    echo ""
-    echo -e "${YELLOW}Когда закончите — восстановите разрешение:${NC}"
-    echo "  bash tools/screenshots_adb.sh restore"
 }
 
-# Восстановить оригинальное разрешение
+# Восстановить разрешение
 restore_resolution() {
-    check_adb
-    check_device
-
-    echo -e "${YELLOW}Восстановление оригинального разрешения...${NC}"
-    
-    adb shell wm size reset
-    adb shell wm density reset
-    
-    # Удаляем временный файл
+    echo ""
+    echo -e "${YELLOW}Восстановление разрешения...${NC}"
+    adb shell wm size reset 2>/dev/null
+    adb shell wm density reset 2>/dev/null
     rm -f /tmp/adb_original_resolution.txt
-    
     echo -e "${GREEN}✓ Разрешение восстановлено${NC}"
 }
 
-# Сделать скриншот и скопировать на ПК
+# Сделать скриншот
 take_screenshot() {
     local name="$1"
-    
-    check_adb
-    check_device
-
-    if [ -z "$name" ]; then
-        name=$(interactive_select)
-    fi
-
-    # Убираем расширение если есть
     name="${name%.png}"
     name="${name%.jpg}"
     
     local output_file="$SCREENS_DIR/${name}.png"
     
-    echo -e "${CYAN}Создание скриншота...${NC}"
+    # Если файл существует, добавляем номер
+    local counter=1
+    while [ -f "$output_file" ]; do
+        output_file="$SCREENS_DIR/${name}_${counter}.png"
+        ((counter++))
+    done
     
-    # Делаем скриншот на устройстве
-    adb shell screencap -p "$DEVICE_PATH"
-    
-    # Копируем на ПК
+    # Делаем скриншот
+    adb shell screencap -p "$DEVICE_PATH" 2>/dev/null
     adb pull "$DEVICE_PATH" "$output_file" 2>/dev/null
-    
-    # Удаляем с устройства
-    adb shell rm "$DEVICE_PATH"
+    adb shell rm "$DEVICE_PATH" 2>/dev/null
     
     if [ -f "$output_file" ]; then
         echo -e "${GREEN}✓ Сохранено: $output_file${NC}"
         check_aspect_ratio "$output_file"
     else
-        echo -e "${RED}✗ Ошибка создания скриншота${NC}"
-        exit 1
+        echo -e "${RED}✗ Ошибка${NC}"
     fi
 }
 
@@ -155,161 +130,137 @@ check_aspect_ratio() {
         return
     fi
     
-    local ratio=$(python3 -c "print(f'{$w/$h:.4f}'')" 2>/dev/null || echo "0")
-    local target="0.5625"
-    local diff=$(python3 -c "print(abs($ratio - $target))" 2>/dev/null || echo "1")
+    local ratio=$(python3 -c "print(f'{$w/$h:.4f}')" 2>/dev/null || echo "?")
     
-    if (( $(echo "$diff < 0.02" | bc -l 2>/dev/null || echo "0") )); then
-        echo -e "${GREEN}   Соотношение: ${ratio} (9:16 ✓)${NC}"
+    if (( $(echo "$ratio > 0.55 && $ratio < 0.58" | bc -l 2>/dev/null || echo "0") )); then
+        echo -e "${DIM}   ${w}x${h} ratio=${ratio} (9:16 ✓)${NC}"
     else
-        echo -e "${YELLOW}   Соотношение: ${ratio} (требуется 0.5625)${NC}"
-        echo -e "${YELLOW}   Размер: ${w}x${h}${NC}"
+        echo -e "${YELLOW}   ${w}x${h} ratio=${ratio} (требуется 0.5625)${NC}"
     fi
 }
 
-# Проверка всех скриншотов
-check_screens() {
-    echo -e "${GREEN}Проверка скриншотов в папке $SCREENS_DIR/${NC}"
+# Показать подсказки
+show_hints() {
     echo ""
-    printf "%-30s %-15s %s\n" "Файл" "Размер" "Статус"
-    echo "-----------------------------------------------------------"
+    echo -e "${DIM}Быстрые имена:${NC}"
+    local line="  "
+    for name in "${SCREENSHOT_NAMES[@]}"; do
+        line+="$name  "
+        if [ ${#line} -gt 60 ]; then
+            echo -e "${DIM}${line}${NC}"
+            line="  "
+        fi
+    done
+    if [ ${#line} -gt 2 ]; then
+        echo -e "${DIM}${line}${NC}"
+    fi
+}
+
+# Главная функция
+main() {
+    clear
     
-    local has_files=0
+    echo -e "${GREEN}════════════════════════════════════════${NC}"
+    echo -e "${GREEN}   Скриншоты для RuStore (9:16)${NC}"
+    echo -e "${GREEN}════════════════════════════════════════${NC}"
+    echo ""
     
+    check_adb
+    check_device
+    
+    # Установка разрешения
+    setup_resolution
+    
+    echo -e "${CYAN}Режим скриншотов активен${NC}"
+    echo ""
+    echo -e "${DIM}• Введите имя скриншота и нажмите Enter${NC}"
+    echo -e "${DIM}• Введите ${YELLOW}q${DIM} для выхода${NC}"
+    echo -e "${DIM}• Введите ${YELLOW}check${DIM} для проверки скриншотов${NC}"
+    
+    show_hints
+    
+    echo ""
+    echo -e "${GREEN}────────────────────────────────────────${NC}"
+    
+    # Создаём папку
+    mkdir -p "$SCREENS_DIR"
+    
+    # Счётчик скриншотов
+    local count=0
+    
+    # Основной цикл
+    while true; do
+        echo ""
+        echo -ne "${CYAN}Имя скриншота > ${NC}"
+        read -r input
+        
+        # Проверка на выход
+        if [ "$input" = "q" ] || [ "$input" = "Q" ] || [ "$input" = "quit" ] || [ "$input" = "exit" ]; then
+            break
+        fi
+        
+        # Проверка скриншотов
+        if [ "$input" = "check" ]; then
+            echo ""
+            check_screens
+            continue
+        fi
+        
+        # Пустой ввод - показать подсказки
+        if [ -z "$input" ]; then
+            show_hints
+            continue
+        fi
+        
+        # Делаем скриншот
+        take_screenshot "$input"
+        ((count++))
+    done
+    
+    # Восстановление
+    restore_resolution
+    
+    echo ""
+    if [ "$count" -gt 0 ]; then
+        echo -e "${GREEN}Создано скриншотов: $count${NC}"
+        echo -e "${DIM}Папка: $SCREENS_DIR/${NC}"
+    fi
+    
+    echo ""
+    echo -e "${GREEN}До свидания!${NC}"
+}
+
+# Проверка скриншотов
+check_screens() {
+    echo -e "${GREEN}Проверка скриншотов:${NC}"
+    echo ""
+    
+    local found=0
     for f in "$SCREENS_DIR"/*.{png,jpg} 2>/dev/null; do
         if [ -f "$f" ]; then
-            has_files=1
+            found=1
+            local name=$(basename "$f")
+            
             if command -v identify &> /dev/null; then
                 local w=$(identify -format "%w" "$f" 2>/dev/null)
                 local h=$(identify -format "%h" "$f" 2>/dev/null)
-                local size="${w}x${h}"
+                local ratio=$(python3 -c "print(f'{$w/$h:.4f}')" 2>/dev/null || echo "?")
                 
-                local ratio=$(python3 -c "print(f'{$w/$h:.4f}'')" 2>/dev/null || echo "?")
-                local diff=$(python3 -c "print(abs($ratio - 0.5625))" 2>/dev/null || echo "1")
-                
-                if (( $(echo "$diff < 0.02" | bc -l 2>/dev/null || echo "0") )); then
-                    status="${GREEN}✓ 9:16${NC}"
+                if (( $(echo "$ratio > 0.55 && $ratio < 0.58" | bc -l 2>/dev/null || echo "0") )); then
+                    echo -e "  ${GREEN}✓${NC} $name ${DIM}(${w}x${h})${NC}"
                 else
-                    status="${YELLOW}✗ не 9:16${NC}"
+                    echo -e "  ${YELLOW}✗${NC} $name ${DIM}(${w}x${h} ratio=${ratio})${NC}"
                 fi
-                
-                printf "%-30s %-15s %b\n" "$(basename "$f")" "$size" "$status"
-            fi
-        fi
-    done
-    
-    if [ "$has_files" = "0" ]; then
-        echo -e "${YELLOW}Скриншотов пока нет${NC}"
-    fi
-}
-
-# Интерактивный выбор имени
-interactive_select() {
-    local names=(
-        "main_scr:Главный экран"
-        "lib_scr:Библиотека задач"
-        "task_scr:Страница задачи"
-        "solve_scr:Сессия решения"
-        "my_sol_scr:Мои решения"
-        "stat_scr:Статистика"
-        "concepts_map_scr:Карта концептов"
-    )
-    
-    echo -e "${CYAN}Выберите скриншот:${NC}"
-    echo ""
-    for i in "${!names[@]}"; do
-        local num=$((i+1))
-        local name="${names[$i]%%:*}"
-        local desc="${names[$i]##*:}"
-        echo "  $num) $name — $desc"
-    done
-    echo "  0) Выход"
-    echo ""
-    read -p "> " choice
-    
-    if [ "$choice" = "0" ]; then
-        exit 0
-    fi
-    
-    # Если введено число
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#names[@]} ]; then
-        local idx=$((choice-1))
-        echo "${names[$idx]%%:*}"
-    else
-        echo "$choice"
-    fi
-}
-
-# Информация о статусе
-status_info() {
-    check_adb
-    
-    local connected=$(adb devices | grep -v "List of devices" | grep -c "device" || echo "0")
-    
-    echo -e "${GREEN}Статус ADB:${NC}"
-    
-    if [ "$connected" -gt 0 ]; then
-        echo -e "  Устройство: ${GREEN}подключено${NC}"
-        local current_res=$(get_original_resolution)
-        echo "  Разрешение: $current_res"
-        
-        local saved_res=""
-        if [ -f /tmp/adb_original_resolution.txt ]; then
-            saved_res=$(cat /tmp/adb_original_resolution.txt)
-            echo "  Оригинал:   $saved_res"
-        fi
-        
-        # Проверка 9:16
-        if [ -n "$current_res" ]; then
-            local w=$(echo "$current_res" | cut -d'x' -f1)
-            local h=$(echo "$current_res" | cut -d'x' -f2)
-            local ratio=$(python3 -c "print(f'{$w/$h:.4f}')" 2>/dev/null || echo "?")
-            
-            if (( $(echo "$ratio > 0.55 && $ratio < 0.58" | bc -l 2>/dev/null || echo "0") )); then
-                echo -e "  Режим:      ${GREEN}готов к скриншотам (9:16)${NC}"
             else
-                echo -e "  Режим:      ${YELLOW}обычный${NC}"
+                echo -e "  ${DIM}?${NC} $name"
             fi
         fi
-    else
-        echo -e "  Устройство: ${RED}не подключено${NC}"
+    done
+    
+    if [ "$found" = "0" ]; then
+        echo -e "${YELLOW}  Скриншотов пока нет${NC}"
     fi
 }
 
-# Создание папки
-mkdir -p "$SCREENS_DIR"
-
-# Обработка команд
-case "${1:-}" in
-    setup)
-        setup_resolution
-        ;;
-    restore)
-        restore_resolution
-        ;;
-    check)
-        check_screens
-        ;;
-    status)
-        status_info
-        ;;
-    "")
-        echo -e "${CYAN}Использование:${NC}"
-        echo ""
-        echo "  bash tools/screenshots_adb.sh setup      # установить 1080x1920"
-        echo "  bash tools/screenshots_adb.sh main_scr   # сделать скриншот"
-        echo "  bash tools/screenshots_adb.sh restore    # восстановить разрешение"
-        echo "  bash tools/screenshots_adb.sh check      # проверить скриншоты"
-        echo "  bash tools/screenshots_adb.sh status     # статус устройства"
-        echo ""
-        echo -e "${YELLOW}Порядок работы:${NC}"
-        echo "  1. Подключите телефон по USB"
-        echo "  2. bash tools/screenshots_adb.sh setup"
-        echo "  3. Откройте приложение на нужном экране"
-        echo "  4. bash tools/screenshots_adb.sh main_scr (и т.д.)"
-        echo "  5. bash tools/screenshots_adb.sh restore"
-        ;;
-    *)
-        take_screenshot "$1"
-        ;;
-esac
+# Запуск
+main
