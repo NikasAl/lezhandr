@@ -70,8 +70,8 @@ setup_resolution() {
     echo -e "${CYAN}Установка разрешения ${TARGET_WIDTH}x${TARGET_HEIGHT} (9:16)...${NC}"
     adb shell wm size ${TARGET_WIDTH}x${TARGET_HEIGHT} 2>/dev/null
     
-    local density=$((TARGET_WIDTH * 160 / 360))
-    adb shell wm density $density 2>/dev/null
+    # local density=$((TARGET_WIDTH * 160 / 360))
+    # adb shell wm density $density 2>/dev/null
     
     echo -e "${GREEN}✓ Разрешение установлено${NC}"
     echo ""
