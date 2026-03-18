@@ -58,26 +58,26 @@ _Дата создания: 2026-02-24_
 Самый простой способ — запустить Linux-версию приложения с фиксированным размером окна:
 
 ```bash
-# 1. Установить инструмент для скриншотов (один из)
-sudo apt install maim          # рекомендуется
-sudo apt install flameshot     # альтернатива
-sudo apt install gnome-screenshot  # запасной вариант
+# 1. Установить зависимости
+sudo apt install xdotool maim
 
-# 2. Запустить приложение в режиме скриншотов (окно 1080x1920)
+# 2. В первом терминале - запустить Flutter в режиме скриншотов
 bash tools/screenshots.sh run
 
-# Или вручную:
-FLUTTER_SCREENSHOT_MODE=1 flutter run -d linux
-
-# 3. В другом терминале делать скриншоты:
-bash tools/screenshots.sh main_scr
+# 3. Во втором терминале - делать скриншоты (клик по окну)
+bash tools/screenshots.sh main_scr      # или без аргумента для интерактивного выбора
 bash tools/screenshots.sh lib_scr
 bash tools/screenshots.sh task_scr
 # и т.д.
 
-# 4. Проверить все скриншоты:
+# 4. Проверить все скриншоты
 bash tools/screenshots.sh check
 ```
+
+**Как работает скрипт:**
+1. Запускаете `bash tools/screenshots.sh main_scr`
+2. Кликаете на окно приложения — скриншот готов
+3. Автоматически проверяется соотношение 9:16
 
 **Доступные имена скриншотов:**
 - `main_scr` — Главный экран

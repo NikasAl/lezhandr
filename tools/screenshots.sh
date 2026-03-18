@@ -1,14 +1,12 @@
 #!/bin/bash
 #
 # Скрипт для создания скриншотов приложения для RuStore
-# Требования: maim (или flameshot/gnome-screenshot)
+# Выбор окна - кликом мыши, размер автоматически 9:16
 #
 # Использование:
 #   ./tools/screenshots.sh [название_скриншота]
-#
-# Примеры:
-#   ./tools/screenshots.sh main_scr     # создаст screens/main_scr.png
-#   ./tools/screenshots.sh              # интерактивный выбор имени
+#   ./tools/screenshots.sh run      # запустить Flutter в режиме скриншотов
+#   ./tools/screenshots.sh check    # проверить соотношение сторон
 #
 
 set -e
@@ -21,130 +19,188 @@ WINDOW_SIZE="1080x1920"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Проверка инструментов
-check_tools() {
-    if command -v maim &> /dev/null; then
-        SCREENSHOT_CMD="maim"
-    elif command -v flameshot &> /dev/null; then
-        SCREENSHOT_CMD="flameshot"
-    elif command -v gnome-screenshot &> /dev/null; then
-        SCREENSHOT_CMD="gnome-screenshot"
-    else
-        echo -e "${RED}Ошибка: Не найден инструмент для скриншотов${NC}"
+# Проверка зависимостей
+check_deps() {
+    local missing=()
+
+    command -v xdotool &> /dev/null || missing+=("xdotool")
+    command -v maim &> /dev/null || missing+=("maim")
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo -e "${RED}Отсутствуют необходимые инструменты:${NC}"
+        for dep in "${missing[@]}"; do
+            echo "  - $dep"
+        done
         echo ""
-        echo "Установите один из:"
-        echo "  Ubuntu/Debian: sudo apt install maim"
-        echo "  Ubuntu/Debian: sudo apt install flameshot"
-        echo "  Ubuntu/Debian: sudo apt install gnome-screenshot"
-        echo "  Arch: sudo pacman -S maim"
-        echo "  Fedora: sudo dnf install maim"
+        echo "Установка:"
+        echo "  Ubuntu/Debian: sudo apt install xdotool maim"
+        echo "  Arch: sudo pacman -S xdotool maim"
+        echo "  Fedora: sudo dnf install xdotool maim"
         exit 1
     fi
-    echo -e "${GREEN}Использую: $SCREENSHOT_CMD${NC}"
 }
 
-# Создание скриншота активного окна
-take_screenshot() {
-    local output_file="$1"
+# Выбор окна кликом мыши
+select_window() {
+    echo -e "${CYAN}Кликните на окно приложения для скриншота...${NC}"
 
-    case $SCREENSHOT_CMD in
-        maim)
-            # Захват активного окна
-            maim -i "$(xdotool getactivewindow)" "$output_file"
-            ;;
-        flameshot)
-            # flameshot GUI - пользователь выбирает область
-            flameshot gui -p "$SCREENS_DIR"
-            ;;
-        gnome-screenshot)
-            # Захват активного окна
-            gnome-screenshot -w -f "$output_file"
-            ;;
-    esac
+    # Ждём клика и получаем ID окна
+    window_id=$(xdotool selectwindow 2>/dev/null)
+
+    if [ -z "$window_id" ]; then
+        echo -e "${RED}Окно не выбрано${NC}"
+        exit 1
+    fi
+
+    # Получаем имя окна для информации
+    window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || echo "Unknown")
+
+    echo -e "${GREEN}✓ Выбрано окно: $window_name${NC}"
+
+    echo "$window_id"
+}
+
+# Создание скриншота выбранного окна
+take_screenshot() {
+    local window_id="$1"
+    local output_file="$2"
+
+    # Захват выбранного окна
+    maim -i "$window_id" "$output_file"
 }
 
 # Проверка соотношения сторон
 check_aspect_ratio() {
     local file="$1"
-    if command -v identify &> /dev/null; then
-        local size=$(identify -format "%wx%h" "$file")
-        local w=$(identify -format "%w" "$file")
-        local h=$(identify -format "%h" "$file")
 
-        # Проверка 9:16 (0.5625)
-        local ratio=$(echo "scale=4; $w/$h" | bc 2>/dev/null || echo "0")
-        local target="0.5625"
-        local diff=$(echo "scale=4; $ratio - $target" | bc 2>/dev/null || echo "1")
+    if ! command -v identify &> /dev/null; then
+        return
+    fi
 
-        if [ "$(echo "$diff < 0.02 && $diff > -0.02" | bc)" -eq 1 ]; then
-            echo -e "${GREEN}   Соотношение: $ratio (9:16 ✓)${NC}"
-        else
-            echo -e "${YELLOW}   Соотношение: $ratio (требуется 0.5625 для 9:16)${NC}"
-            echo -e "${YELLOW}   Текущий размер: ${size}${NC}"
-        fi
+    local w=$(identify -format "%w" "$file" 2>/dev/null)
+    local h=$(identify -format "%h" "$file" 2>/dev/null)
+
+    if [ -z "$w" ] || [ -z "$h" ]; then
+        return
+    fi
+
+    # Проверка 9:16 (0.5625)
+    local ratio=$(python3 -c "print(f'{$w/$h:.4f}'')" 2>/dev/null || echo "0")
+    local target="0.5625"
+    local diff=$(python3 -c "print(abs($ratio - $target))" 2>/dev/null || echo "1")
+
+    if (( $(echo "$diff < 0.02" | bc -l 2>/dev/null || echo "0") )); then
+        echo -e "${GREEN}   Соотношение: ${ratio} (9:16 ✓)${NC}"
+    else
+        echo -e "${YELLOW}   Соотношение: ${ratio} (требуется 0.5625 для 9:16)${NC}"
+        echo -e "${YELLOW}   Размер: ${w}x${h}${NC}"
     fi
 }
 
 # Запуск приложения в режиме скриншотов
 run_app() {
-    echo "Запуск приложения в режиме скриншотов..."
-    echo "Размер окна: $WINDOW_SIZE (9:16)"
+    echo -e "${GREEN}Запуск Flutter в режиме скриншотов...${NC}"
+    echo "Размер окна: $WINDOW_SIZE (соотношение 9:16)"
+    echo ""
     export FLUTTER_SCREENSHOT_MODE=1
+    cd "$(dirname "$0")/.."
     flutter run -d linux
+}
+
+# Проверка всех скриншотов
+check_screens() {
+    echo -e "${GREEN}Проверка скриншотов в папке $SCREENS_DIR/${NC}"
+    echo ""
+    printf "%-30s %-15s %s\n" "Файл" "Размер" "Статус"
+    echo "-----------------------------------------------------------"
+
+    local has_files=0
+
+    for f in "$SCREENS_DIR"/*.{png,jpg} 2>/dev/null; do
+        if [ -f "$f" ]; then
+            has_files=1
+            if command -v identify &> /dev/null; then
+                local w=$(identify -format "%w" "$f" 2>/dev/null)
+                local h=$(identify -format "%h" "$f" 2>/dev/null)
+                local size="${w}x${h}"
+
+                local ratio=$(python3 -c "print(f'{$w/$h:.4f}'')" 2>/dev/null || echo "?")
+                local diff=$(python3 -c "print(abs($ratio - 0.5625))" 2>/dev/null || echo "1")
+
+                if (( $(echo "$diff < 0.02" | bc -l 2>/dev/null || echo "0") )); then
+                    status="${GREEN}✓ 9:16${NC}"
+                else
+                    status="${YELLOW}✗ не 9:16${NC}"
+                fi
+
+                printf "%-30s %-15s %b\n" "$(basename "$f")" "$size" "$status"
+            fi
+        fi
+    done
+
+    if [ "$has_files" = "0" ]; then
+        echo -e "${YELLOW}Скриншотов пока нет${NC}"
+    fi
+}
+
+# Интерактивный выбор имени
+interactive_select() {
+    local names=(
+        "main_scr:Главный экран"
+        "lib_scr:Библиотека задач"
+        "task_scr:Страница задачи"
+        "solve_scr:Сессия решения"
+        "my_sol_scr:Мои решения"
+        "stat_scr:Статистика"
+        "concepts_map_scr:Карта концептов"
+    )
+
+    echo -e "${CYAN}Выберите скриншот (введите номер или имя):${NC}"
+    echo ""
+    for i in "${!names[@]}"; do
+        local num=$((i+1))
+        local name="${names[$i]%%:*}"
+        local desc="${names[$i]##*:}"
+        echo "  $num) $name — $desc"
+    done
+    echo ""
+    read -p "> " choice
+
+    # Если введено число
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#names[@]} ]; then
+        local idx=$((choice-1))
+        echo "${names[$idx]%%:*}"
+    else
+        # Иначе возвращаем как есть
+        echo "$choice"
+    fi
 }
 
 # Создание папки
 mkdir -p "$SCREENS_DIR"
 
-# Проверка аргументов
-if [ "$1" = "run" ]; then
-    run_app
-    exit 0
-fi
-
-if [ "$1" = "check" ]; then
-    echo "Проверка скриншотов в папке $SCREENS_DIR/"
-    echo ""
-    for f in "$SCREENS_DIR"/*.{png,jpg} 2>/dev/null; do
-        if [ -f "$f" ]; then
-            if command -v identify &> /dev/null; then
-                size=$(identify -format "%wx%h" "$f")
-                w=$(identify -format "%w" "$f")
-                h=$(identify -format "%h" "$f")
-                ratio=$(echo "scale=4; $w/$h" | bc 2>/dev/null || echo "?")
-                target="0.5625"
-
-                if [ "$(echo "$ratio < 0.58 && $ratio > 0.54" | bc 2>/dev/null || echo "0")" -eq 1 ]; then
-                    status="✓"
-                else
-                    status="✗"
-                fi
-
-                printf "%-30s %s  ratio=%s %s\n" "$(basename "$f")" "$size" "$ratio" "$status"
-            fi
-        fi
-    done
-    exit 0
-fi
+# Обработка аргументов
+case "$1" in
+    run)
+        run_app
+        exit 0
+        ;;
+    check)
+        check_screens
+        exit 0
+        ;;
+esac
 
 # Основной режим - создание скриншота
-check_tools
+check_deps
 
 screenshot_name="${1:-}"
 
 if [ -z "$screenshot_name" ]; then
-    echo "Доступные имена скриншотов:"
-    echo "  main_scr       - Главный экран"
-    echo "  lib_scr        - Библиотека"
-    echo "  task_scr       - Задача"
-    echo "  solve_scr      - Сессия решения"
-    echo "  my_sol_scr     - Мои решения"
-    echo "  stat_scr       - Статистика"
-    echo "  concepts_map_scr - Карта концептов"
-    echo ""
-    read -p "Введите имя скриншота: " screenshot_name
+    screenshot_name=$(interactive_select)
 fi
 
 if [ -z "$screenshot_name" ]; then
@@ -159,20 +215,19 @@ screenshot_name="${screenshot_name%.jpg}"
 output_file="$SCREENS_DIR/${screenshot_name}.png"
 
 echo ""
-echo -e "${YELLOW}Инструкция:${NC}"
-echo "1. Приложение должно быть запущено в режиме скриншотов:"
-echo "   ./tools/screenshots.sh run"
-echo "   или: FLUTTER_SCREENSHOT_MODE=1 flutter run -d linux"
+echo -e "${YELLOW}Совет: Запустите приложение в режиме скриншотов:${NC}"
+echo "   bash tools/screenshots.sh run"
 echo ""
-echo "2. Активируйте окно приложения (кликните на него)"
-echo "3. Нажмите Enter для создания скриншота..."
-read -r
 
-echo "Делаю скриншот..."
-take_screenshot "$output_file"
+# Выбор окна
+window_id=$(select_window)
+
+# Создание скриншота
+echo "Создание скриншота..."
+take_screenshot "$window_id" "$output_file"
 
 if [ -f "$output_file" ]; then
-    echo -e "${GREEN}✓ Скриншот сохранён: $output_file${NC}"
+    echo -e "${GREEN}✓ Сохранено: $output_file${NC}"
     check_aspect_ratio "$output_file"
 else
     echo -e "${RED}✗ Ошибка создания скриншота${NC}"
