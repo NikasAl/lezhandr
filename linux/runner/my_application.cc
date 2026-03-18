@@ -25,6 +25,18 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
+  // Set window size for screenshots (9:16 aspect ratio for RuStore)
+  // Use environment variable or default to mobile-like dimensions
+  const char* screenshot_mode = g_getenv("FLUTTER_SCREENSHOT_MODE");
+  if (screenshot_mode != nullptr && g_strcmp0(screenshot_mode, "1") == 0) {
+    // 1080x1920 for high quality screenshots (9:16)
+    gtk_window_set_default_size(window, 1080, 1920);
+    gtk_window_set_resizable(window, FALSE);
+  } else {
+    // Default desktop size
+    gtk_window_set_default_size(window, 1280, 720);
+  }
+
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
   // desktop).

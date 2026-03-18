@@ -53,7 +53,44 @@ _Дата создания: 2026-02-24_
 
 #### Настройка размера экрана для скриншотов
 
-**Вариант 1: Через ADB (рекомендуется)**
+**Рекомендуемый способ: Linux-версия Flutter + скрипт**
+
+Самый простой способ — запустить Linux-версию приложения с фиксированным размером окна:
+
+```bash
+# 1. Установить инструмент для скриншотов (один из)
+sudo apt install maim          # рекомендуется
+sudo apt install flameshot     # альтернатива
+sudo apt install gnome-screenshot  # запасной вариант
+
+# 2. Запустить приложение в режиме скриншотов (окно 1080x1920)
+bash tools/screenshots.sh run
+
+# Или вручную:
+FLUTTER_SCREENSHOT_MODE=1 flutter run -d linux
+
+# 3. В другом терминале делать скриншоты:
+bash tools/screenshots.sh main_scr
+bash tools/screenshots.sh lib_scr
+bash tools/screenshots.sh task_scr
+# и т.д.
+
+# 4. Проверить все скриншоты:
+bash tools/screenshots.sh check
+```
+
+**Доступные имена скриншотов:**
+- `main_scr` — Главный экран
+- `lib_scr` — Библиотека задач
+- `task_scr` — Страница задачи
+- `solve_scr` — Сессия решения
+- `my_sol_scr` — Мои решения
+- `stat_scr` — Статистика профиля
+- `concepts_map_scr` — Карта концептов
+
+---
+
+**Вариант 2: Через ADB (для реального устройства)**
 
 ```bash
 # Подключить устройство и проверить
@@ -70,7 +107,7 @@ adb shell wm size reset
 adb shell wm density reset
 ```
 
-**Вариант 2: Через Flutter**
+**Вариант 3: Через настройки разработчика на устройстве**
 
 ```bash
 # Запустить приложение с фиксированным размером (для эмулятора)
