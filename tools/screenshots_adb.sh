@@ -99,7 +99,7 @@ take_screenshot() {
     local counter=1
     while [ -f "$output_file" ]; do
         output_file="$SCREENS_DIR/${name}_${counter}.png"
-        ((counter++))
+        counter=$((counter + 1))
     done
     
     # Делаем скриншот
@@ -214,7 +214,7 @@ main() {
         
         # Делаем скриншот
         take_screenshot "$input"
-        ((count++))
+        count=$((count + 1))
     done
     
     # Восстановление
@@ -236,7 +236,7 @@ check_screens() {
     echo ""
     
     local found=0
-    for f in "$SCREENS_DIR"/*.{png,jpg} 2>/dev/null; do
+    for f in "$SCREENS_DIR"/*.png "$SCREENS_DIR"/*.jpg; do
         if [ -f "$f" ]; then
             found=1
             local name=$(basename "$f")
