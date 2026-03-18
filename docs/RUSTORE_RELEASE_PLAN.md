@@ -90,22 +90,31 @@ bash tools/screenshots.sh check
 
 ---
 
-**Вариант 2: Через ADB (для реального устройства)**
+**Вариант 2: Через ADB (для Android-устройства)**
 
 ```bash
-# Подключить устройство и проверить
-adb devices
+# 1. Подключить телефон по USB, включить USB-отладку
 
-# Установить разрешение 1080x1920 (портрет, 9:16)
-adb shell wm size 1080x1920
+# 2. Установить разрешение 1080x1920 (9:16)
+bash tools/screenshots_adb.sh setup
 
-# Установить плотность пикселей (опционально, для чёткости)
-adb shell wm density 420
+# 3. Открыть приложение на нужном экране
 
-# Сбросить на оригинальное разрешение после скриншотов
-adb shell wm size reset
-adb shell wm density reset
+# 4. Сделать скриншоты
+bash tools/screenshots_adb.sh main_scr
+bash tools/screenshots_adb.sh lib_scr
+bash tools/screenshots_adb.sh task_scr
+# и т.д.
+
+# 5. Восстановить оригинальное разрешение
+bash tools/screenshots_adb.sh restore
+
+# Дополнительно:
+bash tools/screenshots_adb.sh status   # статус устройства
+bash tools/screenshots_adb.sh check    # проверить скриншоты
 ```
+
+---
 
 **Вариант 3: Через настройки разработчика на устройстве**
 
