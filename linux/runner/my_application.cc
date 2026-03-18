@@ -30,7 +30,7 @@ static void my_application_activate(GApplication* application) {
   const char* screenshot_mode = g_getenv("FLUTTER_SCREENSHOT_MODE");
   if (screenshot_mode != nullptr && g_strcmp0(screenshot_mode, "1") == 0) {
     // 1080x1920 for high quality screenshots (9:16)
-    gtk_window_set_default_size(window, 1080, 1920);
+    gtk_window_set_default_size(window, 576, 1024);
     gtk_window_set_resizable(window, FALSE);
   } else {
     // Default desktop size
@@ -65,7 +65,7 @@ static void my_application_activate(GApplication* application) {
   }
 
   // Portrait orientation (mobile-like dimensions)
-  gtk_window_set_default_size(window, 500, 1280);
+  // gtk_window_set_default_size(window, 500, 1280);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

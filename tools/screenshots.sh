@@ -13,7 +13,7 @@ set -e
 
 # Конфигурация
 SCREENS_DIR="screens"
-WINDOW_SIZE="1080x1920"
+WINDOW_SIZE="576×1024"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -56,9 +56,9 @@ select_window() {
     fi
 
     # Получаем имя окна для информации
-    window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || echo "Unknown")
+    # window_name=$(xdotool getwindowname "$window_id" 2>/dev/null || echo "Unknown")
 
-    echo -e "${GREEN}✓ Выбрано окно: $window_name${NC}"
+    # echo -e "${GREEN}✓ Выбрано окно: $window_name${NC}"
 
     echo "$window_id"
 }
@@ -119,7 +119,7 @@ check_screens() {
 
     local has_files=0
 
-    for f in "$SCREENS_DIR"/*.{png,jpg} 2>/dev/null; do
+    for f in "$SCREENS_DIR"/*.{png,jpg}; do
         if [ -f "$f" ]; then
             has_files=1
             if command -v identify &> /dev/null; then

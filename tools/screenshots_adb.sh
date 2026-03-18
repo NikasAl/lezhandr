@@ -235,8 +235,9 @@ check_screens() {
     echo -e "${GREEN}Проверка скриншотов:${NC}"
     echo ""
     
-    local found=0
-    for f in "$SCREENS_DIR"/*.png "$SCREENS_DIR"/*.jpg; do
+    local has_files=0
+    
+    for f in "$SCREENS_DIR"/*.{png,jpg}; do
         if [ -f "$f" ]; then
             found=1
             local name=$(basename "$f")
