@@ -5,19 +5,25 @@ import '../../../data/repositories/admin_repository.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 
 /// Tags moderation screen
-class AdminTagsScreen extends ConsumerWidget {
+class AdminTagsScreen extends ConsumerStatefulWidget {
   const AdminTagsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(tagsNotifierProvider);
+  ConsumerState<AdminTagsScreen> createState() => _AdminTagsScreenState();
+}
 
-    // Автозагрузка при первом входе
-    if (!state.isLoading && state.tags.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(tagsNotifierProvider.notifier).load();
-      });
-    }
+class _AdminTagsScreenState extends ConsumerState<AdminTagsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(tagsNotifierProvider.notifier).load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(tagsNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,7 +79,7 @@ class AdminTagsScreen extends ConsumerWidget {
                       TextButton.icon(
                         icon: const Icon(Icons.done_all),
                         label: const Text('Одобрить все'),
-                        onPressed: () => _approveAll(context, ref),
+                        onPressed: () => _approveAll(),
                       ),
                   ],
                 ),
@@ -101,7 +107,7 @@ class AdminTagsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _approveAll(BuildContext context, WidgetRef ref) async {
+  Future<void> _approveAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -120,9 +126,9 @@ class AdminTagsScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
       final count = await ref.read(tagsNotifierProvider.notifier).approveAll();
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Одобрено: $count тегов')),
         );

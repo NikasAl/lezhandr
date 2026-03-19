@@ -5,19 +5,25 @@ import '../../../data/repositories/admin_repository.dart';
 import '../../widgets/shared/adaptive_layout.dart';
 
 /// Sources moderation screen
-class AdminSourcesScreen extends ConsumerWidget {
+class AdminSourcesScreen extends ConsumerStatefulWidget {
   const AdminSourcesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(sourcesNotifierProvider);
+  ConsumerState<AdminSourcesScreen> createState() => _AdminSourcesScreenState();
+}
 
-    // Автозагрузка при первом входе
-    if (!state.isLoading && state.sources.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(sourcesNotifierProvider.notifier).load();
-      });
-    }
+class _AdminSourcesScreenState extends ConsumerState<AdminSourcesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(sourcesNotifierProvider.notifier).load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(sourcesNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +54,7 @@ class AdminSourcesScreen extends ConsumerWidget {
                                 TextButton.icon(
                                   icon: const Icon(Icons.done_all),
                                   label: const Text('Одобрить все'),
-                                  onPressed: () => _approveAll(context, ref),
+                                  onPressed: () => _approveAll(),
                                 ),
                               ],
                             ),
@@ -68,7 +74,7 @@ class AdminSourcesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _approveAll(BuildContext context, WidgetRef ref) async {
+  Future<void> _approveAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -87,9 +93,9 @@ class AdminSourcesScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
       final count = await ref.read(sourcesNotifierProvider.notifier).approveAll();
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Одобрено: $count источников')),
         );

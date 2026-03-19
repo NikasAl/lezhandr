@@ -8,19 +8,25 @@ import '../../widgets/shared/image_viewer.dart';
 import '../../widgets/shared/math_zoom_dialog.dart';
 
 /// Solutions moderation screen
-class AdminSolutionsScreen extends ConsumerWidget {
+class AdminSolutionsScreen extends ConsumerStatefulWidget {
   const AdminSolutionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(solutionsNotifierProvider);
+  ConsumerState<AdminSolutionsScreen> createState() => _AdminSolutionsScreenState();
+}
 
-    // Автозагрузка при первом входе
-    if (!state.isLoading && state.solutions.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(solutionsNotifierProvider.notifier).load();
-      });
-    }
+class _AdminSolutionsScreenState extends ConsumerState<AdminSolutionsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(solutionsNotifierProvider.notifier).load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(solutionsNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +57,7 @@ class AdminSolutionsScreen extends ConsumerWidget {
                                 TextButton.icon(
                                   icon: const Icon(Icons.done_all),
                                   label: const Text('Одобрить все'),
-                                  onPressed: () => _approveAll(context, ref),
+                                  onPressed: () => _approveAll(),
                                 ),
                               ],
                             ),
@@ -71,7 +77,7 @@ class AdminSolutionsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _approveAll(BuildContext context, WidgetRef ref) async {
+  Future<void> _approveAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -90,9 +96,9 @@ class AdminSolutionsScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
       final count = await ref.read(solutionsNotifierProvider.notifier).approveAll();
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Одобрено: $count решений')),
         );
@@ -894,43 +900,39 @@ class _SolutionModerationDetailScreenState extends ConsumerState<_SolutionModera
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final result = await ref.read(solutionsNotifierProvider.notifier).reject(widget.solutionId);
-                      if (result && mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Решение отклонено')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.close, color: Colors.orange),
-                    label: const Text('Отклонить'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      final result = await ref.read(solutionsNotifierProvider.notifier).approve(widget.solutionId);
-                      if (result && mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Решение одобрено')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check),
-                    label: const Text('Одобрить'),
-                  ),
-                ),
-              ],
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await ref.read(solutionsNotifierProvider.notifier).reject(widget.solutionId);
+                  if (result && mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Решение отклонено')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.close, color: Colors.orange),
+                label: const Text('Отклонить'),
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () async {
+                  final result = await ref.read(solutionsNotifierProvider.notifier).approve(widget.solutionId);
+                  if (result && mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Решение одобрено')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Одобрить'),
+              ),
             ),
           ],
         ),
