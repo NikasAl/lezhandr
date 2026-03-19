@@ -1,6 +1,18 @@
 import 'package:dio/dio.dart';
 import '../services/api_client.dart';
 
+/// Helper function to parse added_by field which can be int or Map
+AdminUserInfo? _parseAddedBy(dynamic value) {
+  if (value == null) return null;
+  if (value is int) {
+    return AdminUserInfo(id: value);
+  }
+  if (value is Map<String, dynamic>) {
+    return AdminUserInfo.fromJson(value);
+  }
+  return null;
+}
+
 /// Tag model for moderation
 class AdminTag {
   final int id;
@@ -20,9 +32,7 @@ class AdminTag {
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       moderationStatus: json['moderation_status'] as String? ?? 'pending',
-      addedBy: json['added_by'] != null
-          ? AdminUserInfo.fromJson(json['added_by'] as Map<String, dynamic>)
-          : null,
+      addedBy: _parseAddedBy(json['added_by']),
     );
   }
 }
@@ -49,9 +59,7 @@ class AdminSource {
       name: json['name'] as String? ?? '',
       slug: json['slug'] as String?,
       moderationStatus: json['moderation_status'] as String? ?? 'pending',
-      addedBy: json['added_by'] != null
-          ? AdminUserInfo.fromJson(json['added_by'] as Map<String, dynamic>)
-          : null,
+      addedBy: _parseAddedBy(json['added_by']),
     );
   }
 }
@@ -86,9 +94,7 @@ class AdminProblem {
       source: json['source'] != null
           ? AdminSourceInfo.fromJson(json['source'] as Map<String, dynamic>)
           : null,
-      addedBy: json['added_by'] != null
-          ? AdminUserInfo.fromJson(json['added_by'] as Map<String, dynamic>)
-          : null,
+      addedBy: _parseAddedBy(json['added_by']),
     );
   }
 }
@@ -123,9 +129,7 @@ class AdminSolution {
       problem: json['problem'] != null
           ? AdminProblemInfo.fromJson(json['problem'] as Map<String, dynamic>)
           : null,
-      addedBy: json['added_by'] != null
-          ? AdminUserInfo.fromJson(json['added_by'] as Map<String, dynamic>)
-          : null,
+      addedBy: _parseAddedBy(json['added_by']),
     );
   }
 }
@@ -629,22 +633,16 @@ class AdminRepository {
         'limit': limit,
         'offset': offset,
       });
-      debugPrint('📥 getSources response: ${response.statusCode}, data type: ${response.data.runtimeType}');
       if (response.statusCode == 200) {
         final data = response.data;
-        debugPrint('📥 data: $data');
         final items = data is Map ? data['items'] as List? : data as List?;
-        debugPrint('📥 items: $items (length: ${items?.length})');
         if (items != null) {
           return items
               .map((s) => AdminSource.fromJson(s as Map<String, dynamic>))
               .toList();
         }
       }
-    } catch (e, s) {
-      debugPrint('❌ getSources error: $e');
-      debugPrint('Stack: $s');
-    }
+    } catch (_) {}
     return [];
   }
 
