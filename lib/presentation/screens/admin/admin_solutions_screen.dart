@@ -15,6 +15,13 @@ class AdminSolutionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(solutionsNotifierProvider);
 
+    // Автозагрузка при первом входе
+    if (!state.isLoading && state.solutions.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(solutionsNotifierProvider.notifier).load();
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('✍️ Модерация решений'),

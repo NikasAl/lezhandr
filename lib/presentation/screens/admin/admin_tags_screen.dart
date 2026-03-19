@@ -12,6 +12,13 @@ class AdminTagsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(tagsNotifierProvider);
 
+    // Автозагрузка при первом входе
+    if (!state.isLoading && state.tags.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(tagsNotifierProvider.notifier).load();
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('🏷️ Модерация тегов'),

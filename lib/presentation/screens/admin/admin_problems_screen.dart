@@ -12,6 +12,13 @@ class AdminProblemsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(problemsNotifierProvider);
 
+    // Автозагрузка при первом входе
+    if (!state.isLoading && state.problems.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(problemsNotifierProvider.notifier).load();
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('📝 Модерация задач'),

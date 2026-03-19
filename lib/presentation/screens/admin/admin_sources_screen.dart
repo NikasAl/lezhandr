@@ -12,6 +12,13 @@ class AdminSourcesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sourcesNotifierProvider);
 
+    // Автозагрузка при первом входе
+    if (!state.isLoading && state.sources.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(sourcesNotifierProvider.notifier).load();
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('📚 Модерация источников'),
