@@ -629,16 +629,22 @@ class AdminRepository {
         'limit': limit,
         'offset': offset,
       });
+      debugPrint('📥 getSources response: ${response.statusCode}, data type: ${response.data.runtimeType}');
       if (response.statusCode == 200) {
         final data = response.data;
+        debugPrint('📥 data: $data');
         final items = data is Map ? data['items'] as List? : data as List?;
+        debugPrint('📥 items: $items (length: ${items?.length})');
         if (items != null) {
           return items
               .map((s) => AdminSource.fromJson(s as Map<String, dynamic>))
               .toList();
         }
       }
-    } catch (_) {}
+    } catch (e, s) {
+      debugPrint('❌ getSources error: $e');
+      debugPrint('Stack: $s');
+    }
     return [];
   }
 
