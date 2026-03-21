@@ -481,6 +481,23 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
             : () async {
                 setState(() => _isLoading = true);
                 try {
+                  // Check if user has an active solution for this problem
+                  final solutions = await ref.read(
+                    problemSolutionsProvider(widget.problemId).future,
+                  );
+                  final activeSolution = solutions.firstWhere(
+                    (s) => s.isActive && s.addedBy?.id == currentUser?.id,
+                    orElse: () => throw StateError('No active solution'),
+                  );
+                  
+                  // Found active solution - continue it
+                  if (mounted) {
+                    context.push(
+                      '/session/${activeSolution.id}?existingMinutes=${activeSolution.totalMinutes}',
+                    );
+                  }
+                } catch (_) {
+                  // No active solution - create new one
                   final solution = await ref
                       .read(solutionNotifierProvider.notifier)
                       .createSolution(widget.problemId);
@@ -498,7 +515,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.play_arrow),
-        label: Text(_isLoading ? 'Создание...' : 'Решать'),
+        label: Text(_isLoading ? 'Загрузка...' : 'Решать'),
       ),
     );
   }
