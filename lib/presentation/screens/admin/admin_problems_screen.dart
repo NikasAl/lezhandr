@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/admin_provider.dart';
 import '../../../data/repositories/admin_repository.dart';
 import '../../widgets/shared/adaptive_layout.dart';
+import '../../widgets/shared/markdown_with_math.dart';
 
 /// Problems moderation screen
 class AdminProblemsScreen extends ConsumerStatefulWidget {
@@ -182,11 +183,12 @@ class _ProblemTile extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  problem.conditionText!.length > 150
-                      ? '${problem.conditionText!.substring(0, 150)}...'
+                child: MarkdownWithMath(
+                  text: problem.conditionText!.length > 200
+                      ? '${problem.conditionText!.substring(0, 200)}...'
                       : problem.conditionText!,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  textStyle: Theme.of(context).textTheme.bodySmall,
+                  maxLines: 4,
                 ),
               ),
             ],
