@@ -298,7 +298,22 @@ class _SolutionDetailScreenState extends ConsumerState<SolutionDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                 // Status card with added_by
-                SolutionStatusCard(solution: sol, addedBy: sol.addedBy),
+                SolutionStatusCard(
+                  solution: sol,
+                  addedBy: sol.addedBy,
+                  isOwner: isOwner,
+                  onUpdateNotes: isOwner
+                      ? (solutionId, notes) async {
+                          final success = await ref
+                              .read(solutionNotifierProvider.notifier)
+                              .updateSolutionNotes(solutionId, notes);
+                          if (success) {
+                            ref.invalidate(solutionProvider(widget.solutionId));
+                          }
+                          return success;
+                        }
+                      : null,
+                ),
                 const SizedBox(height: 16),
 
                 // Problem condition card

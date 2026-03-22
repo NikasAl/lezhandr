@@ -90,6 +90,15 @@ class SolutionsRepository {
     return SolutionModel.fromJson(response.data);
   }
 
+  /// Update solution user notes
+  Future<SolutionModel> updateSolutionNotes(int id, String notes) async {
+    final response = await _apiClient.dio.patch(
+      '/solutions/$id',
+      data: {'user_notes': notes},
+    );
+    return SolutionModel.fromJson(response.data);
+  }
+
   /// Delete a solution (owner or admin only)
   /// Returns deletion stats
   Future<Map<String, dynamic>> deleteSolution(int id) async {

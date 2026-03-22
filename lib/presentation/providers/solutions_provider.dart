@@ -151,6 +151,18 @@ class SolutionNotifier extends StateNotifier<AsyncValue<SolutionModel?>> {
     }
   }
 
+  /// Update solution user notes
+  Future<bool> updateSolutionNotes(int solutionId, String notes) async {
+    try {
+      final solution = await _repo.updateSolutionNotes(solutionId, notes);
+      state = AsyncValue.data(solution);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
   /// Create session
   Future<bool> createSession(SessionCreate session) async {
     try {

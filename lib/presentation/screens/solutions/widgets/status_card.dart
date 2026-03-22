@@ -3,15 +3,70 @@ import '../../../../data/models/solution.dart';
 import '../../../../data/models/user.dart';
 
 /// Status card showing solution status and stats
-class SolutionStatusCard extends StatelessWidget {
+class SolutionStatusCard extends StatefulWidget {
   final SolutionModel solution;
   final UserPublicProfile? addedBy;
+  final bool isOwner;
+  final Future<bool> Function(int solutionId, String notes)? onUpdateNotes;
 
   const SolutionStatusCard({
     super.key,
     required this.solution,
     this.addedBy,
+    this.isOwner = false,
+    this.onUpdateNotes,
   });
+
+  @override
+  State<SolutionStatusCard> createState() => _SolutionStatusCardState();
+}
+
+class _SolutionStatusCardState extends State<SolutionStatusCard> {
+  bool _isEditingNotes = false;
+  final _notesController = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveNotes() async {
+    if (widget.onUpdateNotes == null) return;
+    
+    setState(() => _isSaving = true);
+    
+    final success = await widget.onUpdateNotes!(
+      widget.solution.id,
+      _notesController.text.trim(),
+    );
+    
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        if (success) {
+          _isEditingNotes = false;
+        }
+      });
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Заметка сохранена'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ошибка сохранения'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +79,14 @@ class SolutionStatusCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  solution.isCompleted
+                  widget.solution.isCompleted
                       ? Icons.check_circle
-                      : solution.isActive
+                      : widget.solution.isActive
                           ? Icons.timer
                           : Icons.pause_circle,
-                  color: solution.isCompleted
+                  color: widget.solution.isCompleted
                       ? Colors.green
-                      : solution.isActive
+                      : widget.solution.isActive
                           ? Colors.blue
                           : Colors.orange,
                 ),
@@ -43,13 +98,13 @@ class SolutionStatusCard extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            solution.statusText,
+                            widget.solution.statusText,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
                           // Moderation status badge
-                          if (solution.isPending) ...[
+                          if (widget.solution.isPending) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -66,7 +121,7 @@ class SolutionStatusCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          ] else if (solution.isRejected) ...[
+                          ] else if (widget.solution.isRejected) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -86,7 +141,7 @@ class SolutionStatusCard extends StatelessWidget {
                           ],
                         ],
                       ),
-                      if (addedBy != null) ...[
+                      if (widget.addedBy != null) ...[
                         const SizedBox(height: 2),
                         Row(
                           children: [
@@ -97,7 +152,7 @@ class SolutionStatusCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              addedBy!.displayName,
+                              widget.addedBy!.displayName,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -117,32 +172,119 @@ class SolutionStatusCard extends StatelessWidget {
               children: [
                 StatChip(
                   icon: Icons.timer_outlined,
-                  label: '${solution.totalMinutes.toStringAsFixed(0)} мин',
+                  label: '${widget.solution.totalMinutes.toStringAsFixed(0)} мин',
                   tooltip: 'За сколько времени была решена эта задача',
                 ),
-                if (solution.xpEarned != null)
+                if (widget.solution.xpEarned != null)
                   StatChip(
                     icon: Icons.star,
-                    label: '${solution.xpEarned!.toStringAsFixed(0)} XP',
+                    label: '${widget.solution.xpEarned!.toStringAsFixed(0)} XP',
                     color: Colors.amber,
                     tooltip: 'Сколько XP было получено за эту задачу',
                   ),
-                if (solution.personalDifficulty != null)
+                if (widget.solution.personalDifficulty != null)
                   StatChip(
                     icon: Icons.fitness_center,
-                    label: '${solution.personalDifficulty} / 5',
+                    label: '${widget.solution.personalDifficulty} / 5',
                     tooltip: 'Субъективная сложность задачи по шкале от 1 до 5',
                   ),
               ],
             ),
-            if (solution.userNotes != null && solution.userNotes!.isNotEmpty) ...[
+            
+            // User notes section
+            if (widget.isOwner || (widget.solution.userNotes != null && widget.solution.userNotes!.isNotEmpty)) ...[
               const SizedBox(height: 12),
-              Text(
-                'Заметки: ${solution.userNotes}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.note_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Заметка',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const Spacer(),
+                  if (widget.isOwner && !_isEditingNotes) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      tooltip: 'Редактировать',
+                      onPressed: () {
+                        setState(() {
+                          _isEditingNotes = true;
+                          _notesController.text = widget.solution.userNotes ?? '';
+                        });
+                      },
+                    ),
+                  ],
+                ],
               ),
+              const SizedBox(height: 8),
+              
+              if (_isEditingNotes) ...[
+                TextField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  maxLength: 500,
+                  decoration: InputDecoration(
+                    hintText: 'Ваши заметки к решению...',
+                    border: const OutlineInputBorder(),
+                    counterText: '${_notesController.text.length}/500',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: _isSaving ? null : () {
+                        setState(() => _isEditingNotes = false);
+                      },
+                      child: const Text('Отмена'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: _isSaving ? null : _saveNotes,
+                      icon: _isSaving 
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save, size: 18),
+                      label: const Text('Сохранить'),
+                    ),
+                  ],
+                ),
+              ] else if (widget.solution.userNotes != null && widget.solution.userNotes!.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    widget.solution.userNotes!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ] else if (widget.isOwner) ...[
+                Text(
+                  'Нажмите ✏️ чтобы добавить заметку',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ],
           ],
         ),
