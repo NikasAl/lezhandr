@@ -50,6 +50,19 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    _resetPagination();
+    ref.invalidate(mySolutionsProvider);
+    
+    // Wait for the new data to load
+    final baseFilter = MySolutionsFilter(
+      status: _selectedStatus,
+      limit: 20,
+      offset: 0,
+    );
+    await ref.read(mySolutionsProvider(baseFilter).future);
+  }
+
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
 
@@ -225,29 +238,32 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
 
                       // Solutions list
                       Expanded(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: groupedSolutions.length + (_hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == groupedSolutions.length && _hasMore) {
-                              return LoadMoreCard(
-                                isLoading: _isLoadingMore,
-                                onLoadMore: _loadMore,
-                                remainingCount: _totalSolutions - solutions.length,
-                              );
-                            }
+                        child: RefreshIndicator(
+                          onRefresh: _refresh,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: groupedSolutions.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == groupedSolutions.length && _hasMore) {
+                                return LoadMoreCard(
+                                  isLoading: _isLoadingMore,
+                                  onLoadMore: _loadMore,
+                                  remainingCount: _totalSolutions - solutions.length,
+                                );
+                              }
 
-                            final group = groupedSolutions[index];
-                            return _ProblemSolutionGroup(
-                              problemId: group.problemId,
-                              problemReference: group.problemReference,
-                              sourceName: group.sourceName,
-                              solutions: group.solutions,
-                              deletingSolutions: _deletingSolutions,
-                              onDelete: _deleteSolution,
-                            );
-                          },
+                              final group = groupedSolutions[index];
+                              return _ProblemSolutionGroup(
+                                problemId: group.problemId,
+                                problemReference: group.problemReference,
+                                sourceName: group.sourceName,
+                                solutions: group.solutions,
+                                deletingSolutions: _deletingSolutions,
+                                onDelete: _deleteSolution,
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ],
@@ -316,20 +332,6 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                 });
               },
             ),
-            const SizedBox(width: 8),
-            _StatusFilterChip(
-              label: 'Отложено',
-              icon: Icons.pause_circle_outline,
-              color: Colors.orange,
-              selected: _selectedStatus == SolutionStatus.abandoned,
-              onTap: () {
-                setState(() {
-                  _selectedStatus = SolutionStatus.abandoned;
-                  _resetPagination();
-                  ref.invalidate(mySolutionsProvider);
-                });
-              },
-            ),
           ],
         ),
       ),
@@ -393,44 +395,51 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
       ),
     );
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.history,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'История пуста',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Здесь будут отображаться ваши решённые задачи с подробной статистикой',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height - 300,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.history,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'История пуста',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Здесь будут отображаться ваши решённые задачи с подробной статистикой',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              if (motivation != null) ...[
+                MotivationCard(
+                  motivation: motivation,
+                  showAuthor: false,
+                  animate: false,
                 ),
-            textAlign: TextAlign.center,
+                const SizedBox(height: 24),
+              ],
+              FilledButton.icon(
+                onPressed: () => context.go('/main/library'),
+                icon: const Icon(Icons.add_task),
+                label: const Text('Начать решать'),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          if (motivation != null) ...[
-            MotivationCard(
-              motivation: motivation,
-              showAuthor: false,
-              animate: false,
-            ),
-            const SizedBox(height: 24),
-          ],
-          FilledButton.icon(
-            onPressed: () => context.go('/main/library'),
-            icon: const Icon(Icons.add_task),
-            label: const Text('Начать решать'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -493,18 +502,6 @@ class _MySolutionsScreenState extends ConsumerState<MySolutionsScreen> {
                       Navigator.pop(context);
                       setState(() {
                         _selectedStatus = SolutionStatus.completed;
-                        _resetPagination();
-                        ref.invalidate(mySolutionsProvider);
-                      });
-                    },
-                  ),
-                  _FilterOption(
-                    label: 'Отложено',
-                    selected: _selectedStatus == SolutionStatus.abandoned,
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _selectedStatus = SolutionStatus.abandoned;
                         _resetPagination();
                         ref.invalidate(mySolutionsProvider);
                       });
