@@ -112,18 +112,11 @@ class _SolutionTile extends ConsumerWidget {
 
   const _SolutionTile({required this.solution});
 
-  /// Get display status - treat 'active' as 'completed' for moderation
-  String get _displayStatus {
-    if (solution.status == 'active') return 'completed';
-    return solution.status;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final displayStatus = _displayStatus;
-    final statusColor = displayStatus == 'completed'
+    final statusColor = solution.status == 'completed'
         ? Colors.green
-        : displayStatus == 'in_progress'
+        : solution.status == 'in_progress'
             ? Colors.blue
             : Colors.orange;
 
@@ -172,7 +165,7 @@ class _SolutionTile extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    displayStatus,
+                    solution.status,
                     style: TextStyle(color: statusColor, fontSize: 12),
                   ),
                 ),

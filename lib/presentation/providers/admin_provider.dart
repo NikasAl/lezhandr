@@ -302,9 +302,12 @@ class SolutionsNotifier extends StateNotifier<SolutionsState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final result = await _repository.getSolutions();
+      // Filter out active solutions - only show completed for moderation
+      final allSolutions = result['items'] as List<AdminSolution>;
+      final completedSolutions = allSolutions.where((s) => s.status == 'completed').toList();
       state = state.copyWith(
-        solutions: result['items'] as List<AdminSolution>,
-        total: result['total'] as int,
+        solutions: completedSolutions,
+        total: completedSolutions.length,
         isLoading: false,
       );
     } catch (e) {
