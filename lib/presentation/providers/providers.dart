@@ -12,7 +12,8 @@ import '../../data/repositories/uploads_repository.dart';
 import '../../data/repositories/artifacts_repository.dart';
 import '../../data/repositories/concepts_repository.dart';
 import '../../data/repositories/concepts_progress_repository.dart';
-import 'billing_provider.dart' show billingBalanceProvider;
+import 'billing_provider.dart';
+export 'billing_provider.dart' show billingBalanceProvider;
 
 // Storage providers
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
