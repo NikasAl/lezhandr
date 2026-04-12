@@ -149,8 +149,13 @@ class SolutionModerationDetails {
   });
 
   factory SolutionModerationDetails.fromJson(Map<String, dynamic> json) {
+    final solutionData = json['solution'];
+    if (solutionData == null) {
+      print('[ERROR] SolutionModerationDetails.fromJson: solution is null');
+      throw ArgumentError('solution field is null in response');
+    }
     return SolutionModerationDetails(
-      solution: AdminSolutionDetail.fromJson(json['solution'] as Map<String, dynamic>),
+      solution: AdminSolutionDetail.fromJson(solutionData as Map<String, dynamic>),
       questions: json['questions'] != null
           ? (json['questions'] as List)
               .map((q) => AdminQuestionDetail.fromJson(q as Map<String, dynamic>))
@@ -772,10 +777,15 @@ class AdminRepository {
   Future<SolutionModerationDetails?> getSolutionModerationDetails(int solutionId) async {
     try {
       final response = await _apiClient.dio.get('/solutions/$solutionId/moderation-details');
+      print('[DEBUG] Moderation details response status: ${response.statusCode}');
+      print('[DEBUG] Moderation details response data: ${response.data}');
       if (response.statusCode == 200) {
         return SolutionModerationDetails.fromJson(response.data);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      print('[ERROR] getSolutionModerationDetails failed: $e');
+      print('[ERROR] Stack trace: $st');
+    }
     return null;
   }
 
