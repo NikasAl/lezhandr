@@ -99,13 +99,17 @@ final questionProvider =
 /// Questions notifier for CRUD operations
 final questionNotifierProvider =
     StateNotifierProvider<QuestionNotifier, AsyncValue<void>>((ref) {
-  return QuestionNotifier(ref.watch(artifactsRepositoryProvider));
+  return QuestionNotifier(
+    ref.watch(artifactsRepositoryProvider),
+    ref,
+  );
 });
 
 class QuestionNotifier extends StateNotifier<AsyncValue<void>> {
   final ArtifactsRepository _repo;
+  final Ref _ref;
 
-  QuestionNotifier(this._repo) : super(const AsyncValue.data(null));
+  QuestionNotifier(this._repo, this._ref) : super(const AsyncValue.data(null));
 
   Future<QuestionModel?> create({
     required int solutionId,
@@ -171,9 +175,17 @@ class QuestionNotifier extends StateNotifier<AsyncValue<void>> {
         useHearts: useHearts,
       );
       state = const AsyncValue.data(null);
+      
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
+      
       return result;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      
+      // Refresh billing balance even on error
+      _ref.invalidate(billingBalanceProvider);
+      
       return null;
     }
   }
@@ -203,13 +215,17 @@ final hintsProvider =
 /// Hints notifier for CRUD operations
 final hintNotifierProvider =
     StateNotifierProvider<HintNotifier, AsyncValue<void>>((ref) {
-  return HintNotifier(ref.watch(artifactsRepositoryProvider));
+  return HintNotifier(
+    ref.watch(artifactsRepositoryProvider),
+    ref,
+  );
 });
 
 class HintNotifier extends StateNotifier<AsyncValue<void>> {
   final ArtifactsRepository _repo;
+  final Ref _ref;
 
-  HintNotifier(this._repo) : super(const AsyncValue.data(null));
+  HintNotifier(this._repo, this._ref) : super(const AsyncValue.data(null));
 
   Future<HintModel?> createDraft({
     required int solutionId,
@@ -241,9 +257,17 @@ class HintNotifier extends StateNotifier<AsyncValue<void>> {
         useHearts: useHearts,
       );
       state = const AsyncValue.data(null);
+      
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
+      
       return result;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      
+      // Refresh billing balance even on error
+      _ref.invalidate(billingBalanceProvider);
+      
       return null;
     }
   }

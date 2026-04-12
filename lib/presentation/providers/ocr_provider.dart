@@ -101,13 +101,17 @@ class OcrState {
 /// OCR notifier with extended timeout support and notifications
 final ocrNotifierProvider =
     StateNotifierProvider<OcrNotifier, OcrState>((ref) {
-  return OcrNotifier(ref.watch(ocrRepositoryProvider));
+  return OcrNotifier(
+    ref.watch(ocrRepositoryProvider),
+    ref,
+  );
 });
 
 class OcrNotifier extends StateNotifier<OcrState> {
   final OcrRepository _repo;
+  final Ref _ref;
 
-  OcrNotifier(this._repo) : super(OcrState());
+  OcrNotifier(this._repo, this._ref) : super(OcrState());
 
   Future<OcrResult> processProblem({
     required int problemId,
@@ -126,6 +130,9 @@ class OcrNotifier extends StateNotifier<OcrState> {
         text: result.text,
         error: result.error,
       );
+      
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
       
       // Show notification even if user navigated away
       if (result.success && result.text != null) {
@@ -150,6 +157,9 @@ class OcrNotifier extends StateNotifier<OcrState> {
         error: result.error,
       );
       
+      // Refresh billing balance even on error (might have failed after billing)
+      _ref.invalidate(billingBalanceProvider);
+      
       NotificationService.showError('OCR: ${result.error}');
       return result;
     }
@@ -173,6 +183,9 @@ class OcrNotifier extends StateNotifier<OcrState> {
         error: result.error,
       );
       
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
+      
       // Show notification even if user navigated away
       if (result.success && result.text != null) {
         NotificationService.showAiResult(
@@ -195,6 +208,9 @@ class OcrNotifier extends StateNotifier<OcrState> {
         isLoading: false,
         error: result.error,
       );
+      
+      // Refresh billing balance even on error
+      _ref.invalidate(billingBalanceProvider);
       
       NotificationService.showError('OCR: ${result.error}');
       return result;
@@ -244,13 +260,17 @@ class ConceptsAnalysisState {
 /// Concepts analysis notifier with notifications
 final conceptsNotifierProvider =
     StateNotifierProvider<ConceptsNotifier, ConceptsAnalysisState>((ref) {
-  return ConceptsNotifier(ref.watch(conceptsRepositoryProvider));
+  return ConceptsNotifier(
+    ref.watch(conceptsRepositoryProvider),
+    ref,
+  );
 });
 
 class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
   final ConceptsRepository _repo;
+  final Ref _ref;
 
-  ConceptsNotifier(this._repo) : super(ConceptsAnalysisState());
+  ConceptsNotifier(this._repo, this._ref) : super(ConceptsAnalysisState());
 
   Future<List<ProblemConceptModel>> analyzeProblem({
     required int problemId,
@@ -265,6 +285,9 @@ class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
       );
       
       state = state.copyWith(isLoading: false);
+      
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
       
       // Show notification even if user navigated away
       if (result.isNotEmpty) {
@@ -282,6 +305,9 @@ class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
       return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+      
+      // Refresh billing balance even on error
+      _ref.invalidate(billingBalanceProvider);
       
       String errorMsg = 'Ошибка анализа';
       if (e.toString().contains('402')) {
@@ -311,6 +337,9 @@ class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
       
       state = state.copyWith(isLoading: false);
       
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
+      
       // Show notification even if user navigated away
       if (result.isNotEmpty) {
         NotificationService.showAiResult(
@@ -327,6 +356,9 @@ class ConceptsNotifier extends StateNotifier<ConceptsAnalysisState> {
       return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+      
+      // Refresh billing balance even on error
+      _ref.invalidate(billingBalanceProvider);
       
       String errorMsg = 'Ошибка анализа';
       if (e.toString().contains('402')) {
