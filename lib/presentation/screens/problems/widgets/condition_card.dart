@@ -56,21 +56,14 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
                 const Spacer(),
                 // Owner-only buttons (OCR only if can edit)
                 if (widget.isOwner) ...[
-                  if (widget.problem.hasImage)
-                    ocrState.isLoading
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: ThinkingIndicator(
-                              persona: ocrState.currentPersona ?? PersonaId.petrovich,
-                            ),
-                          )
-                        : IconButton(
-                            icon: const Icon(Icons.auto_awesome, size: 20),
-                            onPressed: widget.canEdit ? widget.onOcr : null,
-                            tooltip: widget.canEdit 
-                                ? 'Распознать текст (OCR)' 
-                                : 'Недоступно для задач на модерации',
-                          ),
+                  if (widget.problem.hasImage && !ocrState.isLoading)
+                    IconButton(
+                      icon: const Icon(Icons.auto_awesome, size: 20),
+                      onPressed: widget.canEdit ? widget.onOcr : null,
+                      tooltip: widget.canEdit 
+                          ? 'Распознать текст (OCR)' 
+                          : 'Недоступно для задач на модерации',
+                    ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: widget.canEdit ? widget.onEdit : null,
@@ -92,7 +85,17 @@ class _ConditionCardState extends ConsumerState<ConditionCard> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            
+            // OCR thinking indicator - on separate line below header
+            if (widget.isOwner && widget.problem.hasImage && ocrState.isLoading)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 12),
+                child: ThinkingIndicator(
+                  persona: ocrState.currentPersona ?? PersonaId.petrovich,
+                ),
+              )
+            else
+              const SizedBox(height: 12),
             
             // Content: text, image, or placeholder
             _buildContent(context),
