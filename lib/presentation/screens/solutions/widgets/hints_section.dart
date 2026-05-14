@@ -28,6 +28,7 @@ class HintsSection extends ConsumerWidget {
               color: Theme.of(context).colorScheme.secondary,
             ),
             title: Text('Подсказки (${list.length})'),
+            dividerColor: Colors.transparent,
             children: list.map((h) {
               return HintItem(hint: h);
             }).toList(),

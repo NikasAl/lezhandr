@@ -25,6 +25,7 @@ class EpiphaniesSection extends ConsumerWidget {
           child: ExpansionTile(
             leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
             title: Text('Озарения (${list.length})'),
+            dividerColor: Colors.transparent,
             children: list.map((e) {
               return EpiphanyItem(epiphany: e);
             }).toList(),

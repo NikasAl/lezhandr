@@ -28,6 +28,7 @@ class QuestionsSection extends ConsumerWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             title: Text('Вопросы (${list.length})'),
+            dividerColor: Colors.transparent,
             children: list.map((q) {
               return QuestionItem(question: q);
             }).toList(),
