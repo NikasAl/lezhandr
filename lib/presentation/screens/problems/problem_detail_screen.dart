@@ -206,7 +206,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
 
   Future<void> _saveConditionText(String text) async {
     if (text.isEmpty) return;
-    
+
     setState(() => _isLoading = true);
     try {
       await ref.read(problemNotifierProvider.notifier).updateProblem(
@@ -222,6 +222,156 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _saveReference(String reference) async {
+    if (reference.trim().isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(problemNotifierProvider.notifier).updateProblem(
+        widget.problemId,
+        reference: reference.trim(),
+      );
+      if (mounted) {
+        ref.invalidate(problemProvider(widget.problemId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Номер задачи сохранён')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showEditReferenceDialog(String currentReference, bool isApproved) {
+    final controller = TextEditingController(text: currentReference);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      enableDrag: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 16,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.edit_note, color: Colors.indigo, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Редактировать номер',
+                        style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Text field
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Номер/название задачи',
+                    hintText: 'Например: 1.234 или Задача №5',
+                  ),
+                  autofocus: true,
+                ),
+
+                // Moderation warning
+                if (isApproved) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange[700], size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'При редактировании задача вернётся на модерацию',
+                            style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        child: const Text('Отмена'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          _saveReference(controller.text);
+                        },
+                        icon: const Icon(Icons.save, size: 18),
+                        label: const Text('Сохранить'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _runConceptsAnalysis() async {
@@ -272,7 +422,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     final isOcrLoading = ocrState.isLoading;
     // Owner can edit any problem - approved problems will be reset to pending
     final canEdit = isOwner;
-    
+
     showModalBottomSheet(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -280,6 +430,15 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (canEdit) ...[
+              ListTile(
+                leading: const Icon(Icons.edit_note),
+                title: const Text('Редактировать номер'),
+                subtitle: Text('Текущий: ${data.reference}'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showEditReferenceDialog(data.reference, data.isApproved);
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('Редактировать текст'),
