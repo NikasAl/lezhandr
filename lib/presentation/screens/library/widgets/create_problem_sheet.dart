@@ -307,35 +307,22 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
             const SizedBox(height: 8),
             
             if (_selectedPhotoPath != null) ...[
-              // Photo preview
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+              // Photo preview with zoom support
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  color: Colors.black,
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
                     child: Image.file(
                       File(_selectedPhotoPath!),
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Material(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: _removePhoto,
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.close, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -345,6 +332,15 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
                       onPressed: _showImageSourceDialog,
                       icon: const Icon(Icons.refresh, size: 18),
                       label: const Text('Заменить фото'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _removePhoto,
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Удалить фото',
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.red,
                     ),
                   ),
                 ],
