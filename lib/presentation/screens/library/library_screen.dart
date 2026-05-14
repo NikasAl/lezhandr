@@ -268,6 +268,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             _accumulatedProblems[index] = updatedProblem;
           }
         });
+        
+        // Invalidate problemsListProvider for the current filter to update cache
+        // This ensures fresh data is loaded when user navigates away and back
+        final currentUser = ref.read(currentUserProvider);
+        final userId = _showMyOnly ? currentUser?.id : null;
+        final currentFilter = ProblemsFilter(
+          source: _selectedSource,
+          search: _searchQuery.isEmpty || _searchByReference ? null : _searchQuery,
+          reference: _searchQuery.isEmpty || !_searchByReference ? null : _searchQuery,
+          userId: userId,
+          limit: 20,
+          offset: 0,
+        );
+        ref.invalidate(problemsListProvider(currentFilter));
       }
     } catch (e) {
       // Silently fail - the problem might have been deleted or other issue
