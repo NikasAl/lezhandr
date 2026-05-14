@@ -1,10 +1,23 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../data/models/problem.dart';
 import '../../../../data/repositories/problems_repository.dart';
 import '../../../../presentation/providers/problems_provider.dart';
 import '../../../providers/providers.dart';
+import '../../../providers/ocr_provider.dart';
+import '../../camera/image_cropper_screen.dart';
 import 'tags_selector.dart';
+
+/// Result of problem creation
+class CreateProblemResult {
+  final ProblemModel problem;
+  final String? photoPath; // Path to uploaded photo (if any)
+
+  CreateProblemResult({required this.problem, this.photoPath});
+}
 
 /// Create problem bottom sheet
 class CreateProblemSheet extends ConsumerStatefulWidget {
@@ -30,6 +43,10 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
   String? _selectedSourceName;
   List<String> _selectedTags = [];
   bool _isLoading = false;
+  
+  // Photo state
+  String? _selectedPhotoPath;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -45,6 +62,93 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
     _refController.dispose();
     _conditionController.dispose();
     super.dispose();
+  }
+
+  /// Pick image from gallery
+  Future<void> _pickFromGallery() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 95,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+
+    if (image != null) {
+      await _processImage(image.path);
+    }
+  }
+
+  /// Take picture with camera
+  Future<void> _takePicture() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 95,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+
+    if (image != null) {
+      await _processImage(image.path);
+    }
+  }
+
+  /// Process captured image - open cropper
+  Future<void> _processImage(String imagePath) async {
+    if (!mounted) return;
+    
+    final croppedPath = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageCropperScreen(
+          imagePath: imagePath,
+          title: 'Фото условия',
+        ),
+      ),
+    );
+    
+    if (croppedPath != null && mounted) {
+      setState(() => _selectedPhotoPath = croppedPath);
+    } else if (mounted) {
+      // User cancelled cropping - still use the original image
+      setState(() => _selectedPhotoPath = imagePath);
+    }
+  }
+
+  /// Remove selected photo
+  void _removePhoto() {
+    setState(() => _selectedPhotoPath = null);
+  }
+
+  /// Show image source selection dialog
+  Future<void> _showImageSourceDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Добавить фото'),
+        content: const Text('Выберите источник изображения для условия задачи'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'gallery'),
+            child: const Text('Галерея'),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(ctx, 'camera'),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Камера'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'gallery') {
+      await _pickFromGallery();
+    } else if (result == 'camera') {
+      await _takePicture();
+    }
   }
 
   Future<void> _createProblem() async {
@@ -76,9 +180,30 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
         ),
       );
 
+      // If photo was selected, upload it
+      String? uploadedPhotoPath;
+      if (_selectedPhotoPath != null && problem.id != null) {
+        try {
+          final uploadResult = await widget.ref.read(uploadNotifierProvider.notifier).uploadImage(
+            category: 'condition',
+            entityId: problem.id!,
+            filePath: _selectedPhotoPath!,
+          );
+          if (uploadResult.success) {
+            uploadedPhotoPath = _selectedPhotoPath;
+          }
+        } catch (e) {
+          // Photo upload failed, but problem was created
+          debugPrint('Photo upload failed: $e');
+        }
+      }
+
       if (mounted) {
-        // Return the created problem to the parent
-        Navigator.of(context).pop(problem);
+        // Return the created problem with photo info
+        Navigator.of(context).pop(CreateProblemResult(
+          problem: problem,
+          photoPath: uploadedPhotoPath,
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -173,6 +298,80 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
               ],
             ),
             const SizedBox(height: 20),
+
+            // Photo section (moved to top for better UX)
+            Text(
+              'Фото условия (опционально)',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+            const SizedBox(height: 8),
+            
+            if (_selectedPhotoPath != null) ...[
+              // Photo preview
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(_selectedPhotoPath!),
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _removePhoto,
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.close, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showImageSourceDialog,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Заменить фото'),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Photo selection buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickFromGallery,
+                      icon: const Icon(Icons.photo_library, size: 18),
+                      label: const Text('Галерея'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _takePicture,
+                      icon: const Icon(Icons.camera_alt, size: 18),
+                      label: const Text('Камера'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
 
             // Source selection
             Text(
@@ -418,95 +617,6 @@ class _NewSourceSheetState extends State<NewSourceSheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Confirm photo bottom sheet
-class ConfirmPhotoSheet extends StatelessWidget {
-  final int problemId;
-
-  const ConfirmPhotoSheet({super.key, required this.problemId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Задача создана!',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          Text(
-            'ID: $problemId',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Добавить фото условия?',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Позже'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Добавить фото'),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

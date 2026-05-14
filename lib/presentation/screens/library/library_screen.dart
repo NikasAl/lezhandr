@@ -12,6 +12,7 @@ import '../../widgets/shared/adaptive_layout.dart';
 import '../../widgets/shared/error_display.dart';
 import '../../widgets/motivation/motivation_card.dart';
 import 'widgets/widgets.dart';
+import 'widgets/create_problem_sheet.dart';
 
 /// Library screen - browse sources and problems with pagination
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -656,7 +657,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       selectedSource = null;
     }
 
-    final problem = await showModalBottomSheet<ProblemModel>(
+    final result = await showModalBottomSheet<CreateProblemResult>(
       context: context,
       isScrollControlled: true,
       enableDrag: true,
@@ -672,30 +673,45 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
 
     // Handle result after sheet is closed
-    if (problem != null && mounted) {
-      // Refresh the list
-      ref.invalidate(problemsListProvider);
-      _resetPagination();
+    if (result != null && mounted) {
+      final problem = result.problem;
+      
+      // Add the new problem to the beginning of the list with full data
+      setState(() {
+        _accumulatedProblems.insert(0, problem);
+        _totalProblems++;
+      });
 
-      // Ask if user wants to add photo
-      final addPhoto = await showModalBottomSheet<bool>(
-        context: context,
-        isScrollControlled: true,
-        useRootNavigator: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  result.photoPath != null 
+                      ? 'Задача создана с фото условия'
+                      : 'Задача создана',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
         ),
-        builder: (ctx) => ConfirmPhotoSheet(problemId: problem.id!),
       );
 
-      if (addPhoto == true && mounted) {
-        await context.push('/camera?category=condition&entityId=${problem.id}');
-        ref.invalidate(problemsListProvider);
-        _resetPagination();
-      } else if (mounted) {
+      // Invalidate providers to refresh data
+      ref.invalidate(problemsListProvider);
+      ref.invalidate(sourcesProvider); // Source might need to update problem count
+      
+      // Navigate to the problem
+      if (mounted) {
         await context.push('/problems/${problem.id}');
-        ref.invalidate(problemsListProvider);
-        _resetPagination();
+        // Update the problem after returning from detail screen
+        _updateSingleProblem(problem.id!);
       }
     }
   }
