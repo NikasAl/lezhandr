@@ -22,13 +22,15 @@ class EpiphaniesSection extends ConsumerWidget {
         if (list.isEmpty) return const SizedBox.shrink();
 
         return Card(
-          child: ExpansionTile(
-            leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
-            title: Text('Озарения (${list.length})'),
-            dividerColor: Colors.transparent,
-            children: list.map((e) {
-              return EpiphanyItem(epiphany: e);
-            }).toList(),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              leading: const Icon(Icons.lightbulb_outline, color: Colors.amber),
+              title: Text('Озарения (${list.length})'),
+              children: list.map((e) {
+                return EpiphanyItem(epiphany: e);
+              }).toList(),
+            ),
           ),
         );
       },

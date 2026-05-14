@@ -22,16 +22,18 @@ class QuestionsSection extends ConsumerWidget {
         if (list.isEmpty) return const SizedBox.shrink();
 
         return Card(
-          child: ExpansionTile(
-            leading: Icon(
-              Icons.help_outline,
-              color: Theme.of(context).colorScheme.primary,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              leading: Icon(
+                Icons.help_outline,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text('Вопросы (${list.length})'),
+              children: list.map((q) {
+                return QuestionItem(question: q);
+              }).toList(),
             ),
-            title: Text('Вопросы (${list.length})'),
-            dividerColor: Colors.transparent,
-            children: list.map((q) {
-              return QuestionItem(question: q);
-            }).toList(),
           ),
         );
       },

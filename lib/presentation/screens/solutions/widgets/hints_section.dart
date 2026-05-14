@@ -22,16 +22,18 @@ class HintsSection extends ConsumerWidget {
         if (list.isEmpty) return const SizedBox.shrink();
 
         return Card(
-          child: ExpansionTile(
-            leading: Icon(
-              Icons.lightbulb_outline,
-              color: Theme.of(context).colorScheme.secondary,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              leading: Icon(
+                Icons.lightbulb_outline,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              title: Text('Подсказки (${list.length})'),
+              children: list.map((h) {
+                return HintItem(hint: h);
+              }).toList(),
             ),
-            title: Text('Подсказки (${list.length})'),
-            dividerColor: Colors.transparent,
-            children: list.map((h) {
-              return HintItem(hint: h);
-            }).toList(),
           ),
         );
       },
