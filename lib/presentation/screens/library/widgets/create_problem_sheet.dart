@@ -1,13 +1,18 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../data/models/problem.dart';
+import '../../../../data/models/artifacts.dart';
 import '../../../../data/repositories/problems_repository.dart';
 import '../../../../presentation/providers/problems_provider.dart';
 import '../../../providers/providers.dart';
 import '../../../providers/ocr_provider.dart';
+import '../../../providers/billing_provider.dart';
+import '../../../widgets/shared/persona_selector.dart';
+import '../../../widgets/shared/thinking_indicator.dart';
 import '../../camera/image_cropper_screen.dart';
 import 'tags_selector.dart';
 
@@ -43,7 +48,8 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
   String? _selectedSourceName;
   List<String> _selectedTags = [];
   bool _isLoading = false;
-  
+  bool _isOcrLoading = false;
+
   // Photo state
   String? _selectedPhotoPath;
   final ImagePicker _picker = ImagePicker();
@@ -148,6 +154,65 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
       await _pickFromGallery();
     } else if (result == 'camera') {
       await _takePicture();
+    }
+  }
+
+  /// Run OCR on selected photo and fill condition text
+  Future<void> _runOcr() async {
+    if (_selectedPhotoPath == null) return;
+
+    final billing = ref.read(billingBalanceProvider);
+    final persona = await showPersonaSheet(
+      context,
+      ref,
+      defaultPersona: PersonaId.petrovich,
+      freeUsesLeft: billing.value?.freeUsesLeft,
+      balance: billing.value?.balance,
+      hearts: null, // OCR не поддерживает оплату сердцами
+    );
+    if (persona == null) return;
+
+    setState(() => _isOcrLoading = true);
+
+    try {
+      // Read image file and convert to base64
+      final file = File(_selectedPhotoPath!);
+      final bytes = await file.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Call OCR API
+      final result = await ref.read(ocrNotifierProvider.notifier).processImageDirect(
+        base64Image: base64Image,
+        persona: persona,
+      );
+
+      if (result.success && result.text != null && mounted) {
+        // Fill condition text field with OCR result
+        _conditionController.text = result.text!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${persona.displayName} распознал текст'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (result.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${result.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка OCR: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isOcrLoading = false);
+      }
     }
   }
 
@@ -325,18 +390,32 @@ class _CreateProblemSheetState extends ConsumerState<CreateProblemSheet> {
                 ),
               ),
               const SizedBox(height: 8),
+              // OCR loading indicator
+              if (_isOcrLoading) ...[
+                ThinkingIndicator(persona: PersonaId.petrovich),
+                const SizedBox(height: 8),
+              ],
+              // Photo action buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _showImageSourceDialog,
+                      onPressed: _isOcrLoading ? null : _showImageSourceDialog,
                       icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Заменить фото'),
+                      label: const Text('Заменить'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _isOcrLoading ? null : _runOcr,
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('OCR'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    onPressed: _removePhoto,
+                    onPressed: _isOcrLoading ? null : _removePhoto,
                     icon: const Icon(Icons.delete_outline),
                     tooltip: 'Удалить фото',
                     style: IconButton.styleFrom(

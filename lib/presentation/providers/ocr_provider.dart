@@ -208,11 +208,48 @@ class OcrNotifier extends StateNotifier<OcrState> {
         isLoading: false,
         error: result.error,
       );
-      
+
       // Refresh billing balance even on error
       _ref.invalidate(billingBalanceProvider);
-      
+
       NotificationService.showError('OCR: ${result.error}');
+      return result;
+    }
+  }
+
+  /// Process image directly from base64 (OCR without problem_id)
+  /// Used during task creation to preview recognized text
+  /// Does not show notifications - caller handles UI feedback
+  Future<OcrResult> processImageDirect({
+    required String base64Image,
+    PersonaId persona = PersonaId.petrovich,
+  }) async {
+    state = state.copyWith(isLoading: true, currentPersona: persona, clearError: true, clearText: true);
+
+    try {
+      final result = await _repo.processImageDirect(
+        base64Image: base64Image,
+        persona: persona,
+      );
+
+      state = state.copyWith(
+        isLoading: false,
+        text: result.text,
+        error: result.error,
+      );
+
+      // Refresh billing balance after AI request
+      _ref.invalidate(billingBalanceProvider);
+
+      return result;
+    } catch (e) {
+      final result = OcrResult.error(e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: result.error,
+      );
+
+      _ref.invalidate(billingBalanceProvider);
       return result;
     }
   }

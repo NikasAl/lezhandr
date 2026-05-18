@@ -145,4 +145,43 @@ class OcrRepository {
       return OcrResult.error(e.toString());
     }
   }
+
+  /// Process image directly from base64 (OCR without problem_id)
+  /// Used during task creation to preview recognized text
+  Future<OcrResult> processImageDirect({
+    required String base64Image,
+    PersonaId persona = PersonaId.petrovich,
+  }) async {
+    try {
+      // Use longPollDio for extended timeout (5 minutes)
+      final response = await _apiClient.longPollDio.post(
+        '/content/process-image/ocr-direct',
+        queryParameters: {'persona': persona.name},
+        data: {'image_base64': base64Image},
+      );
+
+      if (response.statusCode == 200) {
+        return OcrResult.fromJson(response.data);
+      }
+
+      return OcrResult.error('OCR failed: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 402) {
+        return OcrResult.error('Недостаточно средств');
+      }
+      if (e.type == DioExceptionType.receiveTimeout) {
+        return OcrResult.error('Превышено время ожидания. Попробуйте позже.');
+      }
+      // Try to extract error message from response
+      if (e.response?.data != null && e.response!.data is Map) {
+        final detail = e.response!.data['detail'];
+        if (detail != null) {
+          return OcrResult.error(detail.toString());
+        }
+      }
+      return OcrResult.error(e.message ?? 'Network error');
+    } catch (e) {
+      return OcrResult.error(e.toString());
+    }
+  }
 }
